@@ -1,0 +1,8 @@
+Entidad,Caso de Uso,Descripcion,Estado,Ultima Actualizacion
+ADL,Churn Prediction,"Predicts customer churn based on usage patterns.",Deployed,2024-05-10T12:00:00.000Z
+ADL,Fraud Detection,"Detects fraudulent transactions in real-time.",Development,2024-07-20T10:30:00.000Z
+BAC,Credit Scoring,"ML model for assessing credit risk.",Deployed,2024-06-15T09:00:00.000Z
+Banco de Bogotá,Sentiment Analysis,"Analyzes customer feedback from social media.",Development,2024-07-22T14:00:00.000Z
+Corfi,Portfolio Optimization,"Optimizes investment portfolios using ML algorithms.",Task Assigned,2024-07-18T11:00:00.000Z
+Unipalma,Crop Yield Prediction,"Forecasts crop yield using weather and satellite data.",Cancelled,2024-03-01T18:00:00.000Z
+Banco Occidente,Loan Default Prediction,"Predicts the likelihood of loan defaults.",Deployed,2024-04-25T16:20:00.000Z
