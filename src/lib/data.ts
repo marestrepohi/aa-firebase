@@ -83,6 +83,7 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
 
 async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
   try {
+    await fs.access(entitiesCsvPath);
     const fileContent = await fs.readFile(entitiesCsvPath, 'utf8');
     const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');;
     const headerLine = lines.shift();
@@ -95,7 +96,7 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
     }
 
     return lines.map(line => {
-      const [name, description, logo] = line.split(',').map(s => s.trim());
+      const [name, description, logo] = line.split(',').map(s => s.trim().replace(/"/g, ''));
       const id = slugify(name);
       
       const entityUseCases = allUseCases.filter(uc => uc.entityId === id);
@@ -122,6 +123,10 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
       };
     });
   } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        console.log('entidades.csv not found, returning empty array.');
+        return [];
+    }
     console.error("Failed to read or parse entities CSV:", error);
     return [];
   }
