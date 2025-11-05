@@ -14,6 +14,7 @@ interface EntityFiltersProps {
   estadoOptions: string[];
   tipoProyectoOptions: string[];
   tipoDesarrolloOptions: string[];
+  highLevelStatusOptions: string[];
   currentFilters: {
     highLevelStatus: string;
     estado: string;
@@ -27,6 +28,7 @@ export function EntityFilters({
   estadoOptions,
   tipoProyectoOptions,
   tipoDesarrolloOptions,
+  highLevelStatusOptions,
   currentFilters
 }: EntityFiltersProps) {
   
@@ -46,55 +48,44 @@ export function EntityFilters({
     currentFilters.tipoDesarrollo !== 'all';
 
   return (
-    <div className="bg-white rounded-lg border p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-700">Filtros</h3>
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearFilters}
-            className="h-8 text-xs"
-          >
-            <X className="h-3 w-3 mr-1" />
-            Limpiar filtros
-          </Button>
-        )}
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="bg-white rounded-lg border p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xs font-semibold text-gray-700">Filtros:</span>
+        
         {/* Filtro de Estado Alto Nivel */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-600">Estado Alto Nivel</label>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600 whitespace-nowrap">Estado Alto Nivel</label>
           <Select
             value={currentFilters.highLevelStatus}
             onValueChange={(value) =>
               onFilterChange({ ...currentFilters, highLevelStatus: value })
             }
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-[140px] h-8 text-xs">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="Activo">Activo</SelectItem>
-              <SelectItem value="Inactivo">Inactivo</SelectItem>
-              <SelectItem value="Estrategico">Estratégico</SelectItem>
+              {highLevelStatusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
         {/* Filtro de Estado */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-600">Estado</label>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600 whitespace-nowrap">Estado</label>
           <Select
             value={currentFilters.estado}
             onValueChange={(value) =>
               onFilterChange({ ...currentFilters, estado: value })
             }
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Seleccionar estado" />
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los estados</SelectItem>
@@ -108,16 +99,16 @@ export function EntityFilters({
         </div>
 
         {/* Filtro de Tipo Proyecto */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-600">Tipo Proyecto</label>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600 whitespace-nowrap">Tipo Proyecto</label>
           <Select
             value={currentFilters.tipoProyecto}
             onValueChange={(value) =>
               onFilterChange({ ...currentFilters, tipoProyecto: value })
             }
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Seleccionar tipo" />
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los tipos</SelectItem>
@@ -131,16 +122,16 @@ export function EntityFilters({
         </div>
 
         {/* Filtro de Tipo Desarrollo */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-600">Tipo Desarrollo</label>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600 whitespace-nowrap">Tipo Desarrollo</label>
           <Select
             value={currentFilters.tipoDesarrollo}
             onValueChange={(value) =>
               onFilterChange({ ...currentFilters, tipoDesarrollo: value })
             }
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Seleccionar desarrollo" />
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
@@ -152,6 +143,18 @@ export function EntityFilters({
             </SelectContent>
           </Select>
         </div>
+
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearFilters}
+            className="h-8 text-xs ml-auto"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Limpiar
+          </Button>
+        )}
       </div>
     </div>
   );

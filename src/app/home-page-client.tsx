@@ -60,19 +60,15 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases }
 
   return (
     <div className="p-4 md:p-8 space-y-8">
-      <PageHeader
-        title="Casos de Uso por Entidad"
-        description="Selecciona una entidad para ver y gestionar sus casos de uso de IA"
-      />
-
-      {/* Filtros globales */}
-      <GlobalFilters
-        onFilterChange={setFilters}
-        estadoOptions={filterOptions.estados}
-        tipoProyectoOptions={filterOptions.tiposProyecto}
-        tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
-        currentFilters={filters}
-      />
+      <div className="flex flex-col gap-4">
+        <GlobalFilters
+          onFilterChange={setFilters}
+          estadoOptions={filterOptions.estados}
+          tipoProyectoOptions={filterOptions.tiposProyecto}
+          tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
+          currentFilters={filters}
+        />
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <SummaryCard 

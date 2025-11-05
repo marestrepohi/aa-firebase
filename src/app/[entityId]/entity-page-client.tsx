@@ -26,17 +26,24 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
     const estados = new Set<string>();
     const tiposProyecto = new Set<string>();
     const tiposDesarrollo = new Set<string>();
+    const highLevelStatuses = new Set<string>();
 
     initialUseCases.forEach(uc => {
       if (uc.status) estados.add(uc.status);
       if (uc.tipoProyecto) tiposProyecto.add(uc.tipoProyecto);
       if (uc.tipoDesarrollo) tiposDesarrollo.add(uc.tipoDesarrollo);
+      // Solo aceptar valores válidos para highLevelStatus
+      const validStatuses = ['Activo', 'Inactivo', 'Estrategico'];
+      if (uc.highLevelStatus && validStatuses.includes(uc.highLevelStatus)) {
+        highLevelStatuses.add(uc.highLevelStatus);
+      }
     });
 
     return {
       estados: Array.from(estados).sort(),
       tiposProyecto: Array.from(tiposProyecto).sort(),
-      tiposDesarrollo: Array.from(tiposDesarrollo).sort()
+      tiposDesarrollo: Array.from(tiposDesarrollo).sort(),
+      highLevelStatuses: Array.from(highLevelStatuses).sort()
     };
   }, [initialUseCases]);
 
@@ -83,21 +90,24 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
 
   return (
     <div className="p-4 md:p-8 space-y-6">
-      <PageHeader
-        title={`Casos de Uso`}
-        description={entity.description}
-        action={<CreateUseCaseButton entityId={entity.id} />}
-      />
+      <div className="flex flex-col gap-4">
+        <PageHeader
+          title={`Casos de Uso`}
+          description={entity.description}
+          action={<CreateUseCaseButton entityId={entity.id} />}
+        />
+
+        <EntityFilters
+          onFilterChange={setFilters}
+          estadoOptions={filterOptions.estados}
+          tipoProyectoOptions={filterOptions.tiposProyecto}
+          tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
+          highLevelStatusOptions={filterOptions.highLevelStatuses}
+          currentFilters={filters}
+        />
+      </div>
 
       <EntityStatsPanel stats={stats} />
-
-      <EntityFilters
-        onFilterChange={setFilters}
-        estadoOptions={filterOptions.estados}
-        tipoProyectoOptions={filterOptions.tiposProyecto}
-        tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
-        currentFilters={filters}
-      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredUseCases.length > 0 ? (

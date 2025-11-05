@@ -92,9 +92,11 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
         nivelImpacto: header.findIndex(h => h.toLowerCase().includes('nivel impacto')),
         unidadImpacto: header.findIndex(h => h.toLowerCase().includes('unidad del impacto')),
         impactoFinanciero: header.findIndex(h => h.toLowerCase().includes('impacto financiero') && !h.toLowerCase().includes('nivel') && !h.toLowerCase().includes('unidad')),
-        sharepointLink: header.findIndex(h => h.toLowerCase().includes('sharepoint link')),
-        jiraLink: header.findIndex(h => h.toLowerCase().includes('jira link')),
-        confluenceLink: header.findIndex(h => h.toLowerCase().includes('confluence link'))
+        sharepointLink: header.findIndex(h => h === 'Sharepoint Link'),
+        sharepointActividades: header.findIndex(h => h === 'Sharepoint Actividades'),
+        jiraLink: header.findIndex(h => h === 'Jira Link'),
+        jiraActividades: header.findIndex(h => h === 'Jira Actividades'),
+        confluenceLink: header.findIndex(h => h === 'Confluence Link')
     };
 
     if (colIndices.entidad === -1 || colIndices.proyecto === -1) {
@@ -123,7 +125,9 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
       const unidadImpacto = (parts[colIndices.unidadImpacto] !== undefined ? parts[colIndices.unidadImpacto].toString() : '').trim().replace(/"/g, '');
       const impactoFinanciero = (parts[colIndices.impactoFinanciero] !== undefined ? parts[colIndices.impactoFinanciero].toString() : '').trim().replace(/"/g, '');
       const sharepointLink = (parts[colIndices.sharepointLink] !== undefined ? parts[colIndices.sharepointLink].toString() : '').trim().replace(/"/g, '');
+      const sharepointActividades = (parts[colIndices.sharepointActividades] !== undefined ? parts[colIndices.sharepointActividades].toString() : '').trim().replace(/"/g, '');
       const jiraLink = (parts[colIndices.jiraLink] !== undefined ? parts[colIndices.jiraLink].toString() : '').trim().replace(/"/g, '');
+      const jiraActividades = (parts[colIndices.jiraActividades] !== undefined ? parts[colIndices.jiraActividades].toString() : '').trim().replace(/"/g, '');
       const confluenceLink = (parts[colIndices.confluenceLink] !== undefined ? parts[colIndices.confluenceLink].toString() : '').trim().replace(/"/g, '');
 
       const entityId = slugify(entityName);
@@ -148,15 +152,21 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
       }
 
       const businessMetrics: Metric[] = [];
-      if (sharepointLink) businessMetrics.push({ label: 'SharePoint', value: sharepointLink });
-      if (jiraLink) businessMetrics.push({ label: 'Jira', value: jiraLink });
+      if (sharepointLink) {
+        businessMetrics.push({ label: 'SharePoint', value: sharepointLink });
+        if (sharepointActividades) businessMetrics.push({ label: 'SharePoint Actividades', value: sharepointActividades });
+      }
+      if (jiraLink) {
+        businessMetrics.push({ label: 'Jira', value: jiraLink });
+        if (jiraActividades) businessMetrics.push({ label: 'Jira Actividades', value: jiraActividades });
+      }
       if (confluenceLink) businessMetrics.push({ label: 'Confluence', value: confluenceLink });
 
       return {
         id: useCaseId,
         entityId: entityId,
         name: proyecto,
-        description: observaciones,
+        description: '', // No mostrar observaciones en las tarjetas
         status: estado as UseCaseStatus,
         highLevelStatus: estadoAltoNivel || 'Inactivo',
         tipoProyecto: tipoProyecto || 'Sin clasificar',
@@ -215,19 +225,24 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
       const id = slugify(name);
       
       const entityUseCases = allUseCases.filter(uc => uc.entityId === id);
-      // Count only active cases (highLevelStatus === 'Activo')
-      const activeUseCases = entityUseCases.filter(uc => uc.highLevelStatus === 'Activo');
-      const active = activeUseCases.filter(uc => {
-        const status = uc.status.toLowerCase();
-        return status.includes('finalizado') || status.includes('entregado') || status.includes('deployed');
-      }).length;
-      const total = activeUseCases.length;
-      const inDevelopment = activeUseCases.filter(uc => {
-        const status = uc.status.toLowerCase();
-        return status.includes('desarrollo') || status.includes('development');
-      }).length;
-      const alerts = activeUseCases.length > 0 ? Math.floor(Math.random() * 3) : 0;
-      const totalImpact = activeUseCases.reduce((acc, curr) => acc + (Math.random() * 5), 0);
+      
+      // Métrica 1: Casos Activos (donde highLevelStatus === 'Activo')
+      const activeCases = entityUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
+      
+      // Métrica 2: Casos Inactivos (donde highLevelStatus === 'Inactivo')
+      const inactiveCases = entityUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
+      
+      // Métrica 3: Cantidad de DS únicos (contar DS1 distintos)
+      const dsSet = new Set<string>();
+      entityUseCases.forEach(uc => {
+        // Buscar el DS1 en los technical metrics
+        const ds1Name = uc.metrics.technical
+          .find(m => m.label === 'DS Principal')?.value;
+        if (ds1Name && typeof ds1Name === 'string' && ds1Name.trim() !== '') {
+          dsSet.add(ds1Name.trim());
+        }
+      });
+      const dsCount = dsSet.size;
       
       return {
         id,
@@ -236,12 +251,12 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
         logo: logo,
         subName: description,
         stats: {
-          active,
-          total,
-          scientists: Math.floor(Math.random() * 5) + 1,
-          inDevelopment,
-          alerts,
-          totalImpact: parseFloat(totalImpact.toFixed(1)),
+          active: activeCases,
+          total: dsCount,
+          scientists: 0,
+          inDevelopment: inactiveCases,
+          alerts: 0,
+          totalImpact: 0,
         },
       };
     });

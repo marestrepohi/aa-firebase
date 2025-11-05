@@ -96,42 +96,44 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
           </div>
         )}
         
-        {/* Notes */}
-        {useCase.description && useCase.description !== 'Sin observaciones' && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-            <div className="text-xs font-medium text-muted-foreground mb-1">
-              Notas del Proyecto
-            </div>
-            <p className="text-xs text-muted-foreground line-clamp-3">
-              {useCase.description}
-            </p>
-          </div>
-        )}
-        
         {/* Links */}
         {(sharepointLink || jiraLink || confluenceLink) && (
           <div className="flex flex-wrap gap-2 pt-2 border-t">
             {sharepointLink && typeof sharepointLink === 'string' && (
-              <a
-                href={sharepointLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-              >
-                <ExternalLink className="w-3 h-3" />
-                SharePoint
-              </a>
+              <div className="flex items-center gap-2 text-xs">
+                <a
+                  href={sharepointLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  SharePoint
+                </a>
+                {useCase.metrics.business.find(m => m.label === 'SharePoint Actividades')?.value && (
+                  <span className="text-gray-600">
+                    ({useCase.metrics.business.find(m => m.label === 'SharePoint Actividades')?.value})
+                  </span>
+                )}
+              </div>
             )}
             {jiraLink && typeof jiraLink === 'string' && (
-              <a
-                href={jiraLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-              >
-                <ExternalLink className="w-3 h-3" />
-                Jira
-              </a>
+              <div className="flex items-center gap-2 text-xs">
+                <a
+                  href={jiraLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Jira
+                </a>
+                {useCase.metrics.business.find(m => m.label === 'Jira Actividades')?.value && (
+                  <span className="text-gray-600">
+                    ({useCase.metrics.business.find(m => m.label === 'Jira Actividades')?.value})
+                  </span>
+                )}
+              </div>
             )}
             {confluenceLink && typeof confluenceLink === 'string' && (
               <a

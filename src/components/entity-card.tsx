@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import type { Entity } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Building2 } from "lucide-react";
 
 interface StatProps {
   label: string;
@@ -20,6 +21,8 @@ function Stat({ label, value, highlight = false }: StatProps) {
 }
 
 export function EntityCard({ entity }: { entity: Entity }) {
+  const [logoError, setLogoError] = useState(false);
+
   // Validate URL
   const isValidUrl = (url: string): boolean => {
     if (!url) return false;
@@ -31,47 +34,42 @@ export function EntityCard({ entity }: { entity: Entity }) {
     }
   };
 
-  const hasValidLogo = entity.logo && isValidUrl(entity.logo);
+  const hasValidLogo = entity.logo && isValidUrl(entity.logo) && !logoError;
 
   return (
-    <Card className="flex flex-col transition-all duration-200 hover:shadow-lg hover:border-primary">
-      <CardHeader className="flex-row items-center gap-4">
-        <div className="bg-white border rounded-lg p-2 flex items-center justify-center h-16 w-16">
-          {hasValidLogo ? (
-            <Image 
-              src={entity.logo} 
-              alt={`${entity.name} logo`} 
-              width={48} 
-              height={48} 
-              className="object-contain"
-              unoptimized
-            />
-          ) : (
-            <div className="text-2xl font-bold text-muted-foreground">
-              {entity.name.substring(0, 2).toUpperCase()}
+    <Link href={`/${entity.id}`}>
+      <Card className="flex flex-col transition-all duration-200 hover:shadow-lg hover:border-primary cursor-pointer h-full">
+        <CardHeader className="pb-3 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
+              <p className="text-sm text-muted-foreground line-clamp-1">{entity.subName}</p>
             </div>
-          )}
-        </div>
-        <div>
-          <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
-          <p className="text-sm text-muted-foreground line-clamp-1">{entity.subName}</p>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <div className="grid grid-cols-3 gap-2 text-sm">
-          <Stat label="Activos" value={entity.stats.active} />
-          <Stat label="Total" value={entity.stats.total} />
-          <Stat label="Científicos" value={entity.stats.scientists} />
-          <Stat label="En desarollo" value={entity.stats.inDevelopment} />
-          <Stat label="Alertas" value={entity.stats.alerts} highlight={entity.stats.alerts > 0} />
-          <Stat label="Impacto Total" value={`${entity.stats.totalImpact}M`} />
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button variant="link" asChild className="w-full">
-          <Link href={`/${entity.id}`}>Ver detalles</Link>
-        </Button>
-      </CardFooter>
-    </Card>
+            <div className="ml-4">
+              {hasValidLogo ? (
+                <Image 
+                  src={entity.logo} 
+                  alt={`${entity.name} logo`} 
+                  width={64} 
+                  height={64} 
+                  className="object-contain"
+                  unoptimized
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <Building2 className="w-16 h-16 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-grow pt-4">
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            <Stat label="Casos Activos" value={entity.stats.active} />
+            <Stat label="Casos Inactivos" value={entity.stats.inDevelopment} />
+            <Stat label="Cantidad DS" value={entity.stats.total} />
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
