@@ -39,14 +39,14 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
     
     const colIndices = {
         entidad: header.indexOf('Entidad'),
-        casoDeUso: header.indexOf('Proyecto'),
+        casoDeUso: header.indexOf('Caso de Uso'),
         descripcion: header.indexOf('Descripcion'),
-        estado: header.indexOf('Estado alto nivel'),
-        ultimaActualizacion: header.indexOf('Fecha de Entrega')
+        estado: header.indexOf('Estado'),
+        ultimaActualizacion: header.indexOf('Ultima Actualizacion')
     };
 
     if (Object.values(colIndices).some(index => index === -1)) {
-        console.error(`Invalid use cases CSV header. Missing one of 'Entidad', 'Proyecto', 'Descripcion', 'Estado alto nivel', 'Fecha de Entrega'. Got "${header.join(';')}"`);
+        console.error(`Invalid use cases CSV header. Missing one of 'Entidad', 'Caso de Uso', 'Descripcion', 'Estado', 'Ultima Actualizacion'. Got "${header.join(';')}"`);
         return [];
     }
 
