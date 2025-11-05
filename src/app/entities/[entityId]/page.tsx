@@ -7,37 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusPill } from '@/components/status-pill';
-import { Plus, ChevronRight } from 'lucide-react';
-import * as React from 'react';
-import { CreateUseCaseForm } from '@/components/create-use-case-form';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { ChevronRight } from 'lucide-react';
+import { CreateUseCaseButton } from '@/components/create-use-case-button';
 
 export const dynamic = 'force-dynamic';
-
-function CreateUseCaseButton({ entityId }: { entityId: string }) {
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="-ml-1 mr-2 h-4 w-4" />
-          Create Use Case
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create New Use Case</DialogTitle>
-          <DialogDescription>
-            This use case will be created under the current entity.
-          </DialogDescription>
-        </DialogHeader>
-        <CreateUseCaseForm entityId={entityId} setOpen={setIsOpen} />
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 
 export default async function EntityPage({ params }: { params: { entityId: string } }) {
   const [entity, useCases] = await Promise.all([
