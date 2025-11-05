@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol_v: 'https',
+        protocol: 'https',
         hostname: 'www.centenariocc.com',
         port: '',
         pathname: '/**',
@@ -102,7 +102,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname_v: 'sistemas.unipalma.com',
+        hostname: 'sistemas.unipalma.com',
         port: '',
         pathname: '/**',
       },
