@@ -4,62 +4,13 @@ import path from 'path';
 
 // --- Data Storage (In-memory, replace with a database in a real app) ---
 
-let useCases: UseCase[] = [
-  {
-    id: '101',
-    entityId: 'aval-digital-labs',
-    name: 'Churn Prediction Model',
-    description: 'A model to predict customer churn based on historical data.',
-    status: 'Deployed',
-    lastUpdated: '2024-05-20T10:00:00Z',
-    metrics: {
-      general: [
-        { label: 'Model Accuracy', value: 94, unit: '%' },
-        { label: 'Data Sources', value: 5 },
-      ],
-      financial: [
-        { label: 'Cost Savings', value: 120000, unit: 'USD' },
-        { label: 'ROI', value: 15, unit: '%' },
-      ],
-      business: [
-        { label: 'Customer Retention', value: 5, unit: '%' },
-        { label: 'Campaign Effectiveness', value: 12, unit: '%' },
-      ],
-      technical: [
-        { label: 'API Latency', value: 200, unit: 'ms' },
-        { label: 'Uptime', value: 99.9, unit: '%' },
-      ],
-    },
-  },
-  {
-    id: '102',
-    entityId: 'aval-digital-labs',
-    name: 'Customer Lifetime Value (CLV)',
-    description: 'Calculating the total worth of a customer to a business over the whole period of their relationship.',
-    status: 'Development',
-    lastUpdated: '2024-07-15T14:30:00Z',
-    metrics: {
-      general: [], financial: [], business: [], technical: []
-    }
-  },
-  {
-    id: '201',
-    entityId: 'av-villas',
-    name: 'Fraud Detection System',
-    description: 'Real-time fraud detection for financial transactions.',
-    status: 'Cancelled',
-    lastUpdated: '2023-11-01T09:00:00Z',
-    metrics: {
-      general: [], financial: [], business: [], technical: []
-    }
-  },
-];
+let useCases: UseCase[] = [];
 
 const summaryMetrics: SummaryMetrics = {
-  totalCases: 160,
-  entities: 21,
+  totalCases: 0,
+  entities: 0,
   dataScientists: 26,
-  totalImpact: '248,7',
+  totalImpact: '0',
 };
 
 
@@ -74,19 +25,20 @@ const csvPath = path.join(process.cwd(), 'public', 'entidades.csv');
 async function readEntitiesFromCSV(): Promise<Entity[]> {
   try {
     const fileContent = await fs.readFile(csvPath, 'utf8');
-    const lines = fileContent.trim().split('\n');
+    const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');;
     const headerLine = lines.shift();
     if (!headerLine) throw new Error('CSV is empty or header is missing');
     
-    // Handle BOM character if present
-    const header = headerLine.replace(/^\uFEFF/, '').split(';');
+    // Handle BOM character and ensure correct splitting
+    const header = headerLine.replace(/^\uFEFF/, '').trim().split(';');
 
-    if (header[0] !== 'Entidad' || header[1] !== 'descripcion' || header[2] !== 'logo_url') {
+    if (header.length < 3 || header[0].trim() !== 'Entidad' || header[1].trim() !== 'descripcion' || header[2].trim() !== 'logo_url') {
         throw new Error('Invalid CSV header. Expected "Entidad;descripcion;logo_url"');
     }
 
     return lines.map(line => {
-      const [name, description, logo] = line.split(';');
+      // Split by semicolon and trim whitespace from each part
+      const [name, description, logo] = line.split(';').map(s => s.trim());
       const id = name.toLowerCase().replace(/\s+/g, '-');
       
       const entityUseCases = useCases.filter(uc => uc.entityId === id);
@@ -97,21 +49,22 @@ async function readEntitiesFromCSV(): Promise<Entity[]> {
       return {
         id,
         name,
-        description,
-        logo,
+        description: description,
+        logo: logo,
         subName: description,
         stats: {
           active: active,
           total: total,
-          scientists: Math.floor(Math.random() * 10),
+          scientists: Math.floor(Math.random() * 5) + 1, // Avoid 0
           inDevelopment: inDevelopment,
-          alerts: Math.floor(Math.random() * 2), // Lowered alerts to make it less noisy
+          alerts: Math.floor(Math.random() * 3), // Random alerts
           totalImpact: parseFloat((Math.random() * 10).toFixed(1)),
         },
       };
     });
   } catch (error) {
     console.error("Failed to read or parse entities CSV:", error);
+    // Return empty array on failure to prevent app crash
     return [];
   }
 }

@@ -24,11 +24,11 @@ export function EntityCard({ entity }: { entity: Entity }) {
     <Card className="flex flex-col">
       <CardHeader className="flex-row items-center gap-4">
         <div className="bg-white border rounded-lg p-2 flex items-center justify-center h-16 w-16">
-          <Image src={entity.logo} alt={`${entity.name} logo`} width={48} height={48} />
+          <Image src={entity.logo} alt={`${entity.name} logo`} width={48} height={48} className="object-contain" />
         </div>
         <div>
           <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
-          <p className="text-sm text-muted-foreground">{entity.subName}</p>
+          <p className="text-sm text-muted-foreground line-clamp-1">{entity.subName}</p>
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -38,7 +38,7 @@ export function EntityCard({ entity }: { entity: Entity }) {
           <Stat label="Científicos" value={entity.stats.scientists} />
           <Stat label="En desarollo" value={entity.stats.inDevelopment} />
           <Stat label="Alertas" value={entity.stats.alerts} highlight={entity.stats.alerts > 0} />
-          <Stat label="Impacto Total" value={entity.stats.totalImpact} />
+          <Stat label="Impacto Total" value={`${entity.stats.totalImpact}M`} />
         </div>
       </CardContent>
       <CardFooter>
