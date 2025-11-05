@@ -35,7 +35,7 @@ async function readEntitiesFromCSV(): Promise<Entity[]> {
     const header = headerLine.replace(/^\uFEFF/, '').trim().split('\t');
 
     if (header.length < 3 || header[0].trim() !== 'Entidad' || header[1].trim() !== 'descripcion' || header[2].trim() !== 'logo_url') {
-        throw new Error('Invalid CSV header. Expected "Entidad	descripcion	logo_url"');
+        throw new Error('Invalid CSV header. Expected "Entidad\tdescripcion\tlogo_url"');
     }
 
     return lines.map(line => {
