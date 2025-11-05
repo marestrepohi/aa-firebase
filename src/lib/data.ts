@@ -32,15 +32,15 @@ async function readEntitiesFromCSV(): Promise<Entity[]> {
     if (!headerLine) throw new Error('CSV is empty or header is missing');
     
     // Handle BOM character and ensure correct splitting
-    const header = headerLine.replace(/^\uFEFF/, '').trim().split('\t');
+    const header = headerLine.replace(/^\uFEFF/, '').trim().split(',');
 
     if (header.length < 3 || header[0].trim() !== 'Entidad' || header[1].trim() !== 'descripcion' || header[2].trim() !== 'logo_url') {
-        throw new Error('Invalid CSV header. Expected "Entidad\tdescripcion\tlogo_url"');
+        throw new Error('Invalid CSV header. Expected "Entidad,descripcion,logo_url"');
     }
 
     return lines.map(line => {
-      // Split by tab and trim whitespace from each part
-      const [name, description, logo] = line.split('\t').map(s => s.trim());
+      // Split by comma and trim whitespace from each part
+      const [name, description, logo] = line.split(',').map(s => s.trim());
       const id = name.toLowerCase().replace(/\s+/g, '-');
       
       const entityUseCases = useCases.filter(uc => uc.entityId === id);
@@ -72,8 +72,8 @@ async function readEntitiesFromCSV(): Promise<Entity[]> {
 }
 
 async function writeEntitiesToCSV(entities: Omit<Entity, 'id' | 'stats' | 'subName'>[]): Promise<void> {
-  const header = 'Entidad\tdescripcion\tlogo_url\n';
-  const rows = entities.map(e => `${e.name}\t${e.description}\t${e.logo}`).join('\n');
+  const header = 'Entidad,descripcion,logo_url\n';
+  const rows = entities.map(e => `${e.name},${e.description},${e.logo}`).join('\n');
   await fs.writeFile(csvPath, header + rows, 'utf8');
 }
 
