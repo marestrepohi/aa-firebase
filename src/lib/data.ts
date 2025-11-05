@@ -37,54 +37,90 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
 
     const header = headerLine.replace(/^\uFEFF/, '').trim().split(';').map(h => h.trim());
     
+    // Map column names from casos.csv
     const colIndices = {
-        entidad: header.indexOf('Entidad'),
-        casoDeUso: header.indexOf('Caso de Uso'),
-        descripcion: header.indexOf('Descripcion'),
-        estado: header.indexOf('Estado'),
-        ultimaActualizacion: header.indexOf('Ultima Actualizacion')
+        entidad: header.findIndex(h => h.toLowerCase().includes('entidad')),
+        proyecto: header.findIndex(h => h.toLowerCase().includes('proyecto')),
+        estado: header.findIndex(h => h.toLowerCase() === 'estado'),
+        estadoAltoNivel: header.findIndex(h => h.toLowerCase().includes('estado alto nivel')),
+        tipo: header.findIndex(h => h.toLowerCase().includes('tipo proyecto')),
+        observaciones: header.findIndex(h => h.toLowerCase().includes('observaciones')),
+        ds1: header.findIndex(h => h === 'DS1'),
+        de: header.findIndex(h => h === 'DE'),
+        nivelImpacto: header.findIndex(h => h.toLowerCase().includes('nivel impacto')),
+        unidadImpacto: header.findIndex(h => h.toLowerCase().includes('unidad del impacto')),
+        impactoFinanciero: header.findIndex(h => h.toLowerCase().includes('impacto financiero') && !h.toLowerCase().includes('nivel') && !h.toLowerCase().includes('unidad')),
+        sharepointLink: header.findIndex(h => h.toLowerCase().includes('sharepoint link')),
+        jiraLink: header.findIndex(h => h.toLowerCase().includes('jira link')),
+        confluenceLink: header.findIndex(h => h.toLowerCase().includes('confluence link'))
     };
 
-    if (Object.values(colIndices).some(index => index === -1)) {
-        console.error(`Invalid use cases CSV header. Missing one of 'Entidad', 'Caso de Uso', 'Descripcion', 'Estado', 'Ultima Actualizacion'. Got "${header.join(';')}"`);
+    if (colIndices.entidad === -1 || colIndices.proyecto === -1) {
+        console.error(`Invalid use cases CSV header. Missing 'Entidad' or 'Proyecto' columns.`);
         return [];
     }
-
 
     return lines.map((line, index) => {
       const parts = line.split(';');
       const entityName = (parts[colIndices.entidad] || '').trim().replace(/"/g, '');
-      const name = (parts[colIndices.casoDeUso] || '').trim().replace(/"/g, '');
-      const description = (parts[colIndices.descripcion] || 'No description available').trim().replace(/"/g, '');
-      const status = (parts[colIndices.estado] || 'Development').trim().replace(/"/g, '') as UseCaseStatus;
-      const lastUpdated = (parts[colIndices.ultimaActualizacion] || new Date().toISOString()).trim().replace(/"/g, '');
+      const proyecto = (parts[colIndices.proyecto] || '').trim().replace(/"/g, '');
+      const estado = (parts[colIndices.estado] !== undefined ? parts[colIndices.estado] : '').trim().replace(/"/g, '');
+      const estadoAltoNivel = (parts[colIndices.estadoAltoNivel] !== undefined ? parts[colIndices.estadoAltoNivel] : '').trim().replace(/"/g, '');
+      const tipo = (parts[colIndices.tipo] !== undefined ? parts[colIndices.tipo] : '').trim().replace(/"/g, '');
+      const observaciones = (parts[colIndices.observaciones] !== undefined ? parts[colIndices.observaciones] : 'Sin observaciones').trim().replace(/"/g, '');
+      const ds1 = (parts[colIndices.ds1] !== undefined ? parts[colIndices.ds1] : '').trim().replace(/"/g, '');
+      const de = (parts[colIndices.de] !== undefined ? parts[colIndices.de] : '').trim().replace(/"/g, '');
+      const nivelImpacto = (parts[colIndices.nivelImpacto] !== undefined ? parts[colIndices.nivelImpacto] : '').trim().replace(/"/g, '');
+      const unidadImpacto = (parts[colIndices.unidadImpacto] !== undefined ? parts[colIndices.unidadImpacto] : '').trim().replace(/"/g, '');
+      const impactoFinanciero = (parts[colIndices.impactoFinanciero] !== undefined ? parts[colIndices.impactoFinanciero] : '').trim().replace(/"/g, '');
+      const sharepointLink = (parts[colIndices.sharepointLink] !== undefined ? parts[colIndices.sharepointLink] : '').trim().replace(/"/g, '');
+      const jiraLink = (parts[colIndices.jiraLink] !== undefined ? parts[colIndices.jiraLink] : '').trim().replace(/"/g, '');
+      const confluenceLink = (parts[colIndices.confluenceLink] !== undefined ? parts[colIndices.confluenceLink] : '').trim().replace(/"/g, '');
 
       const entityId = slugify(entityName);
-      const useCaseId = slugify(`${entityName}-${name}-${index}`);
+      const useCaseId = slugify(`${entityName}-${proyecto}`);
       
-      const generateMetrics = (): Metric[] => [
-          { label: 'Users', value: Math.floor(Math.random() * 1000), unit: 'k' },
-          { label: 'ROI', value: Math.floor(Math.random() * 200), unit: '%' },
+      // Build team members
+      const teamMembers = [];
+      if (ds1) teamMembers.push({ role: 'DS Principal', name: ds1 });
+      if (de) teamMembers.push({ role: 'Ingeniero', name: de });
+
+      // Build metrics from CSV data
+      const generalMetrics: Metric[] = [
+        { label: 'Estado', value: estado || 'Sin estado' },
+        { label: 'Tipo', value: tipo || 'Sin tipo' }
       ];
+
+      const financialMetrics: Metric[] = [];
+      if (nivelImpacto) financialMetrics.push({ label: 'Nivel', value: nivelImpacto });
+      if (impactoFinanciero && unidadImpacto) {
+        financialMetrics.push({ label: 'Impacto', value: impactoFinanciero, unit: unidadImpacto });
+      }
+
+      const businessMetrics: Metric[] = [];
+      if (sharepointLink) businessMetrics.push({ label: 'SharePoint', value: sharepointLink });
+      if (jiraLink) businessMetrics.push({ label: 'Jira', value: jiraLink });
+      if (confluenceLink) businessMetrics.push({ label: 'Confluence', value: confluenceLink });
 
       return {
         id: useCaseId,
         entityId: entityId,
-        name,
-        description,
-        status: status,
-        lastUpdated,
+        name: proyecto,
+        description: observaciones,
+        status: estado as UseCaseStatus,
+        highLevelStatus: estadoAltoNivel || 'Inactivo',
+        lastUpdated: new Date().toISOString(),
         metrics: { 
-          general: generateMetrics(),
-          financial: generateMetrics(),
-          business: generateMetrics(),
-          technical: generateMetrics(),
+          general: generalMetrics,
+          financial: financialMetrics,
+          business: businessMetrics,
+          technical: teamMembers.map(tm => ({ label: tm.role, value: tm.name })),
         },
       };
     }).filter(uc => uc.entityId && uc.name);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        await fs.writeFile(useCasesCsvPath, 'Entidad;Caso de Uso;Descripcion;Estado;Ultima Actualizacion\n', 'utf8');
+        await fs.writeFile(useCasesCsvPath, 'Entidad;Proyecto;Estado\n', 'utf8');
         return [];
     }
     console.error("Failed to read or parse use cases CSV:", error);
@@ -102,22 +138,44 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
     const headerLine = lines.shift();
     if (!headerLine) throw new Error('CSV is empty or header is missing');
     
-    const header = headerLine.replace(/^\uFEFF/, '').trim().split(',');
+    const header = headerLine.replace(/^\uFEFF/, '').trim().split(',').map(h => h.trim());
 
-    if (header.length < 3 || header[0].trim() !== 'Entidad' || header[1].trim() !== 'descripcion' || header[2].trim() !== 'logo_url') {
-        throw new Error(`Invalid entities CSV header. Expected "Entidad,descripcion,logo_url", but got "${header.join(',')}"`);
+    const colIndices = {
+      entidad: header.findIndex(h => h.toLowerCase() === 'entidad'),
+      descripcion: header.findIndex(h => h.toLowerCase() === 'descripcion'),
+      logo_url: header.findIndex(h => h.toLowerCase() === 'logo_url'),
+      color: header.findIndex(h => h.toLowerCase() === 'color')
+    };
+
+    if (colIndices.entidad === -1) {
+        throw new Error(`Invalid entities CSV header. Missing 'Entidad' column.`);
     }
 
     return lines.map(line => {
-      const [name, description, logo] = line.split(',').map(s => (s || '').trim().replace(/"/g, ''));
+      // Split by comma but handle URLs that may contain commas
+      const parts = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
+      const cleanParts = parts.map(p => p.trim().replace(/^"|"$/g, ''));
+      
+      const name = cleanParts[colIndices.entidad] || '';
+      const description = cleanParts[colIndices.descripcion] || '';
+      const logo = cleanParts[colIndices.logo_url] || '';
+      
       const id = slugify(name);
       
       const entityUseCases = allUseCases.filter(uc => uc.entityId === id);
-      const active = entityUseCases.filter(uc => uc.status === 'Deployed').length;
-      const total = entityUseCases.length;
-      const inDevelopment = entityUseCases.filter(uc => uc.status === 'Development').length;
-      const alerts = entityUseCases.length > 0 ? Math.floor(Math.random() * 3) : 0; // Random alerts if use cases exist
-      const totalImpact = entityUseCases.reduce((acc, curr) => acc + (Math.random() * 5), 0);
+      // Count only active cases (highLevelStatus === 'Activo')
+      const activeUseCases = entityUseCases.filter(uc => uc.highLevelStatus === 'Activo');
+      const active = activeUseCases.filter(uc => {
+        const status = uc.status.toLowerCase();
+        return status.includes('finalizado') || status.includes('entregado') || status.includes('deployed');
+      }).length;
+      const total = activeUseCases.length;
+      const inDevelopment = activeUseCases.filter(uc => {
+        const status = uc.status.toLowerCase();
+        return status.includes('desarrollo') || status.includes('development');
+      }).length;
+      const alerts = activeUseCases.length > 0 ? Math.floor(Math.random() * 3) : 0;
+      const totalImpact = activeUseCases.reduce((acc, curr) => acc + (Math.random() * 5), 0);
       
       return {
         id,
@@ -155,10 +213,11 @@ async function writeEntitiesToCSV(entities: Omit<Entity, 'id' | 'stats' | 'subNa
 export async function getSummaryMetrics(): Promise<SummaryMetrics> {
   await delay(50);
   const allUseCases = await readUseCasesFromCSV();
+  const activeCases = allUseCases.filter(uc => uc.highLevelStatus === 'Activo');
   const entities = await readEntitiesFromCSV(allUseCases);
   const totalImpactSum = entities.reduce((sum, entity) => sum + entity.stats.totalImpact, 0);
   return { 
-    totalCases: allUseCases.length,
+    totalCases: activeCases.length, // Only count active cases
     entities: entities.length,
     dataScientists: 26, // This could also be calculated
     totalImpact: totalImpactSum.toFixed(1) 
@@ -201,10 +260,16 @@ export async function addEntity(data: {name: string, description: string}): Prom
   };
 }
 
-export async function getUseCases(entityId: string): Promise<UseCase[]> {
+export async function getUseCases(entityId: string, highLevelStatusFilter?: string): Promise<UseCase[]> {
   await delay(100);
   const allUseCases = await readUseCasesFromCSV();
-  return allUseCases.filter(uc => uc.entityId === entityId);
+  let filtered = allUseCases.filter(uc => uc.entityId === entityId);
+  
+  if (highLevelStatusFilter && highLevelStatusFilter !== 'all') {
+    filtered = filtered.filter(uc => uc.highLevelStatus === highLevelStatusFilter);
+  }
+  
+  return filtered;
 }
 
 export async function getUseCase(id: string): Promise<UseCase | undefined> {
@@ -230,7 +295,7 @@ export async function getUseCase(id: string): Promise<UseCase | undefined> {
   return useCase;
 }
 
-export async function addUseCase(entityId: string, data: Omit<UseCase, 'id' | 'entityId' | 'status' | 'lastUpdated' | 'metrics'>): Promise<UseCase> {
+export async function addUseCase(entityId: string, data: Omit<UseCase, 'id' | 'entityId' | 'status' | 'highLevelStatus' | 'lastUpdated' | 'metrics'>): Promise<UseCase> {
   await delay(500);
   
   const entities = await getEntities();
@@ -241,6 +306,7 @@ export async function addUseCase(entityId: string, data: Omit<UseCase, 'id' | 'e
     id: slugify(`${entity.name}-${data.name}-${Date.now()}`),
     entityId,
     status: 'Development',
+    highLevelStatus: 'Activo',
     lastUpdated: new Date().toISOString(),
     metrics: { general: [], financial: [], business: [], technical: [] },
     ...data,

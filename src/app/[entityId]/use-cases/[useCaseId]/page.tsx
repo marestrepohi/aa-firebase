@@ -33,7 +33,7 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
           description={
               <div className="flex items-center gap-2 text-base">
                   <Button variant="link" asChild className="p-0 h-auto text-base text-muted-foreground hover:text-primary">
-                      <Link href={`/entities/${entity.id}`}>{entity.name}</Link>
+                      <Link href={`/${entity.id}`}>{entity.name}</Link>
                   </Button>
                   <span>/</span>
                   <span>{useCase.name}</span>
@@ -41,7 +41,7 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
           }
           action={
               <Button variant="outline" asChild>
-                  <Link href={`/entities/${entity.id}`}>
+                  <Link href={`/${entity.id}`}>
                       <ChevronLeft className="-ml-1 mr-2 h-4 w-4" />
                       Back to Use Cases
                   </Link>

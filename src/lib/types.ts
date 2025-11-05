@@ -4,7 +4,20 @@ export interface Metric {
   unit?: string;
 }
 
-export type UseCaseStatus = 'Development' | 'Deployed' | 'Cancelled' | 'Task Assigned';
+export type UseCaseStatus = 
+  | 'Entregado - sin uso'
+  | 'Deprecado'
+  | 'Finalizado - con uso'
+  | 'Desarrollo - Pilotaje'
+  | 'Desarrollo - Exploración y modelamiento'
+  | 'Automatización'
+  | 'Consultoria'
+  | 'Activo'
+  | 'Inactivo'
+  | 'Development'
+  | 'Deployed'
+  | 'Cancelled'
+  | 'Task Assigned';
 
 export interface UseCase {
   id: string;
@@ -12,6 +25,7 @@ export interface UseCase {
   name: string;
   description: string;
   status: UseCaseStatus;
+  highLevelStatus: 'Activo' | 'Inactivo' | 'Estrategico' | string; // Estado alto nivel
   lastUpdated: string;
   metrics: {
     general: Metric[];

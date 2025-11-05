@@ -52,7 +52,7 @@ export async function createUseCase(entityId: string, prevState: any, formData: 
 
   try {
     await addUseCase(entityId, validatedFields.data);
-    revalidatePath(`/entities/${entityId}`);
+    revalidatePath(`/${entityId}`);
     return { message: 'Use case created successfully.', errors: {} };
   } catch (error) {
     return { message: 'Failed to create use case.', errors: {} };

@@ -20,14 +20,36 @@ function Stat({ label, value, highlight = false }: StatProps) {
 }
 
 export function EntityCard({ entity }: { entity: Entity }) {
+  // Validate URL
+  const isValidUrl = (url: string): boolean => {
+    if (!url) return false;
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const hasValidLogo = entity.logo && isValidUrl(entity.logo);
+
   return (
     <Card className="flex flex-col transition-all duration-200 hover:shadow-lg hover:border-primary">
       <CardHeader className="flex-row items-center gap-4">
         <div className="bg-white border rounded-lg p-2 flex items-center justify-center h-16 w-16">
-          {entity.logo ? (
-            <Image src={entity.logo} alt={`${entity.name} logo`} width={48} height={48} className="object-contain" />
+          {hasValidLogo ? (
+            <Image 
+              src={entity.logo} 
+              alt={`${entity.name} logo`} 
+              width={48} 
+              height={48} 
+              className="object-contain"
+              unoptimized
+            />
           ) : (
-            <div className="text-xs text-muted-foreground">No Logo</div>
+            <div className="text-2xl font-bold text-muted-foreground">
+              {entity.name.substring(0, 2).toUpperCase()}
+            </div>
           )}
         </div>
         <div>
@@ -47,7 +69,7 @@ export function EntityCard({ entity }: { entity: Entity }) {
       </CardContent>
       <CardFooter>
         <Button variant="link" asChild className="w-full">
-          <Link href={`/entities/${entity.id}`}>Ver detalles</Link>
+          <Link href={`/${entity.id}`}>Ver detalles</Link>
         </Button>
       </CardFooter>
     </Card>

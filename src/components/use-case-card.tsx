@@ -1,32 +1,159 @@
 import Link from "next/link";
 import type { UseCase } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { StatusPill } from "./status-pill";
-import { formatDistanceToNow } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ExternalLink, User } from "lucide-react";
 
 export function UseCaseCard({ useCase }: { useCase: UseCase }) {
+  // Get status and type from general metrics
+  const estado = useCase.metrics.general.find(m => m.label === 'Estado')?.value || useCase.status;
+  const tipo = useCase.metrics.general.find(m => m.label === 'Tipo')?.value || '';
+  
+  // Get team members from technical metrics
+  const teamMembers = useCase.metrics.technical || [];
+  
+  // Get financial impact
+  const nivelImpacto = useCase.metrics.financial.find(m => m.label === 'Nivel')?.value || '';
+  const impactoFinanciero = useCase.metrics.financial.find(m => m.label === 'Impacto');
+  
+  // Get links from business metrics
+  const sharepointLink = useCase.metrics.business.find(m => m.label === 'SharePoint')?.value;
+  const jiraLink = useCase.metrics.business.find(m => m.label === 'Jira')?.value;
+  const confluenceLink = useCase.metrics.business.find(m => m.label === 'Confluence')?.value;
+  
+  // Determine status color
+  const getStatusColor = (status: string): string => {
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('entregado') || statusLower.includes('finalizado')) return 'bg-green-100 text-green-800 border-green-200';
+    if (statusLower.includes('deprecado')) return 'bg-red-100 text-red-800 border-red-200';
+    if (statusLower.includes('desarrollo') || statusLower.includes('pilotaje')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    if (statusLower.includes('activo')) return 'bg-green-100 text-green-800 border-green-200';
+    return 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+  
+  const getImpactColor = (nivel: string): string => {
+    if (nivel === 'L4') return 'bg-green-50';
+    if (nivel === 'NA') return 'bg-gray-50';
+    return 'bg-blue-50';
+  };
+
   return (
-    <Card className="flex flex-col transition-all duration-300 hover:shadow-xl hover:border-primary">
-      <CardHeader>
-        <CardTitle className="text-lg font-bold line-clamp-2">{useCase.name}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="text-sm text-muted-foreground line-clamp-3">{useCase.description}</p>
-      </CardContent>
-      <CardFooter className="flex flex-col items-start gap-4">
-         <div className="w-full flex justify-between items-center text-xs text-muted-foreground">
-            <StatusPill status={useCase.status} />
-            <time dateTime={useCase.lastUpdated}>
-                {formatDistanceToNow(new Date(useCase.lastUpdated), { addSuffix: true })}
-            </time>
+    <Card className="flex flex-col transition-all duration-300 hover:shadow-lg">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
+            {useCase.name}
+          </CardTitle>
         </div>
-        <Button variant="outline" asChild className="w-full">
-          <Link href={`/entities/${useCase.entityId}/use-cases/${useCase.id}`}>
-            Ver Métricas
-          </Link>
-        </Button>
-      </CardFooter>
+        
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className={`text-xs font-medium ${getStatusColor(estado as string)}`}>
+            ● {estado}
+          </Badge>
+          {tipo && (
+            <Badge variant="outline" className="text-xs">
+              {tipo}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      
+      <CardContent className="flex-grow space-y-4">
+        {/* Team Members */}
+        {teamMembers.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <User className="w-3 h-3" />
+              Equipo Asignado
+            </div>
+            <div className="space-y-1">
+              {teamMembers.map((member, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                    {member.label}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">{member.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Financial Impact */}
+        {nivelImpacto && (
+          <div className={`rounded-md p-3 ${getImpactColor(nivelImpacto as string)}`}>
+            <div className="text-xs font-medium text-muted-foreground mb-1">
+              💰 Impacto Financiero
+            </div>
+            {impactoFinanciero && (
+              <div className="text-lg font-bold">
+                {impactoFinanciero.value} {impactoFinanciero.unit}
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground mt-1">
+              Nivel {nivelImpacto}
+            </div>
+          </div>
+        )}
+        
+        {/* Notes */}
+        {useCase.description && useCase.description !== 'Sin observaciones' && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+            <div className="text-xs font-medium text-muted-foreground mb-1">
+              Notas del Proyecto
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-3">
+              {useCase.description}
+            </p>
+          </div>
+        )}
+        
+        {/* Links */}
+        {(sharepointLink || jiraLink || confluenceLink) && (
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            {sharepointLink && typeof sharepointLink === 'string' && (
+              <a
+                href={sharepointLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+              >
+                <ExternalLink className="w-3 h-3" />
+                SharePoint
+              </a>
+            )}
+            {jiraLink && typeof jiraLink === 'string' && (
+              <a
+                href={jiraLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Jira
+              </a>
+            )}
+            {confluenceLink && typeof confluenceLink === 'string' && (
+              <a
+                href={confluenceLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Confluence
+              </a>
+            )}
+          </div>
+        )}
+        
+        <Link 
+          href={`/${useCase.entityId}/casos-uso/${useCase.id}`}
+          className="block text-xs text-blue-600 hover:text-blue-800 font-medium pt-2"
+        >
+          Ver Métricas →
+        </Link>
+      </CardContent>
     </Card>
   );
 }
