@@ -4,7 +4,9 @@ import path from 'path';
 
 // --- Data Storage (In-memory, replace with a database in a real app) ---
 
-let useCases: UseCase[] = [];
+const useCases: UseCase[] = [
+  // This will be populated from a data source in a real app
+];
 
 const summaryMetrics: SummaryMetrics = {
   totalCases: 0,
@@ -79,7 +81,8 @@ async function writeEntitiesToCSV(entities: Omit<Entity, 'id' | 'stats' | 'subNa
 export async function getSummaryMetrics(): Promise<SummaryMetrics> {
   await delay(50);
   const entities = await readEntitiesFromCSV();
-  return { ...summaryMetrics, entities: entities.length, totalCases: useCases.length };
+  const totalImpactSum = entities.reduce((sum, entity) => sum + entity.stats.totalImpact, 0);
+  return { ...summaryMetrics, entities: entities.length, totalCases: useCases.length, totalImpact: totalImpactSum.toFixed(1) };
 }
 
 export async function getEntities(): Promise<Entity[]> {

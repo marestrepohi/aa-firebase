@@ -1,7 +1,22 @@
-Entidad;descripcion;logo_url
-Aval Digital Labs;Laboratorio Digital del Grupo Aval;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/adl.svg
-AV Villas;Banco Comercial;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/avv.svg
-Banco de Bogotá;Banco Comercial;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/bdb.svg
-Banco de Occidente;Banco Comercial;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/bdo.svg
-Corficolombiana;Banca de Inversión;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/cfc.svg
-Porvenir;Fondo de Pensiones y Cesantías;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/por.svg
+Entidad,descripcion,logo_url,color,created_at,updated_at
+ADL,Labotario Digital,https://www.iabcolombia.com/wp-content/uploads/2024/08/aval-digital-lab-1-300x252.png,#166534,2025-09-02 19:30:52.431514+00,2025-09-08 23:57:33.716325+00
+AVC,ATH,https://media.licdn.com/dms/image/v2/D560BAQHiIDPmegbSgg/company-logo_200_200/B56ZbbI7pdHgAQ-/0/1747433274856/aval_valor_compartido_avc_logo?e=2147483647&v=beta&t=80O-ZcJdRJEaS9fKgRLuR6UQ3KBaal6U4Nzq70dNIPY,#1e40af,2025-09-02 19:30:52.431514+00,2025-09-09 00:11:10.202105+00
+BAC,Banco internacional,https://financialallianceforwomen.org/wp-content/uploads/2023/10/BAC-Credomatic-Square.png,#0891b2,2025-09-02 19:30:52.431514+00,2025-09-08 23:59:52.367215+00
+Banco AV Villas,Banco de servicios financieros,https://www.centenariocc.com/wp-content/uploads/2023/02/Logo-Avvillas-2.jpg,#2563eb,2025-09-02 19:30:52.431514+00,2025-09-08 23:55:36.678582+00
+Banco de Bogotá,Institución financiera,https://mac-center.com/cdn/shop/files/banco_bogota.png,#dc2626,2025-09-02 19:30:52.431514+00,2025-09-08 23:59:17.91274+00
+Banco Occidente,Entidad bancaria,https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTEXCckxRlRNo6YpKjQH3Q6Z928lKDtqwxEpw&s,#059669,2025-09-02 19:30:52.431514+00,2025-09-08 23:54:43.898865+00
+Banco Popular,Banco comercial,https://www.portafolio.co/files/article_new_multimedia/uploads/2025/05/22/682f89397f3d1.png,#7c3aed,2025-09-02 19:30:52.431514+00,2025-09-09 00:00:09.968512+00
+Corfi,Banca Privada,https://upload.wikimedia.org/wikipedia/commons/0/0a/Corfi.jpg,#1f2937,2025-09-09 00:00:57+00,2025-09-09 00:00:59+00
+COSARGO,Empresa agroindustrial,https://extractorasicarare.com/wp-content/uploads/2018/11/logo-ppal.png,#166534,2025-09-02 19:30:52.431514+00,2025-09-08 23:58:43.639913+00
+CTIC,Centro de investigación,https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStec3gYGSJ78NKWoSbduIkltPVZeu6w-dHwQ&s,#be123c,2025-09-02 19:30:52.431514+00,2025-09-08 23:56:04.659471+00
+Ecosistemas Movilidad,Plataforma de movilidad,https://www.carroya.com/noticias/sites/default/files/entradillas/391012370precips-motor-carroya.jpg,#b45309,2025-09-02 19:30:52.431514+00,2025-09-09 00:03:50.484807+00
+Ecosistemas Vivienda,Plataforma de vivienda,,#15803d,2025-09-02 19:30:52.431514+00,2025-09-09 00:00:51.397476+00
+Mathilde,Plataforma de IA,https://www.valoraanalitik.com/wp-content/uploads/2022/04/mathilde.jpg,#0f766e,2025-09-02 19:30:52.431514+00,2025-09-08 23:51:22.770766+00
+Metrocuadrado,Portal inmobiliario,https://www.metrocuadrado.com/estaticos/metrocuadrado-footer/img/logo.png,#0369a1,2025-09-02 19:30:52.431514+00,2025-09-08 23:53:22.193784+00
+Multibank,Entidad financiera,https://www.multibank.com.pa/sites/default/files/gallery/promocionnes/multibank_logo-promotion.png,#7c2d12,2025-09-02 19:30:52.431514+00,2025-09-08 23:55:03.82475+00
+Pajonales,Empresa agrícola,https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQWr7PIz7UfIqAwETIxZWmzEa615CwTFKHDiA&s,#a16207,2025-09-02 19:30:52.431514+00,2025-09-08 23:54:15.792878+00
+Porvenir,Fondo de pensiones,https://yt3.googleusercontent.com/Sza_r2lnDtwmS36X76m-VSt0jPikMqkdgLpq0mD5w-uv53vG-zssYHusNG6aflaCuO1W12rW=s900-c-k-c0x00ffffff-no-rj,#ea580c,2025-09-02 19:30:52.431514+00,2025-09-08 23:52:25.975052+00
+Promigas,Empresa de gas natural,https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRlaWGEyIktpW0l-zvI4G6qew0bJuLL4Daocg&s,#dc2626,2025-09-02 19:30:52.431514+00,2025-09-08 23:58:31.729981+00
+Transversal,Proyectos transversales,https://www.iabcolombia.com/wp-content/uploads/2024/08/aval-digital-lab-1-300x252.png,#4338ca,2025-09-02 19:30:52.431514+00,2025-09-08 23:57:36.728664+00
+Tuplus,Programa de fidelización,https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSAzg5yY7brxz9N9jFMifE2j3aVkGDmqQeDYg&s,#c026d3,2025-09-02 19:30:52.431514+00,2025-09-08 23:52:01.631004+00
+Unipalma,Empresa agroindustrial,https://sistemas.unipalma.com/img/LG.png,#365314,2025-09-02 19:30:52.431514+00,2025-09-08 23:53:48.092678+00
