@@ -35,18 +35,30 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
     const headerLine = lines.shift();
     if (!headerLine) return [];
 
-    const header = headerLine.replace(/^\uFEFF/, '').trim().split(';');
-    const expectedHeaders = ['Entidad', 'Caso de Uso', 'Descripcion', 'Estado', 'Ultima Actualizacion'];
+    const header = headerLine.replace(/^\uFEFF/, '').trim().split(';').map(h => h.trim());
     
-    // Check if headers are valid
-    if (header.length < expectedHeaders.length || !expectedHeaders.every((h, i) => header[i] && header[i].trim() === h)) {
-      console.error(`Invalid use cases CSV header. Got "${header.join(';')}", expected "${expectedHeaders.join(';')}"`);
-      return [];
+    const colIndices = {
+        entidad: header.indexOf('Entidad'),
+        casoDeUso: header.indexOf('Proyecto'),
+        descripcion: header.indexOf('Descripcion'),
+        estado: header.indexOf('Estado alto nivel'),
+        ultimaActualizacion: header.indexOf('Fecha de Entrega')
+    };
+
+    if (Object.values(colIndices).some(index => index === -1)) {
+        console.error(`Invalid use cases CSV header. Missing one of 'Entidad', 'Proyecto', 'Descripcion', 'Estado alto nivel', 'Fecha de Entrega'. Got "${header.join(';')}"`);
+        return [];
     }
+
 
     return lines.map((line, index) => {
       const parts = line.split(';');
-      const [entityName, name, description, status, lastUpdated] = parts.map(p => (p || '').trim().replace(/"/g, ''));
+      const entityName = (parts[colIndices.entidad] || '').trim().replace(/"/g, '');
+      const name = (parts[colIndices.casoDeUso] || '').trim().replace(/"/g, '');
+      const description = (parts[colIndices.descripcion] || 'No description available').trim().replace(/"/g, '');
+      const status = (parts[colIndices.estado] || 'Development').trim().replace(/"/g, '') as UseCaseStatus;
+      const lastUpdated = (parts[colIndices.ultimaActualizacion] || new Date().toISOString()).trim().replace(/"/g, '');
+
       const entityId = slugify(entityName);
       const useCaseId = slugify(`${entityName}-${name}-${index}`);
       
@@ -60,7 +72,7 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
         entityId: entityId,
         name,
         description,
-        status: status as UseCaseStatus,
+        status: status,
         lastUpdated,
         metrics: { 
           general: generateMetrics(),
