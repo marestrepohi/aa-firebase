@@ -1,4 +1,4 @@
-import type { Entity, UseCase, Metric, UseCaseStatus, SummaryMetrics } from './types';
+import type { Entity, UseCase, UseCaseStatus, SummaryMetrics } from './types';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -7,7 +7,7 @@ import path from 'path';
 let useCases: UseCase[] = [
   {
     id: '101',
-    entityId: 'adl',
+    entityId: 'aval-digital-labs',
     name: 'Churn Prediction Model',
     description: 'A model to predict customer churn based on historical data.',
     status: 'Deployed',
@@ -33,7 +33,7 @@ let useCases: UseCase[] = [
   },
   {
     id: '102',
-    entityId: 'adl',
+    entityId: 'aval-digital-labs',
     name: 'Customer Lifetime Value (CLV)',
     description: 'Calculating the total worth of a customer to a business over the whole period of their relationship.',
     status: 'Development',
@@ -44,7 +44,7 @@ let useCases: UseCase[] = [
   },
   {
     id: '201',
-    entityId: 'avc',
+    entityId: 'av-villas',
     name: 'Fraud Detection System',
     description: 'Real-time fraud detection for financial transactions.',
     status: 'Cancelled',
@@ -75,34 +75,38 @@ async function readEntitiesFromCSV(): Promise<Entity[]> {
   try {
     const fileContent = await fs.readFile(csvPath, 'utf8');
     const lines = fileContent.trim().split('\n');
-    const header = lines.shift()?.split(',');
-    if (!header || header[0] !== 'Entidad' || header[1] !== 'descripcion' || header[2] !== 'logo_url') {
-        throw new Error('Invalid CSV header');
+    const headerLine = lines.shift();
+    if (!headerLine) throw new Error('CSV is empty or header is missing');
+    
+    // Handle BOM character if present
+    const header = headerLine.replace(/^\uFEFF/, '').split(';');
+
+    if (header[0] !== 'Entidad' || header[1] !== 'descripcion' || header[2] !== 'logo_url') {
+        throw new Error('Invalid CSV header. Expected "Entidad;descripcion;logo_url"');
     }
 
     return lines.map(line => {
-      const [name, description, logo] = line.split(',');
+      const [name, description, logo] = line.split(';');
       const id = name.toLowerCase().replace(/\s+/g, '-');
-      // Find matching use cases to calculate stats
+      
       const entityUseCases = useCases.filter(uc => uc.entityId === id);
       const active = entityUseCases.filter(uc => uc.status === 'Deployed').length;
       const total = entityUseCases.length;
       const inDevelopment = entityUseCases.filter(uc => uc.status === 'Development').length;
       
-      // These stats are now hardcoded as they are not in the CSV
       return {
         id,
         name,
         description,
         logo,
-        subName: description, // or derive from somewhere else
+        subName: description,
         stats: {
           active: active,
           total: total,
-          scientists: Math.floor(Math.random() * 10), // Placeholder
+          scientists: Math.floor(Math.random() * 10),
           inDevelopment: inDevelopment,
-          alerts: Math.floor(Math.random() * 5), // Placeholder
-          totalImpact: parseFloat((Math.random() * 10).toFixed(1)), // Placeholder
+          alerts: Math.floor(Math.random() * 2), // Lowered alerts to make it less noisy
+          totalImpact: parseFloat((Math.random() * 10).toFixed(1)),
         },
       };
     });
@@ -113,8 +117,8 @@ async function readEntitiesFromCSV(): Promise<Entity[]> {
 }
 
 async function writeEntitiesToCSV(entities: Omit<Entity, 'id' | 'stats' | 'subName'>[]): Promise<void> {
-  const header = 'Entidad,descripcion,logo_url\n';
-  const rows = entities.map(e => `${e.name},${e.description},${e.logo}`).join('\n');
+  const header = 'Entidad;descripcion;logo_url\n';
+  const rows = entities.map(e => `${e.name};${e.description};${e.logo}`).join('\n');
   await fs.writeFile(csvPath, header + rows, 'utf8');
 }
 
@@ -122,7 +126,7 @@ async function writeEntitiesToCSV(entities: Omit<Entity, 'id' | 'stats' | 'subNa
 export async function getSummaryMetrics(): Promise<SummaryMetrics> {
   await delay(50);
   const entities = await readEntitiesFromCSV();
-  return { ...summaryMetrics, entities: entities.length };
+  return { ...summaryMetrics, entities: entities.length, totalCases: useCases.length };
 }
 
 export async function getEntities(): Promise<Entity[]> {
@@ -141,7 +145,7 @@ export async function addEntity(data: {name: string, description: string}): Prom
   const entities = await readEntitiesFromCSV();
   const newEntityData = {
       ...data,
-      logo: '/placeholder.svg' // default logo
+      logo: 'https://placehold.co/48x48/7C3AED/FFFFFF/png?text=LOGO' // default logo
   };
   
   const updatedEntities = [...entities.map(e => ({name: e.name, description: e.description, logo: e.logo})), newEntityData];

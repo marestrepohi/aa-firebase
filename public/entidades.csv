@@ -1,4 +1,7 @@
-Entidad,descripcion,logo_url
-ADL,Laboratorio Digital,/adl-logo.svg
-AVC,ATH,/avc-logo.svg
-BAC,Banco Internacional,/bac-logo.svg
+Entidad;descripcion;logo_url
+Aval Digital Labs;Laboratorio Digital del Grupo Aval;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/adl.svg
+AV Villas;Banco Comercial;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/avv.svg
+Banco de Bogotá;Banco Comercial;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/bdb.svg
+Banco de Occidente;Banco Comercial;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/bdo.svg
+Corficolombiana;Banca de Inversión;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/cfc.svg
+Porvenir;Fondo de Pensiones y Cesantías;https://raw.githubusercontent.com/davidsanchezp/aval-ia-dashboard/main/public/logos/por.svg
