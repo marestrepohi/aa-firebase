@@ -1,29 +1,44 @@
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { List } from "lucide-react";
+import { getEntities, getSummaryMetrics } from "@/lib/data";
+import { SummaryCard } from "@/components/summary-card";
+import { EntityCard } from "@/components/entity-card";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+export default async function Home() {
+  const [entities, summaryMetrics] = await Promise.all([
+    getEntities(),
+    getSummaryMetrics()
+  ]);
+
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
-        title="Welcome to ADL Analytics Hub"
-        description="Your central dashboard for managing entities and use cases."
+        title="Casos de Uso por Entidad"
+        description="Selecciona una entidad para ver y gestionar sus casos de uso de IA"
       />
-      <div className="mt-8 grid gap-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="bg-secondary p-3 rounded-lg">
-                <List className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="text-xl font-bold">Getting Started</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Select an entity from the sidebar to view its use cases, or create a new one to begin.</p>
-            <p className="mt-4">This dashboard allows you to monitor and manage all analytics projects within ADL.</p>
-          </CardContent>
-        </Card>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <SummaryCard 
+          title="TOTAL DE CASOS" 
+          value={summaryMetrics.totalCases} 
+          action={
+            <Button variant="link" asChild className="p-0 h-auto">
+              <Link href="#">Detalle</Link>
+            </Button>
+          } 
+        />
+        <SummaryCard title="ENTIDADES" value={summaryMetrics.entities} />
+        <SummaryCard title="CIENTÍFICOS DE DATOS" value={summaryMetrics.dataScientists} />
+        <SummaryCard title="IMPACTO TOTAL" value={`${summaryMetrics.totalImpact} mil`} />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {entities.map(entity => (
+          <EntityCard key={entity.id} entity={entity} />
+        ))}
       </div>
     </div>
   );

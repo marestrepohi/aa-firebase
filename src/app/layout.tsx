@@ -1,13 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { Toaster } from "@/components/ui/toaster"
-import { MainSidebar } from '@/components/main-sidebar';
-import { getEntities } from '@/lib/data';
+import { Toaster } from "@/components/ui/toaster";
+import { Header } from '@/components/header';
 
 export const metadata: Metadata = {
-  title: 'ADL Analytics Hub',
-  description: 'Management dashboard for the advanced analytics area of ADL',
+  title: 'Aval IA',
+  description: 'Casos de Uso por Entidad',
 };
 
 export default async function RootLayout({
@@ -15,8 +13,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const entities = await getEntities();
-
   return (
     <html lang="en">
       <head>
@@ -27,15 +23,11 @@ export default async function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased">
-        <SidebarProvider>
-          <MainSidebar entities={entities} />
-          <SidebarInset>
-            <main className="min-h-screen p-4 md:p-8">
-              {children}
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
+      <body className="font-body antialiased bg-gray-50">
+        <Header />
+        <main className="min-h-screen p-4 md:p-8">
+          {children}
+        </main>
         <Toaster />
       </body>
     </html>

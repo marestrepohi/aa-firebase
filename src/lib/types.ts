@@ -21,8 +21,27 @@ export interface UseCase {
   };
 }
 
+export interface EntityStats {
+  active: number;
+  total: number;
+  scientists: number;
+  inDevelopment: number;
+  alerts: number;
+  totalImpact: number;
+}
+
 export interface Entity {
   id: string;
   name: string;
   description: string;
+  logo: string;
+  subName: string;
+  stats: EntityStats;
+}
+
+export interface SummaryMetrics {
+  totalCases: number;
+  entities: number;
+  dataScientists: number;
+  totalImpact: string;
 }

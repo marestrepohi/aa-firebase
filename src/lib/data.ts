@@ -1,9 +1,51 @@
-import type { Entity, UseCase, Metric, UseCaseStatus } from './types';
+import type { Entity, UseCase, Metric, UseCaseStatus, SummaryMetrics } from './types';
 
 let entities: Entity[] = [
-  { id: '1', name: 'Customer Analytics', description: 'Analyzing customer behavior and trends.' },
-  { id: '2', name: 'Risk Management', description: 'Identifying and mitigating financial risks.' },
-  { id: '3', name: 'Operational Efficiency', description: 'Optimizing internal business processes.' },
+  { 
+    id: '1', 
+    name: 'ADL', 
+    description: 'Laboratorio Digital',
+    subName: 'Laboratorio Digital',
+    logo: '/adl-logo.svg',
+    stats: {
+      active: 2,
+      total: 23,
+      scientists: 8,
+      inDevelopment: 0,
+      alerts: 16,
+      totalImpact: 0,
+    } 
+  },
+  { 
+    id: '2', 
+    name: 'AVC', 
+    description: 'ATH',
+    subName: 'ATH',
+    logo: '/avc-logo.svg',
+    stats: {
+      active: 1,
+      total: 1,
+      scientists: 1,
+      inDevelopment: 0,
+      alerts: 0,
+      totalImpact: 0,
+    }
+  },
+  { 
+    id: '3', 
+    name: 'BAC', 
+    description: 'Banco Internacional',
+    subName: 'Banco internacional',
+    logo: '/bac-logo.svg',
+    stats: {
+      active: 0,
+      total: 4,
+      scientists: 3,
+      inDevelopment: 0,
+      alerts: 4,
+      totalImpact: 4.8,
+    }
+  },
 ];
 
 let useCases: UseCase[] = [
@@ -57,9 +99,22 @@ let useCases: UseCase[] = [
   },
 ];
 
+const summaryMetrics: SummaryMetrics = {
+  totalCases: 160,
+  entities: 21,
+  dataScientists: 26,
+  totalImpact: '248,7',
+};
+
+
 // --- API Functions ---
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+export async function getSummaryMetrics(): Promise<SummaryMetrics> {
+  await delay(50);
+  return summaryMetrics;
+}
 
 export async function getEntities(): Promise<Entity[]> {
   await delay(100);
@@ -71,10 +126,13 @@ export async function getEntity(id: string): Promise<Entity | undefined> {
   return entities.find(e => e.id === id);
 }
 
-export async function addEntity(data: Omit<Entity, 'id'>): Promise<Entity> {
+export async function addEntity(data: Omit<Entity, 'id' | 'logo' | 'subName' | 'stats'>): Promise<Entity> {
   await delay(500);
   const newEntity: Entity = {
     id: String(Date.now()),
+    logo: '/placeholder.svg',
+    subName: 'New Entity',
+    stats: { active: 0, total: 0, scientists: 0, inDevelopment: 0, alerts: 0, totalImpact: 0 },
     ...data,
   };
   entities.unshift(newEntity);
@@ -102,5 +160,12 @@ export async function addUseCase(entityId: string, data: Omit<UseCase, 'id' | 'e
     ...data,
   };
   useCases.unshift(newUseCase);
+  
+  const entity = entities.find(e => e.id === entityId);
+  if (entity) {
+    entity.stats.total += 1;
+    entity.stats.inDevelopment += 1;
+  }
+
   return newUseCase;
 }
