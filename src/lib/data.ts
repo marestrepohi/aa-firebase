@@ -20,6 +20,18 @@ const summaryMetrics: SummaryMetrics = {
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+function slugify(text: string) {
+    return text
+      .toString()
+      .normalize('NFD') // split an accented letter in the base letter and the acent
+      .replace(/[\u0300-\u036f]/g, '') // remove all previously split accents
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w-]+/g, '')
+      .replace(/--+/g, '-');
+}
+
 // --- Entity Management from CSV ---
 
 const csvPath = path.join(process.cwd(), 'public', 'entidades.csv');
@@ -41,7 +53,7 @@ async function readEntitiesFromCSV(): Promise<Entity[]> {
     return lines.map(line => {
       // Split by comma and trim whitespace from each part
       const [name, description, logo] = line.split(',').map(s => s.trim());
-      const id = name.toLowerCase().replace(/\s+/g, '-');
+      const id = slugify(name);
       
       const entityUseCases = useCases.filter(uc => uc.entityId === id);
       const active = entityUseCases.filter(uc => uc.status === 'Deployed').length;
@@ -107,7 +119,7 @@ export async function addEntity(data: {name: string, description: string}): Prom
   const updatedEntities = [...entities.map(e => ({name: e.name, description: e.description, logo: e.logo})), newEntityData];
   await writeEntitiesToCSV(updatedEntities);
 
-  const id = newEntityData.name.toLowerCase().replace(/\s+/g, '-');
+  const id = slugify(newEntityData.name);
   return {
       id,
       name: newEntityData.name,
