@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { CreateUseCaseButton } from '@/components/create-use-case-button';
 import { UseCaseCard } from '@/components/use-case-card';
 import { EntityStatsPanel } from '@/components/entity-stats-panel';
-import { UseCaseFilter } from '@/components/use-case-filter';
+import { EntityFilters } from '@/components/entity-filters';
 import type { Entity, UseCase } from '@/lib/types';
 
 interface EntityPageClientProps {
@@ -14,12 +14,42 @@ interface EntityPageClientProps {
 }
 
 export default function EntityPageClient({ entity, initialUseCases }: EntityPageClientProps) {
-  const [filter, setFilter] = useState<string>('all');
+  const [filters, setFilters] = useState({
+    highLevelStatus: 'all',
+    estado: 'all',
+    tipoProyecto: 'all',
+    tipoDesarrollo: 'all'
+  });
 
-  // Filter use cases based on selected filter
-  const filteredUseCases = filter === 'all' 
-    ? initialUseCases 
-    : initialUseCases.filter(uc => uc.highLevelStatus === filter);
+  // Obtener opciones únicas para los filtros
+  const filterOptions = useMemo(() => {
+    const estados = new Set<string>();
+    const tiposProyecto = new Set<string>();
+    const tiposDesarrollo = new Set<string>();
+
+    initialUseCases.forEach(uc => {
+      if (uc.status) estados.add(uc.status);
+      if (uc.tipoProyecto) tiposProyecto.add(uc.tipoProyecto);
+      if (uc.tipoDesarrollo) tiposDesarrollo.add(uc.tipoDesarrollo);
+    });
+
+    return {
+      estados: Array.from(estados).sort(),
+      tiposProyecto: Array.from(tiposProyecto).sort(),
+      tiposDesarrollo: Array.from(tiposDesarrollo).sort()
+    };
+  }, [initialUseCases]);
+
+  // Filter use cases based on all selected filters
+  const filteredUseCases = useMemo(() => {
+    return initialUseCases.filter(uc => {
+      if (filters.highLevelStatus !== 'all' && uc.highLevelStatus !== filters.highLevelStatus) return false;
+      if (filters.estado !== 'all' && uc.status !== filters.estado) return false;
+      if (filters.tipoProyecto !== 'all' && uc.tipoProyecto !== filters.tipoProyecto) return false;
+      if (filters.tipoDesarrollo !== 'all' && uc.tipoDesarrollo !== filters.tipoDesarrollo) return false;
+      return true;
+    });
+  }, [initialUseCases, filters]);
 
   // Calculate statistics from filtered use cases
   const statusCounts = filteredUseCases.reduce((acc, uc) => {
@@ -61,9 +91,13 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
 
       <EntityStatsPanel stats={stats} />
 
-      <div className="bg-white rounded-lg border p-4">
-        <UseCaseFilter onFilterChange={setFilter} initialFilter={filter} />
-      </div>
+      <EntityFilters
+        onFilterChange={setFilters}
+        estadoOptions={filterOptions.estados}
+        tipoProyectoOptions={filterOptions.tiposProyecto}
+        tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
+        currentFilters={filters}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredUseCases.length > 0 ? (

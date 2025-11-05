@@ -29,21 +29,63 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
   try {
     await fs.access(useCasesCsvPath);
     const fileContent = await fs.readFile(useCasesCsvPath, 'utf8');
-    const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');
-    if (lines.length <= 1) return [];
 
-    const headerLine = lines.shift();
-    if (!headerLine) return [];
+    // Robust CSV parsing: handle quoted fields, semicolon separator and newlines inside quotes.
+    function parseCSV(content: string, sep = ';') {
+      const rows: string[][] = [];
+      let cur = '';
+      let row: string[] = [];
+      let inQuotes = false;
+      for (let i = 0; i < content.length; i++) {
+        const ch = content[i];
+        if (ch === '"') {
+          // If next char is also a quote, it's an escaped quote
+          if (inQuotes && content[i + 1] === '"') {
+            cur += '"';
+            i++; // skip escaped quote
+            continue;
+          }
+          inQuotes = !inQuotes;
+          continue;
+        }
+        if (!inQuotes && ch === sep) {
+          row.push(cur);
+          cur = '';
+          continue;
+        }
+        if (!inQuotes && (ch === '\n' || (ch === '\r' && content[i + 1] === '\n'))) {
+          // end of record
+          if (ch === '\r' && content[i + 1] === '\n') i++;
+          row.push(cur);
+          rows.push(row);
+          row = [];
+          cur = '';
+          continue;
+        }
+        cur += ch;
+      }
+      // flush last
+      if (cur !== '' || row.length > 0) {
+        row.push(cur);
+        rows.push(row);
+      }
+      return rows.map(r => r.map(cell => cell.replace(/^\uFEFF/, '').trim()));
+    }
 
-    const header = headerLine.replace(/^\uFEFF/, '').trim().split(';').map(h => h.trim());
-    
-    // Map column names from casos.csv
+    const parsed = parseCSV(fileContent, ';').filter(r => r.length > 0);
+    if (parsed.length <= 1) return [];
+
+    const header = parsed.shift();
+    if (!header) return [];
+
+    // Map column names from casos.csv - EXACTAMENTE como aparecen en el CSV
     const colIndices = {
-        entidad: header.findIndex(h => h.toLowerCase().includes('entidad')),
-        proyecto: header.findIndex(h => h.toLowerCase().includes('proyecto')),
-        estado: header.findIndex(h => h.toLowerCase() === 'estado'),
-        estadoAltoNivel: header.findIndex(h => h.toLowerCase().includes('estado alto nivel')),
-        tipo: header.findIndex(h => h.toLowerCase().includes('tipo proyecto')),
+        entidad: header.findIndex(h => h === 'Entidad'),
+        proyecto: header.findIndex(h => h === 'Proyecto'),
+        estado: header.findIndex(h => h === 'Estado'), // Columna EXACTA "Estado" del CSV
+        estadoAltoNivel: header.findIndex(h => h === 'Estado alto nivel'),
+        tipoProyecto: header.findIndex(h => h === 'Tipo Proyecto'),
+        tipoDesarrollo: header.findIndex(h => h === 'Tipo Desarrollo'),
         observaciones: header.findIndex(h => h.toLowerCase().includes('observaciones')),
         ds1: header.findIndex(h => h === 'DS1'),
         de: header.findIndex(h => h === 'DE'),
@@ -60,22 +102,29 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
         return [];
     }
 
-    return lines.map((line, index) => {
-      const parts = line.split(';');
-      const entityName = (parts[colIndices.entidad] || '').trim().replace(/"/g, '');
-      const proyecto = (parts[colIndices.proyecto] || '').trim().replace(/"/g, '');
-      const estado = (parts[colIndices.estado] !== undefined ? parts[colIndices.estado] : '').trim().replace(/"/g, '');
-      const estadoAltoNivel = (parts[colIndices.estadoAltoNivel] !== undefined ? parts[colIndices.estadoAltoNivel] : '').trim().replace(/"/g, '');
-      const tipo = (parts[colIndices.tipo] !== undefined ? parts[colIndices.tipo] : '').trim().replace(/"/g, '');
-      const observaciones = (parts[colIndices.observaciones] !== undefined ? parts[colIndices.observaciones] : 'Sin observaciones').trim().replace(/"/g, '');
-      const ds1 = (parts[colIndices.ds1] !== undefined ? parts[colIndices.ds1] : '').trim().replace(/"/g, '');
-      const de = (parts[colIndices.de] !== undefined ? parts[colIndices.de] : '').trim().replace(/"/g, '');
-      const nivelImpacto = (parts[colIndices.nivelImpacto] !== undefined ? parts[colIndices.nivelImpacto] : '').trim().replace(/"/g, '');
-      const unidadImpacto = (parts[colIndices.unidadImpacto] !== undefined ? parts[colIndices.unidadImpacto] : '').trim().replace(/"/g, '');
-      const impactoFinanciero = (parts[colIndices.impactoFinanciero] !== undefined ? parts[colIndices.impactoFinanciero] : '').trim().replace(/"/g, '');
-      const sharepointLink = (parts[colIndices.sharepointLink] !== undefined ? parts[colIndices.sharepointLink] : '').trim().replace(/"/g, '');
-      const jiraLink = (parts[colIndices.jiraLink] !== undefined ? parts[colIndices.jiraLink] : '').trim().replace(/"/g, '');
-      const confluenceLink = (parts[colIndices.confluenceLink] !== undefined ? parts[colIndices.confluenceLink] : '').trim().replace(/"/g, '');
+    if (colIndices.estado === -1) {
+        console.error(`Warning: 'Estado' column not found in CSV. Available columns: ${header.join(', ')}`);
+    }
+
+    return parsed.map((parts, index) => {
+      const entityName = (parts[colIndices.entidad] || '').toString().trim().replace(/"/g, '');
+      const proyecto = (parts[colIndices.proyecto] || '').toString().trim().replace(/"/g, '');
+      // Usar EXACTAMENTE la columna "Estado" del CSV (no "Estado alto nivel")
+      const estado = colIndices.estado !== -1 && parts[colIndices.estado] !== undefined
+        ? parts[colIndices.estado].toString().trim().replace(/"/g, '')
+        : 'Sin estado';
+      const estadoAltoNivel = (parts[colIndices.estadoAltoNivel] !== undefined ? parts[colIndices.estadoAltoNivel].toString() : '').trim().replace(/"/g, '');
+      const tipoProyecto = (parts[colIndices.tipoProyecto] !== undefined ? parts[colIndices.tipoProyecto].toString() : '').trim().replace(/"/g, '');
+      const tipoDesarrollo = (parts[colIndices.tipoDesarrollo] !== undefined ? parts[colIndices.tipoDesarrollo].toString() : '').trim().replace(/"/g, '');
+      const observaciones = (parts[colIndices.observaciones] !== undefined ? parts[colIndices.observaciones].toString() : 'Sin observaciones').trim().replace(/"/g, '');
+      const ds1 = (parts[colIndices.ds1] !== undefined ? parts[colIndices.ds1].toString() : '').trim().replace(/"/g, '');
+      const de = (parts[colIndices.de] !== undefined ? parts[colIndices.de].toString() : '').trim().replace(/"/g, '');
+      const nivelImpacto = (parts[colIndices.nivelImpacto] !== undefined ? parts[colIndices.nivelImpacto].toString() : '').trim().replace(/"/g, '');
+      const unidadImpacto = (parts[colIndices.unidadImpacto] !== undefined ? parts[colIndices.unidadImpacto].toString() : '').trim().replace(/"/g, '');
+      const impactoFinanciero = (parts[colIndices.impactoFinanciero] !== undefined ? parts[colIndices.impactoFinanciero].toString() : '').trim().replace(/"/g, '');
+      const sharepointLink = (parts[colIndices.sharepointLink] !== undefined ? parts[colIndices.sharepointLink].toString() : '').trim().replace(/"/g, '');
+      const jiraLink = (parts[colIndices.jiraLink] !== undefined ? parts[colIndices.jiraLink].toString() : '').trim().replace(/"/g, '');
+      const confluenceLink = (parts[colIndices.confluenceLink] !== undefined ? parts[colIndices.confluenceLink].toString() : '').trim().replace(/"/g, '');
 
       const entityId = slugify(entityName);
       const useCaseId = slugify(`${entityName}-${proyecto}`);
@@ -88,7 +137,8 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
       // Build metrics from CSV data
       const generalMetrics: Metric[] = [
         { label: 'Estado', value: estado || 'Sin estado' },
-        { label: 'Tipo', value: tipo || 'Sin tipo' }
+        { label: 'Tipo Proyecto', value: tipoProyecto || 'Sin tipo' },
+        { label: 'Tipo Desarrollo', value: tipoDesarrollo || 'N/A' }
       ];
 
       const financialMetrics: Metric[] = [];
@@ -109,6 +159,8 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
         description: observaciones,
         status: estado as UseCaseStatus,
         highLevelStatus: estadoAltoNivel || 'Inactivo',
+        tipoProyecto: tipoProyecto || 'Sin clasificar',
+        tipoDesarrollo: tipoDesarrollo || 'N/A',
         lastUpdated: new Date().toISOString(),
         metrics: { 
           general: generalMetrics,
@@ -258,6 +310,11 @@ export async function addEntity(data: {name: string, description: string}): Prom
       subName: newEntityData.description,
       stats: { active: 0, total: 0, scientists: 0, inDevelopment: 0, alerts: 0, totalImpact: 0 },
   };
+}
+
+export async function getAllUseCases(): Promise<UseCase[]> {
+  await delay(100);
+  return await readUseCasesFromCSV();
 }
 
 export async function getUseCases(entityId: string, highLevelStatusFilter?: string): Promise<UseCase[]> {

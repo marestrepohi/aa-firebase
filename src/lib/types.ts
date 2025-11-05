@@ -26,6 +26,8 @@ export interface UseCase {
   description: string;
   status: UseCaseStatus;
   highLevelStatus: 'Activo' | 'Inactivo' | 'Estrategico' | string; // Estado alto nivel
+  tipoProyecto: string; // Tipo Proyecto
+  tipoDesarrollo: string; // Tipo Desarrollo
   lastUpdated: string;
   metrics: {
     general: Metric[];
