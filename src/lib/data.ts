@@ -35,17 +35,17 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
     const headerLine = lines.shift();
     if (!headerLine) return [];
 
-    const header = headerLine.replace(/^\uFEFF/, '').trim().split(',');
+    const header = headerLine.replace(/^\uFEFF/, '').trim().split(';');
     const expectedHeaders = ['Entidad', 'Caso de Uso', 'Descripcion', 'Estado', 'Ultima Actualizacion'];
     
     // Check if headers are valid
     if (header.length < expectedHeaders.length || !expectedHeaders.every((h, i) => header[i] && header[i].trim() === h)) {
-      console.error(`Invalid use cases CSV header. Got "${header.join(',')}", expected "${expectedHeaders.join(',')}"`);
+      console.error(`Invalid use cases CSV header. Got "${header.join(';')}", expected "${expectedHeaders.join(';')}"`);
       return [];
     }
 
     return lines.map((line, index) => {
-      const parts = line.split(',');
+      const parts = line.split(';');
       const [entityName, name, description, status, lastUpdated] = parts.map(p => (p || '').trim().replace(/"/g, ''));
       const entityId = slugify(entityName);
       const useCaseId = slugify(`${entityName}-${name}-${index}`);
@@ -72,7 +72,7 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
     }).filter(uc => uc.entityId && uc.name);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        await fs.writeFile(useCasesCsvPath, 'Entidad,Caso de Uso,Descripcion,Estado,Ultima Actualizacion\n', 'utf8');
+        await fs.writeFile(useCasesCsvPath, 'Entidad;Caso de Uso;Descripcion;Estado;Ultima Actualizacion\n', 'utf8');
         return [];
     }
     console.error("Failed to read or parse use cases CSV:", error);
@@ -234,7 +234,7 @@ export async function addUseCase(entityId: string, data: Omit<UseCase, 'id' | 'e
     ...data,
   };
   
-  const row = `\n"${entity.name}","${data.name}","${data.description}",${newUseCase.status},${newUseCase.lastUpdated}`;
+  const row = `\n"${entity.name}";"${data.name}";"${data.description}";${newUseCase.status};${newUseCase.lastUpdated}`;
   await fs.appendFile(useCasesCsvPath, row);
   
   return newUseCase;
