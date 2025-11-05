@@ -30,24 +30,23 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
     await fs.access(useCasesCsvPath);
     const fileContent = await fs.readFile(useCasesCsvPath, 'utf8');
     const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');
+    if (lines.length <= 1) return [];
+
     const headerLine = lines.shift();
     if (!headerLine) return [];
 
-    // Trim header and remove BOM
     const header = headerLine.replace(/^\uFEFF/, '').trim().split(',');
-    
-    // Check for expected header columns.
     const expectedHeaders = ['Entidad', 'Caso de Uso', 'Descripcion', 'Estado', 'Ultima Actualizacion'];
-    const hasAllHeaders = expectedHeaders.every((h, i) => header[i] && header[i].trim() === h);
-
-    if (!hasAllHeaders) {
-      console.error('Invalid use cases CSV header. Expected "Entidad,Caso de Uso,Descripcion,Estado,Ultima Actualizacion"');
+    
+    // Check if headers are valid
+    if (header.length < expectedHeaders.length || !expectedHeaders.every((h, i) => header[i] && header[i].trim() === h)) {
+      console.error(`Invalid use cases CSV header. Got "${header.join(',')}", expected "${expectedHeaders.join(',')}"`);
       return [];
     }
 
     return lines.map((line, index) => {
       const parts = line.split(',');
-      const [entityName, name, description, status, lastUpdated] = parts.map(p => p.trim().replace(/"/g, ''));
+      const [entityName, name, description, status, lastUpdated] = parts.map(p => (p || '').trim().replace(/"/g, ''));
       const entityId = slugify(entityName);
       const useCaseId = slugify(`${entityName}-${name}-${index}`);
       
@@ -73,7 +72,7 @@ async function readUseCasesFromCSV(): Promise<UseCase[]> {
     }).filter(uc => uc.entityId && uc.name);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        console.log('casos.csv not found, returning empty array.');
+        await fs.writeFile(useCasesCsvPath, 'Entidad,Caso de Uso,Descripcion,Estado,Ultima Actualizacion\n', 'utf8');
         return [];
     }
     console.error("Failed to read or parse use cases CSV:", error);
@@ -85,18 +84,20 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
   try {
     await fs.access(entitiesCsvPath);
     const fileContent = await fs.readFile(entitiesCsvPath, 'utf8');
-    const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');;
+    const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');
+    if (lines.length <= 1) return [];
+
     const headerLine = lines.shift();
     if (!headerLine) throw new Error('CSV is empty or header is missing');
     
     const header = headerLine.replace(/^\uFEFF/, '').trim().split(',');
 
     if (header.length < 3 || header[0].trim() !== 'Entidad' || header[1].trim() !== 'descripcion' || header[2].trim() !== 'logo_url') {
-        throw new Error('Invalid CSV header. Expected "Entidad,descripcion,logo_url"');
+        throw new Error(`Invalid entities CSV header. Expected "Entidad,descripcion,logo_url", but got "${header.join(',')}"`);
     }
 
     return lines.map(line => {
-      const [name, description, logo] = line.split(',').map(s => s.trim().replace(/"/g, ''));
+      const [name, description, logo] = line.split(',').map(s => (s || '').trim().replace(/"/g, ''));
       const id = slugify(name);
       
       const entityUseCases = allUseCases.filter(uc => uc.entityId === id);
@@ -124,7 +125,7 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
     });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        console.log('entidades.csv not found, returning empty array.');
+        await fs.writeFile(entitiesCsvPath, 'Entidad,descripcion,logo_url\n', 'utf8');
         return [];
     }
     console.error("Failed to read or parse entities CSV:", error);
@@ -134,7 +135,7 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
 
 async function writeEntitiesToCSV(entities: Omit<Entity, 'id' | 'stats' | 'subName'>[]): Promise<void> {
   const header = 'Entidad,descripcion,logo_url\n';
-  const rows = entities.map(e => `${e.name},${e.description},${e.logo}`).join('\n');
+  const rows = entities.map(e => `"${e.name}","${e.description}","${e.logo}"`).join('\n');
   await fs.writeFile(entitiesCsvPath, header + rows, 'utf8');
 }
 
