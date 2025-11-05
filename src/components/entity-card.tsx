@@ -24,7 +24,11 @@ export function EntityCard({ entity }: { entity: Entity }) {
     <Card className="flex flex-col">
       <CardHeader className="flex-row items-center gap-4">
         <div className="bg-white border rounded-lg p-2 flex items-center justify-center h-16 w-16">
-          <Image src={entity.logo} alt={`${entity.name} logo`} width={48} height={48} className="object-contain" />
+          {entity.logo ? (
+            <Image src={entity.logo} alt={`${entity.name} logo`} width={48} height={48} className="object-contain" />
+          ) : (
+            <div className="text-xs text-muted-foreground">No Logo</div>
+          )}
         </div>
         <div>
           <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
