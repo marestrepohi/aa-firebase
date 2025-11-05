@@ -47,7 +47,7 @@ export default async function EntityPage({ params }: { params: { entityId: strin
               <TableBody>
                 {useCases.length > 0 ? (
                   useCases.map((useCase) => (
-                    <TableRow key={useCase.id}>
+                    <TableRow key={useCase.id} className="group transition-all duration-200 hover:shadow-lg hover:border-primary">
                       <TableCell className="font-medium">{useCase.name}</TableCell>
                       <TableCell><StatusPill status={useCase.status} /></TableCell>
                       <TableCell>

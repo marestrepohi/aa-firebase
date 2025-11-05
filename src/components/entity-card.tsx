@@ -21,7 +21,7 @@ function Stat({ label, value, highlight = false }: StatProps) {
 
 export function EntityCard({ entity }: { entity: Entity }) {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col transition-all duration-200 hover:shadow-lg hover:border-primary">
       <CardHeader className="flex-row items-center gap-4">
         <div className="bg-white border rounded-lg p-2 flex items-center justify-center h-16 w-16">
           {entity.logo ? (
