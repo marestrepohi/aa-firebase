@@ -1,4 +1,4 @@
-import type { Entity, UseCase, UseCaseStatus, SummaryMetrics } from './types';
+import type { Entity, UseCase, UseCaseStatus, SummaryMetrics, Metric } from './types';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -7,6 +7,7 @@ import path from 'path';
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 function slugify(text: string) {
+    if (!text) return '';
     return text
       .toString()
       .normalize('NFD') // split an accented letter in the base letter and the acent
@@ -26,34 +27,55 @@ const useCasesCsvPath = path.join(process.cwd(), 'public', 'casos.csv');
 
 async function readUseCasesFromCSV(): Promise<UseCase[]> {
   try {
+    await fs.access(useCasesCsvPath);
     const fileContent = await fs.readFile(useCasesCsvPath, 'utf8');
     const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');
     const headerLine = lines.shift();
     if (!headerLine) return [];
 
+    // Trim header and remove BOM
     const header = headerLine.replace(/^\uFEFF/, '').trim().split(',');
-    if (header.length < 5 || header[0] !== 'Entidad' || header[1] !== 'Caso de Uso' || header[2] !== 'Descripcion' || header[3] !== 'Estado' || header[4] !== 'Ultima Actualizacion') {
-      console.error('Invalid use cases CSV header');
+    
+    // Check for expected header columns.
+    const expectedHeaders = ['Entidad', 'Caso de Uso', 'Descripcion', 'Estado', 'Ultima Actualizacion'];
+    const hasAllHeaders = expectedHeaders.every((h, i) => header[i] && header[i].trim() === h);
+
+    if (!hasAllHeaders) {
+      console.error('Invalid use cases CSV header. Expected "Entidad,Caso de Uso,Descripcion,Estado,Ultima Actualizacion"');
       return [];
     }
 
     return lines.map((line, index) => {
-      // Basic CSV parsing, not robust for all cases (e.g., commas in descriptions)
-      // For a real app, use a proper CSV parsing library
-      const parts = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
-      const [entityName, name, description, status, lastUpdated] = parts.map(p => p.replace(/"/g, '').trim());
+      const parts = line.split(',');
+      const [entityName, name, description, status, lastUpdated] = parts.map(p => p.trim().replace(/"/g, ''));
+      const entityId = slugify(entityName);
+      const useCaseId = slugify(`${entityName}-${name}-${index}`);
       
+      const generateMetrics = (): Metric[] => [
+          { label: 'Users', value: Math.floor(Math.random() * 1000), unit: 'k' },
+          { label: 'ROI', value: Math.floor(Math.random() * 200), unit: '%' },
+      ];
+
       return {
-        id: slugify(`${entityName}-${name}-${index}`),
-        entityId: slugify(entityName),
+        id: useCaseId,
+        entityId: entityId,
         name,
         description,
         status: status as UseCaseStatus,
         lastUpdated,
-        metrics: { general: [], financial: [], business: [], technical: [] },
+        metrics: { 
+          general: generateMetrics(),
+          financial: generateMetrics(),
+          business: generateMetrics(),
+          technical: generateMetrics(),
+        },
       };
-    });
+    }).filter(uc => uc.entityId && uc.name);
   } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        console.log('casos.csv not found, returning empty array.');
+        return [];
+    }
     console.error("Failed to read or parse use cases CSV:", error);
     return [];
   }
@@ -81,7 +103,7 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
       const total = entityUseCases.length;
       const inDevelopment = entityUseCases.filter(uc => uc.status === 'Development').length;
       const alerts = entityUseCases.length > 0 ? Math.floor(Math.random() * 3) : 0; // Random alerts if use cases exist
-      const totalImpact = entityUseCases.length > 0 ? parseFloat((Math.random() * 10).toFixed(1)) : 0;
+      const totalImpact = entityUseCases.reduce((acc, curr) => acc + (Math.random() * 5), 0);
       
       return {
         id,
@@ -95,7 +117,7 @@ async function readEntitiesFromCSV(allUseCases: UseCase[]): Promise<Entity[]> {
           scientists: Math.floor(Math.random() * 5) + 1,
           inDevelopment,
           alerts,
-          totalImpact,
+          totalImpact: parseFloat(totalImpact.toFixed(1)),
         },
       };
     });
@@ -144,7 +166,7 @@ export async function addEntity(data: {name: string, description: string}): Prom
   const entities = await readEntitiesFromCSV(allUseCases);
   const newEntityData = {
       ...data,
-      logo: 'https://placehold.co/48x48/7C3AED/FFFFFF/png?text=LOGO'
+      logo: ''
   };
   
   const updatedEntities = [...entities.map(e => ({name: e.name, description: e.description, logo: e.logo})), newEntityData];
@@ -170,15 +192,35 @@ export async function getUseCases(entityId: string): Promise<UseCase[]> {
 export async function getUseCase(id: string): Promise<UseCase | undefined> {
   await delay(100);
   const allUseCases = await readUseCasesFromCSV();
-  return allUseCases.find(uc => uc.id === id);
+  const useCase = allUseCases.find(uc => uc.id === id);
+  if (useCase) {
+    // If metrics are empty, generate some for demonstration
+    if (useCase.metrics.general.length === 0) {
+      const generateMetrics = (): Metric[] => [
+        { label: 'Active Users', value: Math.floor(Math.random() * 5000), unit: '' },
+        { label: 'Adoption Rate', value: Math.floor(Math.random() * 100), unit: '%' },
+        { label: 'Avg. Session', value: Math.floor(Math.random() * 30), unit: 'min' },
+      ];
+      useCase.metrics = {
+        general: generateMetrics(),
+        financial: generateMetrics(),
+        business: generateMetrics(),
+        technical: generateMetrics(),
+      };
+    }
+  }
+  return useCase;
 }
 
 export async function addUseCase(entityId: string, data: Omit<UseCase, 'id' | 'entityId' | 'status' | 'lastUpdated' | 'metrics'>): Promise<UseCase> {
   await delay(500);
-  // This function would now append to the casos.csv file
-  // For simplicity, we'll keep it in-memory for this action, but a real app would write to the file.
+  
+  const entities = await getEntities();
+  const entity = entities.find(e => e.id === entityId);
+  if (!entity) throw new Error('Entity not found');
+
   const newUseCase: UseCase = {
-    id: String(Date.now()),
+    id: slugify(`${entity.name}-${data.name}-${Date.now()}`),
     entityId,
     status: 'Development',
     lastUpdated: new Date().toISOString(),
@@ -186,11 +228,7 @@ export async function addUseCase(entityId: string, data: Omit<UseCase, 'id' | 'e
     ...data,
   };
   
-  const entities = await getEntities();
-  const entity = entities.find(e => e.id === entityId);
-  if (!entity) throw new Error('Entity not found');
-
-  const row = `\n${entity.name},"${data.name}","${data.description}",${newUseCase.status},${newUseCase.lastUpdated}`;
+  const row = `\n"${entity.name}","${data.name}","${data.description}",${newUseCase.status},${newUseCase.lastUpdated}`;
   await fs.appendFile(useCasesCsvPath, row);
   
   return newUseCase;
