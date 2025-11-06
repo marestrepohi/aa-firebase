@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getEntity, getUseCase } from '@/lib/data';
+import { getEntity, getUseCase } from '@/lib/data.server';
 import { PageHeader } from '@/components/page-header';
 import { UseCasePageClientWrapper } from '@/components/use-case-page-client-wrapper';
 import { ChevronLeft } from 'lucide-react';
@@ -14,7 +14,7 @@ export default async function UseCasePage({ params }: { params: Promise<{ entity
   
   const [entity, useCase] = await Promise.all([
     getEntity(entityId),
-    getUseCase(useCaseId)
+    getUseCase(entityId, useCaseId)
   ]);
 
   if (!entity || !useCase || useCase.entityId !== entity.id) {

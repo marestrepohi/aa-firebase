@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getEntity, getUseCases } from '@/lib/data';
+import { getEntity, getUseCases } from '@/lib/data.server';
 import { EntityPageClientWrapper } from '@/components/entity-page-client-wrapper';
 
 export const dynamic = 'force-dynamic';

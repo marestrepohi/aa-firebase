@@ -1,4 +1,4 @@
-import { getEntities, getSummaryMetrics, getAllUseCases } from "@/lib/data";
+import { getEntities, getSummaryMetrics, getAllUseCases } from "@/lib/data.server";
 import { Header } from "@/components/header";
 import HomePageClient from "./home-page-client";
 

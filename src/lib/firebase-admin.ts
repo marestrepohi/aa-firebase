@@ -1,5 +1,3 @@
-'use server';
-
 // Firebase Admin SDK for server-side operations
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';

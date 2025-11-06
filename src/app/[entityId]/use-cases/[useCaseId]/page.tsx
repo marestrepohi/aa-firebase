@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getEntity, getUseCase } from '@/lib/data';
+import { getEntity, getUseCase } from '@/lib/data.server';
 import { PageHeader } from '@/components/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 export default async function UseCasePage({ params }: { params: { entityId: string; useCaseId: string } }) {
   const [entity, useCase] = await Promise.all([
     getEntity(params.entityId),
-    getUseCase(params.useCaseId)
+    getUseCase(params.entityId, params.useCaseId)
   ]);
 
   if (!entity || !useCase || useCase.entityId !== entity.id) {
@@ -71,7 +71,7 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
                           <p className="text-base">{useCase.description}</p>
                           <div className="mt-4 flex gap-4">
                               <Badge variant="secondary">Status: {useCase.status}</Badge>
-                              <Badge variant="secondary">Last Updated: {new Date(useCase.lastUpdated).toLocaleDateString()}</Badge>
+                              <Badge variant="secondary">Last Updated: {new Date(useCase.lastUpdated || Date.now()).toLocaleDateString()}</Badge>
                           </div>
                       </CardContent>
                   </Card>

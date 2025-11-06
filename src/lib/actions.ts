@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { addEntity, addUseCase } from './data';
+import { addEntity, addUseCase } from './data.server'; // Use server-side data functions
 import { revalidatePath } from 'next/cache';
 
 const entitySchema = z.object({

@@ -1,245 +1,22 @@
-// Data layer - Firebase API only (CSV migration completed)
-import type { Entity, UseCase, SummaryMetrics, Metric } from './types';
-import { adminDb } from './firebase-admin';
+// Data layer - Client-side Firestore access
+'use client';
+import type { Metric } from './types';
+import { db } from './firebase'; // Using client-side firebase instance
+import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 
-async function getEntitiesFromFirestore(): Promise<Entity[]> {
+export async function getMetricsPeriods(
+  entityId: string,
+  useCaseId: string
+): Promise<Array<{ period: string }>> {
   try {
-    const entitiesSnapshot = await adminDb.collection('entities').get();
-    const entities: Entity[] = [];
-
-    for (const doc of entitiesSnapshot.docs) {
-      const entityData = doc.data();
-      const stats = await calculateEntityStats(doc.id);
-      entities.push({
-        id: doc.id,
-        name: entityData.name,
-        description: entityData.description,
-        logo: entityData.logo,
-        subName: entityData.name,
-        stats,
-      });
-    }
-    return entities;
+    const snapshot = await getDocs(
+      collection(db, 'entities', entityId, 'useCases', useCaseId, 'metrics')
+    );
+    return snapshot.docs.map(doc => ({ period: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error('Error fetching entities from Firestore:', error);
+    console.error("Error fetching metrics periods on client:", error);
     return [];
   }
-}
-
-async function getEntityFromFirestore(id: string): Promise<Entity | undefined> {
-  try {
-    const entityDoc = await adminDb.collection('entities').doc(id).get();
-    if (!entityDoc.exists) {
-      return undefined;
-    }
-    const entityData = entityDoc.data()!;
-    const stats = await calculateEntityStats(id);
-    return {
-      id: entityDoc.id,
-      name: entityData.name,
-      description: entityData.description,
-      logo: entityData.logo,
-      subName: entityData.name,
-      stats,
-    };
-  } catch (error) {
-    console.error(`Error fetching entity ${id} from Firestore:`, error);
-    return undefined;
-  }
-}
-
-async function getUseCasesFromFirestore(entityId?: string): Promise<UseCase[]> {
-  try {
-    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>;
-    if (entityId) {
-      query = adminDb.collection('entities').doc(entityId).collection('useCases');
-    } else {
-      query = adminDb.collectionGroup('useCases');
-    }
-
-    const useCasesSnapshot = await query.get();
-    const useCases: UseCase[] = [];
-
-    for (const doc of useCasesSnapshot.docs) {
-      const useCaseData = doc.data();
-      const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
-      
-      let metrics = { general: [], financial: [], business: [], technical: [] };
-      if (!metricsSnapshot.empty) {
-        metrics = metricsSnapshot.docs[0].data() as any;
-      }
-
-      useCases.push({
-        ...useCaseData,
-        id: doc.id,
-        metrics,
-      } as UseCase);
-    }
-    return useCases;
-  } catch (error) {
-    console.error('Error fetching use cases from Firestore:', error);
-    return [];
-  }
-}
-
-async function getUseCaseFromFirestore(id: string): Promise<UseCase | undefined> {
-   try {
-    const useCasesSnapshot = await adminDb.collectionGroup('useCases').where('id', '==', id).limit(1).get();
-    if (useCasesSnapshot.empty) {
-      return undefined;
-    }
-    
-    const useCaseDoc = useCasesSnapshot.docs[0];
-    const useCaseData = useCaseDoc.data();
-    const metricsSnapshot = await useCaseDoc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
-
-    let metrics = { general: [], financial: [], business: [], technical: [] };
-    if (!metricsSnapshot.empty) {
-      metrics = metricsSnapshot.docs[0].data() as any;
-    }
-
-    return {
-      ...useCaseData,
-      id: useCaseDoc.id,
-      metrics,
-    } as UseCase;
-  } catch (error) {
-    console.error(`Error fetching use case ${id} from Firestore:`, error);
-    return undefined;
-  }
-}
-
-async function calculateEntityStats(entityId: string) {
-  const useCasesSnapshot = await adminDb
-    .collection('entities')
-    .doc(entityId)
-    .collection('useCases')
-    .get();
-
-  let active = 0;
-  let inactive = 0;
-  let strategic = 0;
-  let totalDS = 0;
-
-  for (const doc of useCasesSnapshot.docs) {
-    const useCase = doc.data();
-    if (useCase.highLevelStatus === 'Activo') active++;
-    else if (useCase.highLevelStatus === 'Inactivo') inactive++;
-    else if (useCase.highLevelStatus === 'Estrategico') strategic++;
-    
-    const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
-    if (!metricsSnapshot.empty) {
-      const metrics = metricsSnapshot.docs[0].data();
-      const dsMetric = metrics.general?.find((m: Metric) => m.label === 'Cantidad de DS');
-      if (dsMetric?.value) {
-        totalDS += parseInt(String(dsMetric.value)) || 0;
-      }
-    }
-  }
-
-  return {
-    active,
-    inactive,
-    strategic,
-    total: useCasesSnapshot.size,
-    scientists: totalDS,
-    inDevelopment: 0,
-    alerts: 0,
-    totalImpact: 0,
-  };
-}
-
-
-async function getSummaryMetricsFromFirestore(): Promise<SummaryMetrics> {
-  const entities = await getEntitiesFromFirestore();
-  const allUseCases = await getUseCasesFromFirestore();
-  
-  let totalScientists = 0;
-  entities.forEach(entity => {
-    totalScientists += entity.stats.scientists || 0;
-  });
-  
-  return {
-    totalCases: allUseCases.length,
-    entities: entities.length,
-    dataScientists: totalScientists,
-    totalImpact: `0`, // This needs to be defined
-  };
-}
-
-export async function getEntities(): Promise<Entity[]> {
-  return getEntitiesFromFirestore();
-}
-
-export async function getEntity(id: string): Promise<Entity | undefined> {
-  return getEntityFromFirestore(id);
-}
-
-export async function getUseCases(entityId?: string): Promise<UseCase[]> {
-  return getUseCasesFromFirestore(entityId);
-}
-
-export async function getUseCase(id: string): Promise<UseCase | undefined> {
-  return getUseCaseFromFirestore(id);
-}
-
-export async function getSummaryMetrics(): Promise<SummaryMetrics> {
-  return getSummaryMetricsFromFirestore();
-}
-
-export async function getAllUseCases(): Promise<UseCase[]> {
-  return getUseCasesFromFirestore();
-}
-
-// Helper to create a slug/id from a name
-function createIdFromName(name: string): string {
-  if (!name) return '';
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 100);
-}
-
-// --- Write operations ---
-export async function addEntity(data: { name: string; description?: string; logo?: string; id?: string }): Promise<boolean> {
-  const id = data.id || createIdFromName(data.name) || `entity-${Date.now()}`;
-  const payload = {
-    id,
-    name: data.name,
-    description: data.description || '',
-    logo: data.logo || '',
-  };
-  await adminDb.collection('entities').doc(id).set(payload, { merge: true });
-  return true;
-}
-
-export async function addUseCase(entityId: string, data: { name: string; description?: string; id?: string; [key: string]: any; }): Promise<boolean> {
-  const id = data.id || createIdFromName(data.name) || `case-${Date.now()}`;
-  const payload: any = { ...data, id, entityId };
-  await adminDb.collection('entities').doc(entityId).collection('useCases').doc(id).set(payload, { merge: true });
-  return true;
-}
-
-export async function updateEntity(data: {
-  id: string;
-  name?: string;
-  description?: string;
-  logo?: string;
-}): Promise<boolean> {
-  await adminDb.collection('entities').doc(data.id).set(data, { merge: true });
-  return true;
-}
-
-export async function updateUseCase(data: {
-  entityId: string;
-  id: string;
-  [key: string]: any;
-}): Promise<boolean> {
-  await adminDb.collection('entities').doc(data.entityId).collection('useCases').doc(data.id).set(data, { merge: true });
-  return true;
 }
 
 export async function saveMetrics(data: {
@@ -254,26 +31,41 @@ export async function saveMetrics(data: {
   };
 }): Promise<boolean> {
   const { entityId, useCaseId, period, metrics } = data;
-  await adminDb.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection('metrics').doc(period).set(metrics, { merge: true });
-  return true;
+  try {
+    await setDoc(doc(db, 'entities', entityId, 'useCases', useCaseId, 'metrics', period), metrics, { merge: true });
+    return true;
+  } catch (error) {
+    console.error("Error saving metrics on client:", error);
+    return false;
+  }
 }
 
-export async function getMetricsPeriods(
-  entityId: string,
-  useCaseId: string
-): Promise<Array<{ period: string }>> {
-  const snapshot = await adminDb.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection('metrics').get();
-  return snapshot.docs.map(doc => ({ period: doc.id, ...doc.data() }));
+export async function updateEntity(data: {
+  id: string;
+  name?: string;
+  description?: string;
+  logo?: string;
+}): Promise<boolean> {
+  try {
+    await setDoc(doc(db, 'entities', data.id), data, { merge: true });
+    return true;
+  } catch (error) {
+    console.error("Error updating entity on client:", error);
+    return false;
+  }
 }
 
-export async function deleteEntity(id: string): Promise<boolean> {
-  // This is a more complex operation, requires deleting subcollections.
-  // For now, we'll just delete the entity doc.
-  await adminDb.collection('entities').doc(id).delete();
-  return true;
-}
-
-export async function deleteUseCase(entityId: string, id: string): Promise<boolean> {
-  await adminDb.collection('entities').doc(entityId).collection('useCases').doc(id).delete();
-  return true;
+export async function updateUseCase(data: {
+  entityId: string;
+  id: string;
+  [key: string]: any;
+}): Promise<boolean> {
+  try {
+    const { entityId, id, ...useCaseData } = data;
+    await setDoc(doc(db, 'entities', entityId, 'useCases', id), useCaseData, { merge: true });
+    return true;
+  } catch (error) {
+    console.error("Error updating use case on client:", error);
+    return false;
+  }
 }
