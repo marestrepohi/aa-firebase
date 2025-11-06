@@ -7,41 +7,63 @@ import * as path from 'path';
 const serviceAccount = require('../firebase-service-account.json');
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert(serviceAccount as any),
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${serviceAccount.project_id}.appspot.com`,
 });
 
 const db = admin.firestore();
 
-// CSV Parser
-function parseCSVLine(line: string, delimiter: string = ';'): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"' && (i === 0 || line[i-1] !== '"')) {
-        inQuotes = !inQuotes;
-        continue;
+function parseCSV(content: string, delimiter: string = ','): string[][] {
+    if (content.charCodeAt(0) === 0xFEFF) {
+        content = content.slice(1);
     }
-    if (char === delimiter && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result.map(s => s.replace(/^"|"$/g, '').replace(/""/g, '"'));
-}
+    const rows: string[][] = [];
+    let currentRow: string[] = [];
+    let currentField = '';
+    let inQuotedField = false;
 
-function parseCSV(content: string, delimiter: string = ';'): string[][] {
-  if (content.charCodeAt(0) === 0xFEFF) {
-    content = content.slice(1);
-  }
-  const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
-  return lines.map(line => parseCSVLine(line, delimiter));
+    for (let i = 0; i < content.length; i++) {
+        const char = content[i];
+        const nextChar = content[i + 1];
+
+        if (char === '"' && nextChar === '"') {
+            currentField += '"';
+            i++;
+            continue;
+        }
+
+        if (char === '"') {
+            inQuotedField = !inQuotedField;
+            continue;
+        }
+
+        if (char === delimiter && !inQuotedField) {
+            currentRow.push(currentField);
+            currentField = '';
+            continue;
+        }
+
+        if ((char === '\n' || char === '\r') && !inQuotedField) {
+            if (char === '\r' && nextChar === '\n') {
+                i++;
+            }
+            if (currentField.length > 0 || currentRow.length > 0) {
+              currentRow.push(currentField);
+              rows.push(currentRow);
+              currentRow = [];
+              currentField = '';
+            }
+            continue;
+        }
+        currentField += char;
+    }
+
+    if (currentField.length > 0 || currentRow.length > 0) {
+        currentRow.push(currentField);
+        rows.push(currentRow);
+    }
+
+    return rows.filter(row => row.some(field => field.trim() !== ''));
 }
 
 
@@ -55,7 +77,7 @@ function createValidDocId(str: string): string {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '')
+    .replace(/[^\w.-]+/g, '') // Keep dots
     .replace(/--+/g, '-');
   return slug || `item-${Date.now()}`;
 }
