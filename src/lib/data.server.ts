@@ -100,12 +100,7 @@ async function getUseCaseFromFirestore(entityId: string, useCaseId: string): Pro
     const useCaseDoc = await adminDb.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).get();
     
     if (!useCaseDoc.exists) {
-      // Fallback for old structure where useCaseId was the document key
-      const useCasesSnapshot = await adminDb.collectionGroup('useCases').where('id', '==', useCaseId).limit(1).get();
-      if (useCasesSnapshot.empty) {
-        return undefined;
-      }
-      return getUseCaseFromFirestore(useCasesSnapshot.docs[0].data().entityId, useCaseId);
+      return undefined;
     }
     
     const useCaseData = useCaseDoc.data()!;
