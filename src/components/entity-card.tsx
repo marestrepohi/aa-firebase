@@ -76,19 +76,19 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
                 <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
                 <p className="text-sm text-muted-foreground line-clamp-1">{entity.subName}</p>
               </div>
-              <div className="ml-auto flex-shrink-0">
+              <div className="ml-auto flex-shrink-0 h-16 w-16 flex items-center justify-center">
                 {hasValidLogo ? (
                   <Image 
                     src={entity.logo} 
                     alt={`${entity.name} logo`} 
                     width={64} 
                     height={64} 
-                    className="object-contain"
+                    className="object-contain h-full w-full"
                     unoptimized
                     onError={() => setLogoError(true)}
                   />
                 ) : (
-                  <Building2 className="w-16 h-16 text-muted-foreground" />
+                  <Building2 className="w-10 h-10 text-muted-foreground" />
                 )}
               </div>
             </div>
