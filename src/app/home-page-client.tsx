@@ -13,9 +13,10 @@ interface HomePageClientProps {
   entities: Entity[];
   summaryMetrics: SummaryMetrics;
   allUseCases: UseCase[];
+  isEditing: boolean;
 }
 
-export default function HomePageClient({ entities, summaryMetrics, allUseCases }: HomePageClientProps) {
+export default function HomePageClient({ entities, summaryMetrics, allUseCases, isEditing }: HomePageClientProps) {
   const [showStatusTable, setShowStatusTable] = useState(false);
   const [filters, setFilters] = useState({
     estado: 'all',
@@ -96,7 +97,7 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases }
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEntities.length > 0 ? (
           filteredEntities.map(entity => (
-            <EntityCard key={entity.id} entity={entity} />
+            <EntityCard key={entity.id} entity={entity} isEditing={isEditing} />
           ))
         ) : (
           <div className="col-span-full text-center py-12 text-gray-500">

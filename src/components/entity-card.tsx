@@ -24,11 +24,10 @@ function Stat({ label, value, highlight = false }: StatProps) {
   );
 }
 
-export function EntityCard({ entity }: { entity: Entity }) {
+export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: boolean }) {
   const [logoError, setLogoError] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
 
-  // Validate URL
   const isValidUrl = (url: string): boolean => {
     if (!url) return false;
     try {
@@ -42,23 +41,35 @@ export function EntityCard({ entity }: { entity: Entity }) {
   const hasValidLogo = entity.logo && isValidUrl(entity.logo) && !logoError;
 
   const handleEditClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent any parent link navigation
+    e.preventDefault();
+    e.stopPropagation();
     setShowEditForm(true);
   };
+
+  const CardContentLink = ({ children }: { children: React.ReactNode }) =>
+    isEditing ? (
+      <div className="flex flex-col flex-grow p-0 cursor-default">{children}</div>
+    ) : (
+      <Link href={`/${entity.id}`} className="flex flex-col flex-grow p-0">
+        {children}
+      </Link>
+    );
 
   return (
     <>
       <Card className="group relative flex flex-col transition-all duration-200 hover:shadow-lg hover:border-primary h-full">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 h-7 w-7 z-10"
-          onClick={handleEditClick}
-        >
-          <Pencil className="h-4 w-4" />
-          <span className="sr-only">Editar Entidad</span>
-        </Button>
-        <Link href={`/${entity.id}`} className="flex flex-col flex-grow p-0">
+        {isEditing && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-8 w-8 z-10"
+            onClick={handleEditClick}
+          >
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Editar Entidad</span>
+          </Button>
+        )}
+        <CardContentLink>
           <CardHeader className="pb-3 border-b w-full">
             <div className="flex items-start justify-between">
               <div className="flex-1 pr-8">
@@ -89,7 +100,7 @@ export function EntityCard({ entity }: { entity: Entity }) {
               <Stat label="Cantidad DS" value={entity.stats.total} />
             </div>
           </CardContent>
-        </Link>
+        </CardContentLink>
       </Card>
 
       <EntityForm
@@ -101,7 +112,10 @@ export function EntityCard({ entity }: { entity: Entity }) {
         }}
         open={showEditForm}
         onOpenChange={setShowEditForm}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {
+          setShowEditForm(false);
+          window.location.reload();
+        }}
       />
     </>
   );

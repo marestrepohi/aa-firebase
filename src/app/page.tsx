@@ -1,6 +1,5 @@
 import { getEntities, getSummaryMetrics, getAllUseCases } from "@/lib/data.server";
-import { Header } from "@/components/header";
-import HomePageClient from "./home-page-client";
+import HomePageClientWrapper from "./home-page-client-wrapper";
 
 export const dynamic = 'force-dynamic';
 
@@ -12,13 +11,10 @@ export default async function Home() {
   ]);
 
   return (
-    <>
-      <Header />
-      <HomePageClient 
-        entities={entities} 
-        summaryMetrics={summaryMetrics}
-        allUseCases={allUseCases}
-      />
-    </>
+    <HomePageClientWrapper 
+      entities={entities} 
+      summaryMetrics={summaryMetrics}
+      allUseCases={allUseCases}
+    />
   );
 }
