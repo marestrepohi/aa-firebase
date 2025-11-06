@@ -20,23 +20,19 @@ const serializeObject = (obj: any) => {
     return newObj;
 }
 
+// Helper function to calculate entity stats efficiently
+async function calculateEntityStats(allUseCases: admin.firestore.QueryDocumentSnapshot[]): Promise<Record<string, any>> {
+  const statsByEntity: Record<string, any> = {};
 
-async function getEntitiesFromFirestore(): Promise<Entity[]> {
-  const entitiesSnapshot = await adminDb.collection('entities').get();
-  if (entitiesSnapshot.empty) return [];
-
-  const useCasesSnapshot = await adminDb.collectionGroup('useCases').get();
-  const allUseCases = useCasesSnapshot.docs.map(doc => ({ id: doc.id, ref: doc.ref, ...doc.data() } as UseCase & { ref: admin.firestore.DocumentReference }));
-
-  const metricsPromises = allUseCases.map(uc => 
-    uc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get()
+  const metricsPromises = allUseCases.map(doc => 
+    doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get()
   );
   const metricsSnapshots = await Promise.all(metricsPromises);
 
-  const statsByEntity: Record<string, any> = {};
-
-  allUseCases.forEach((useCase, index) => {
+  allUseCases.forEach((doc, index) => {
+    const useCase = doc.data();
     const entityId = useCase.entityId;
+
     if (!statsByEntity[entityId]) {
       statsByEntity[entityId] = {
         active: 0,
@@ -46,26 +42,44 @@ async function getEntitiesFromFirestore(): Promise<Entity[]> {
         scientists: 0,
       };
     }
+
     const stats = statsByEntity[entityId];
     stats.total++;
+
     const status = useCase.highLevelStatus || '';
     if (status === 'Activo') stats.active++;
     else if (status === 'Inactivo') stats.inactive++;
     else if (status === 'Estrategico') stats.strategic++;
 
-    const latestMetrics = metricsSnapshots[index];
-    if (!latestMetrics.empty) {
-      const metricsData = latestMetrics.docs[0].data();
-      const dsMetric = metricsData.general?.find((m: any) => m.label === 'Cantidad de DS');
+    const metricsSnapshot = metricsSnapshots[index];
+    if (!metricsSnapshot.empty) {
+      const metrics = metricsSnapshot.docs[0].data();
+      const dsMetric = metrics.general?.find((m: any) => m.label === 'Cantidad de DS');
       if (dsMetric?.value) {
-        stats.scientists += parseInt(dsMetric.value.toString()) || 0;
+        stats.scientists += parseInt(dsMetric.value) || 0;
       }
     }
   });
 
+  return statsByEntity;
+}
+
+
+async function getEntitiesFromFirestore(): Promise<Entity[]> {
+  const [entitiesSnapshot, useCasesSnapshot] = await Promise.all([
+    adminDb.collection('entities').get(),
+    adminDb.collectionGroup('useCases').get(),
+  ]);
+
+  if (entitiesSnapshot.empty) return [];
+
+  const statsByEntity = await calculateEntityStats(useCasesSnapshot.docs);
+
   const entities = entitiesSnapshot.docs.map(doc => {
     const entityData = doc.data();
-    const stats = statsByEntity[doc.id] || { active: 0, inactive: 0, strategic: 0, total: 0, scientists: 0 };
+    const stats = statsByEntity[doc.id] || {
+      active: 0, inactive: 0, strategic: 0, total: 0, scientists: 0,
+    };
     return {
       id: doc.id,
       name: entityData.name,
