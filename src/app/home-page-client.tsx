@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { PageHeader } from "@/components/page-header";
 import { SummaryCard } from "@/components/summary-card";
 import { EntityCard } from "@/components/entity-card";
 import { CaseStatusTable } from "@/components/case-status-table";
@@ -24,7 +23,6 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
     tipoDesarrollo: 'all'
   });
 
-  // Obtener opciones únicas para los filtros
   const filterOptions = useMemo(() => {
     const estados = new Set<string>();
     const tiposProyecto = new Set<string>();
@@ -43,7 +41,6 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
     };
   }, [allUseCases]);
 
-  // Filtrar casos de uso
   const filteredUseCases = useMemo(() => {
     return allUseCases.filter(uc => {
       if (filters.estado !== 'all' && uc.status !== filters.estado) return false;
@@ -53,7 +50,6 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
     });
   }, [allUseCases, filters]);
 
-  // Filtrar entidades que tengan casos de uso que cumplan los filtros
   const filteredEntities = useMemo(() => {
     const entitiesWithCases = new Set(filteredUseCases.map(uc => uc.entityId));
     return entities.filter(entity => entitiesWithCases.has(entity.id));
