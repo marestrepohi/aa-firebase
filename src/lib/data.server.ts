@@ -26,11 +26,16 @@ async function getEntitiesFromFirestore(): Promise<Entity[]> {
   if (entitiesSnapshot.empty) return [];
 
   const useCasesSnapshot = await adminDb.collectionGroup('useCases').get();
-  const allUseCases = useCasesSnapshot.docs.map(doc => doc.data() as UseCase);
+  const allUseCases = useCasesSnapshot.docs.map(doc => ({ id: doc.id, ref: doc.ref, ...doc.data() } as UseCase & { ref: admin.firestore.DocumentReference }));
+
+  const metricsPromises = allUseCases.map(uc => 
+    uc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get()
+  );
+  const metricsSnapshots = await Promise.all(metricsPromises);
 
   const statsByEntity: Record<string, any> = {};
 
-  for (const useCase of allUseCases) {
+  allUseCases.forEach((useCase, index) => {
     const entityId = useCase.entityId;
     if (!statsByEntity[entityId]) {
       statsByEntity[entityId] = {
@@ -48,11 +53,15 @@ async function getEntitiesFromFirestore(): Promise<Entity[]> {
     else if (status === 'Inactivo') stats.inactive++;
     else if (status === 'Estrategico') stats.strategic++;
 
-    const dsMetric = useCase.metrics?.general?.find(m => m.label === 'Cantidad de DS');
-    if (dsMetric?.value) {
-      stats.scientists += parseInt(dsMetric.value.toString()) || 0;
+    const latestMetrics = metricsSnapshots[index];
+    if (!latestMetrics.empty) {
+      const metricsData = latestMetrics.docs[0].data();
+      const dsMetric = metricsData.general?.find((m: any) => m.label === 'Cantidad de DS');
+      if (dsMetric?.value) {
+        stats.scientists += parseInt(dsMetric.value.toString()) || 0;
+      }
     }
-  }
+  });
 
   const entities = entitiesSnapshot.docs.map(doc => {
     const entityData = doc.data();
