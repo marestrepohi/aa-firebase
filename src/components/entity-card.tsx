@@ -42,8 +42,7 @@ export function EntityCard({ entity }: { entity: Entity }) {
   const hasValidLogo = entity.logo && isValidUrl(entity.logo) && !logoError;
 
   const handleEditClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent Link navigation
-    e.stopPropagation();
+    e.preventDefault(); // Prevent any parent link navigation
     setShowEditForm(true);
   };
 
@@ -59,8 +58,8 @@ export function EntityCard({ entity }: { entity: Entity }) {
           <Pencil className="h-4 w-4" />
           <span className="sr-only">Editar Entidad</span>
         </Button>
-        <Link href={`/${entity.id}`} className="flex flex-col flex-grow">
-          <CardHeader className="pb-3 border-b">
+        <Link href={`/${entity.id}`} className="flex flex-col flex-grow p-0">
+          <CardHeader className="pb-3 border-b w-full">
             <div className="flex items-start justify-between">
               <div className="flex-1 pr-8">
                 <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
@@ -83,7 +82,7 @@ export function EntityCard({ entity }: { entity: Entity }) {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex-grow pt-4">
+          <CardContent className="flex-grow pt-4 w-full">
             <div className="grid grid-cols-3 gap-2 text-sm">
               <Stat label="Casos Activos" value={entity.stats.active} />
               <Stat label="Casos Inactivos" value={entity.stats.inDevelopment} />
