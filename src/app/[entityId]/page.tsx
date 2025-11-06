@@ -4,12 +4,10 @@ import { EntityPageClientWrapper } from '@/components/entity-page-client-wrapper
 
 export const dynamic = 'force-dynamic';
 
-export default async function EntityPage({ params }: { params: Promise<{ entityId: string }> }) {
-  const { entityId } = await params;
-  
+export default async function EntityPage({ params }: { params: { entityId: string } }) {
   const [entity, allUseCases] = await Promise.all([
-    getEntity(entityId),
-    getUseCases(entityId)
+    getEntity(params.entityId),
+    getUseCases(params.entityId)
   ]);
 
   if (!entity) {

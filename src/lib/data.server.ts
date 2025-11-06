@@ -117,6 +117,7 @@ async function getUseCasesFromFirestore(entityId?: string): Promise<UseCase[]> {
       return {
         ...useCaseData,
         id: doc.id,
+        entityId: useCaseData.entityId || doc.ref.parent.parent?.id,
         lastUpdated,
         metrics,
       } as UseCase;
@@ -160,6 +161,7 @@ async function getUseCaseFromFirestore(entityId: string, useCaseId: string): Pro
     return {
       ...useCaseData,
       id: useCaseDoc.id,
+      entityId,
       lastUpdated,
       metrics,
     } as UseCase;
