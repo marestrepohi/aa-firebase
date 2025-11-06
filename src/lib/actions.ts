@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { addEntity, addUseCase } from './data.server'; // Use server-side data functions
+import { addEntity, addUseCase } from './data.server';
 import { revalidatePath } from 'next/cache';
 
 const entitySchema = z.object({
@@ -25,7 +25,6 @@ export async function createEntity(prevState: any, formData: FormData) {
   try {
     await addEntity(validatedFields.data);
     revalidatePath('/');
-    revalidatePath('/entities');
     return { message: 'Entity created successfully.', errors: {} };
   } catch (error) {
     return { message: 'Failed to create entity.', errors: {} };

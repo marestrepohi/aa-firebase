@@ -3,6 +3,26 @@ import 'server-only';
 import type { Entity, UseCase, SummaryMetrics, Metric } from './types';
 import { adminDb } from './firebase-admin';
 
+// Helper to convert Firestore Timestamps to ISO strings
+const convertTimestamps = (obj: any): any => {
+  if (!obj) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(convertTimestamps);
+  }
+  if (typeof obj === 'object') {
+    for (const key in obj) {
+      if (obj[key] && typeof obj[key].toDate === 'function') {
+        // This is a Firestore Timestamp
+        obj[key] = obj[key].toDate().toISOString();
+      } else if (typeof obj[key] === 'object') {
+        // Recursively check nested objects
+        obj[key] = convertTimestamps(obj[key]);
+      }
+    }
+  }
+  return obj;
+};
+
 async function getEntitiesFromFirestore(): Promise<Entity[]> {
   try {
     const entitiesSnapshot = await adminDb.collection('entities').get();
@@ -62,11 +82,11 @@ async function getUseCasesFromFirestore(entityId?: string): Promise<UseCase[]> {
     const useCases: UseCase[] = [];
 
     for (const doc of useCasesSnapshot.docs) {
-      const useCaseData = doc.data();
+      const useCaseData = convertTimestamps(doc.data());
       const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
       
       let metrics = { general: [], financial: [], business: [], technical: [] };
-      let lastUpdated = useCaseData.updatedAt?.toDate()?.toISOString() || new Date().toISOString();
+      let lastUpdated = useCaseData.updatedAt || new Date().toISOString();
 
       if (!metricsSnapshot.empty) {
         const metricsData = metricsSnapshot.docs[0].data();
@@ -103,11 +123,11 @@ async function getUseCaseFromFirestore(entityId: string, useCaseId: string): Pro
       return undefined;
     }
     
-    const useCaseData = useCaseDoc.data()!;
+    const useCaseData = convertTimestamps(useCaseDoc.data()!);
     const metricsSnapshot = await useCaseDoc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
 
     let metrics = { period: '', general: [], financial: [], business: [], technical: [] };
-    let lastUpdated = useCaseData.updatedAt?.toDate()?.toISOString() || new Date().toISOString();
+    let lastUpdated = useCaseData.updatedAt || new Date().toISOString();
 
     if (!metricsSnapshot.empty) {
         const metricsData = metricsSnapshot.docs[0].data();
@@ -236,6 +256,8 @@ export async function addEntity(data: { name: string; description?: string; logo
     name: data.name,
     description: data.description || '',
     logo: data.logo || '',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
   await adminDb.collection('entities').doc(id).set(payload, { merge: true });
   return true;
@@ -243,7 +265,7 @@ export async function addEntity(data: { name: string; description?: string; logo
 
 export async function addUseCase(entityId: string, data: { name: string; description?: string; id?: string; [key: string]: any; }): Promise<boolean> {
   const id = data.id || createIdFromName(data.name) || `case-${Date.now()}`;
-  const payload: any = { ...data, id, entityId };
+  const payload: any = { ...data, id, entityId, createdAt: new Date(), updatedAt: new Date() };
   await adminDb.collection('entities').doc(entityId).collection('useCases').doc(id).set(payload, { merge: true });
   return true;
 }
