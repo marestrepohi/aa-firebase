@@ -50,12 +50,18 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
     });
   }, [initialUseCases, filters]);
   
-  const stats = [
-    { label: 'Casos de Uso Totales', count: filteredUseCases.length, color: 'text-gray-800' },
-    { label: 'Activos', count: filteredUseCases.filter(uc => uc.highLevelStatus === 'Activo').length, color: 'text-green-600' },
-    { label: 'Inactivos', count: filteredUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length, color: 'text-red-600' },
-    { label: 'Estratégicos', count: filteredUseCases.filter(uc => uc.highLevelStatus === 'Estrategico').length, color: 'text-blue-600' },
-  ];
+  const stats = useMemo(() => {
+    const active = filteredUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
+    const inactive = filteredUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
+    const strategic = filteredUseCases.filter(uc => uc.highLevelStatus === 'Estrategico').length;
+    
+    return [
+      { label: 'Casos de Uso Totales', count: filteredUseCases.length, color: 'text-gray-800' },
+      { label: 'Activos', count: active, color: 'text-green-600' },
+      { label: 'Inactivos', count: inactive, color: 'text-red-600' },
+      { label: 'Estratégicos', count: strategic, color: 'text-blue-600' },
+    ];
+  }, [filteredUseCases]);
 
   return (
     <div className="p-4 md:p-8 space-y-8">
