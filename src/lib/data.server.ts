@@ -9,7 +9,7 @@ const convertTimestamps = (obj: any): any => {
   if (Array.isArray(obj)) {
     return obj.map(convertTimestamps);
   }
-  if (typeof obj === 'object') {
+  if (typeof obj === 'object' && obj !== null) {
     for (const key in obj) {
       if (obj[key] && typeof obj[key].toDate === 'function') {
         // This is a Firestore Timestamp
@@ -25,21 +25,35 @@ const convertTimestamps = (obj: any): any => {
 
 async function getEntitiesFromFirestore(): Promise<Entity[]> {
   try {
-    const entitiesSnapshot = await adminDb.collection('entities').get();
-    const entities: Entity[] = [];
+    const [entitiesSnapshot, allUseCases] = await Promise.all([
+      adminDb.collection('entities').get(),
+      getUseCasesFromFirestore() 
+    ]);
+    
+    const useCasesByEntity = allUseCases.reduce((acc, useCase) => {
+      const entityId = useCase.entityId;
+      if (!acc[entityId]) {
+        acc[entityId] = [];
+      }
+      acc[entityId].push(useCase);
+      return acc;
+    }, {} as Record<string, UseCase[]>);
 
-    for (const doc of entitiesSnapshot.docs) {
+    const entities: Entity[] = entitiesSnapshot.docs.map(doc => {
       const entityData = doc.data();
-      const stats = await calculateEntityStats(doc.id);
-      entities.push({
-        id: doc.id,
+      const entityId = doc.id;
+      const stats = calculateEntityStats(entityId, useCasesByEntity[entityId] || []);
+
+      return {
+        id: entityId,
         name: entityData.name,
         description: entityData.description,
         logo: entityData.logo,
         subName: entityData.name,
         stats,
-      });
-    }
+      };
+    });
+
     return entities;
   } catch (error) {
     console.error('Error fetching entities from Firestore:', error);
@@ -54,7 +68,8 @@ async function getEntityFromFirestore(id: string): Promise<Entity | undefined> {
       return undefined;
     }
     const entityData = entityDoc.data()!;
-    const stats = await calculateEntityStats(id);
+    const useCases = await getUseCasesFromFirestore(id);
+    const stats = calculateEntityStats(id, useCases);
     return {
       id: entityDoc.id,
       name: entityData.name,
@@ -79,9 +94,7 @@ async function getUseCasesFromFirestore(entityId?: string): Promise<UseCase[]> {
     }
 
     const useCasesSnapshot = await query.get();
-    const useCases: UseCase[] = [];
-
-    for (const doc of useCasesSnapshot.docs) {
+    const useCasesPromises = useCasesSnapshot.docs.map(async (doc) => {
       const useCaseData = convertTimestamps(doc.data());
       const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
       
@@ -101,14 +114,15 @@ async function getUseCasesFromFirestore(entityId?: string): Promise<UseCase[]> {
         }
       }
 
-      useCases.push({
+      return {
         ...useCaseData,
         id: doc.id,
         lastUpdated,
         metrics,
-      } as UseCase);
-    }
-    return useCases;
+      } as UseCase;
+    });
+
+    return Promise.all(useCasesPromises);
   } catch (error) {
     console.error('Error fetching use cases from Firestore:', error);
     return [];
@@ -155,31 +169,20 @@ async function getUseCaseFromFirestore(entityId: string, useCaseId: string): Pro
   }
 }
 
-async function calculateEntityStats(entityId: string) {
-  const useCasesSnapshot = await adminDb
-    .collection('entities')
-    .doc(entityId)
-    .collection('useCases')
-    .get();
-
+function calculateEntityStats(entityId: string, useCases: UseCase[]) {
   let active = 0;
   let inactive = 0;
   let strategic = 0;
   let totalDS = 0;
 
-  for (const doc of useCasesSnapshot.docs) {
-    const useCase = doc.data();
+  for (const useCase of useCases) {
     if (useCase.highLevelStatus === 'Activo') active++;
     else if (useCase.highLevelStatus === 'Inactivo') inactive++;
     else if (useCase.highLevelStatus === 'Estrategico') strategic++;
     
-    const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
-    if (!metricsSnapshot.empty) {
-      const metrics = metricsSnapshot.docs[0].data();
-      const dsMetric = metrics.general?.find((m: Metric) => m.label === 'Cantidad de DS');
-      if (dsMetric?.value) {
-        totalDS += parseInt(String(dsMetric.value)) || 0;
-      }
+    const dsMetric = useCase.metrics.general?.find((m: Metric) => m.label === 'Cantidad de DS');
+    if (dsMetric?.value) {
+      totalDS += parseInt(String(dsMetric.value)) || 0;
     }
   }
 
@@ -187,7 +190,7 @@ async function calculateEntityStats(entityId: string) {
     active,
     inactive,
     strategic,
-    total: useCasesSnapshot.size,
+    total: useCases.length,
     scientists: totalDS,
     inDevelopment: 0,
     alerts: 0,
@@ -196,8 +199,10 @@ async function calculateEntityStats(entityId: string) {
 }
 
 async function getSummaryMetricsFromFirestore(): Promise<SummaryMetrics> {
-  const entities = await getEntitiesFromFirestore();
-  const allUseCases = await getUseCasesFromFirestore();
+  const [entities, allUseCases] = await Promise.all([
+    getEntitiesFromFirestore(),
+    getUseCasesFromFirestore(),
+  ]);
   
   let totalScientists = 0;
   entities.forEach(entity => {
