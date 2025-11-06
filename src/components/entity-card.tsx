@@ -71,7 +71,7 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
         )}
         <CardContentLink>
           <CardHeader className="pb-3 border-b w-full">
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div className="flex-1 pr-8">
                 <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
               </div>
