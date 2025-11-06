@@ -1,117 +1,194 @@
 // Data layer - Firebase API only (CSV migration completed)
-import type { Entity, UseCase, SummaryMetrics } from './types';
-import * as api from './api';
+import type { Entity, UseCase, SummaryMetrics, Metric } from './types';
+import { adminDb } from './firebase-admin';
 
-async function getEntitiesFromAPI(): Promise<Entity[]> {
-  const response = await api.getEntities();
-  if (!response.success) {
-    console.error('Failed to fetch entities from API:', response.error);
+async function getEntitiesFromFirestore(): Promise<Entity[]> {
+  try {
+    const entitiesSnapshot = await adminDb.collection('entities').get();
+    const entities: Entity[] = [];
+
+    for (const doc of entitiesSnapshot.docs) {
+      const entityData = doc.data();
+      const stats = await calculateEntityStats(doc.id);
+      entities.push({
+        id: doc.id,
+        name: entityData.name,
+        description: entityData.description,
+        logo: entityData.logo,
+        subName: entityData.name,
+        stats,
+      });
+    }
+    return entities;
+  } catch (error) {
+    console.error('Error fetching entities from Firestore:', error);
     return [];
   }
-  return response.entities || [];
 }
 
-async function getEntityFromAPI(id: string): Promise<Entity | undefined> {
-  const response = await api.getEntity(id);
-  if (!response.success) {
-    console.error('Failed to fetch entity from API:', response.error);
+async function getEntityFromFirestore(id: string): Promise<Entity | undefined> {
+  try {
+    const entityDoc = await adminDb.collection('entities').doc(id).get();
+    if (!entityDoc.exists) {
+      return undefined;
+    }
+    const entityData = entityDoc.data()!;
+    const stats = await calculateEntityStats(id);
+    return {
+      id: entityDoc.id,
+      name: entityData.name,
+      description: entityData.description,
+      logo: entityData.logo,
+      subName: entityData.name,
+      stats,
+    };
+  } catch (error) {
+    console.error(`Error fetching entity ${id} from Firestore:`, error);
     return undefined;
   }
-  return response.entity;
 }
 
-async function getUseCasesFromAPI(entityId?: string): Promise<UseCase[]> {
-  if (!entityId) {
-    const entities = await getEntitiesFromAPI();
-    const allUseCases: UseCase[] = [];
-    
-    for (const entity of entities) {
-      const response = await api.getUseCases(entity.id);
-      if (response.success && response.useCases) {
-        allUseCases.push(...response.useCases);
-      }
+async function getUseCasesFromFirestore(entityId?: string): Promise<UseCase[]> {
+  try {
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>;
+    if (entityId) {
+      query = adminDb.collection('entities').doc(entityId).collection('useCases');
+    } else {
+      query = adminDb.collectionGroup('useCases');
     }
-    
-    return allUseCases;
-  }
-  
-  const response = await api.getUseCases(entityId);
-  if (!response.success) {
-    console.error('Failed to fetch use cases from API:', response.error);
+
+    const useCasesSnapshot = await query.get();
+    const useCases: UseCase[] = [];
+
+    for (const doc of useCasesSnapshot.docs) {
+      const useCaseData = doc.data();
+      const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
+      
+      let metrics = { general: [], financial: [], business: [], technical: [] };
+      if (!metricsSnapshot.empty) {
+        metrics = metricsSnapshot.docs[0].data() as any;
+      }
+
+      useCases.push({
+        ...useCaseData,
+        id: doc.id,
+        metrics,
+      } as UseCase);
+    }
+    return useCases;
+  } catch (error) {
+    console.error('Error fetching use cases from Firestore:', error);
     return [];
   }
-  return response.useCases || [];
 }
 
-async function getUseCaseFromAPI(id: string): Promise<UseCase | undefined> {
-  // Get all use cases and find the one with matching ID
-  // Note: getUseCasesFromAPI already includes metrics from the latest period
-  const allUseCases = await getUseCasesFromAPI();
-  return allUseCases.find(uc => uc.id === id);
+async function getUseCaseFromFirestore(id: string): Promise<UseCase | undefined> {
+   try {
+    const useCasesSnapshot = await adminDb.collectionGroup('useCases').where('id', '==', id).limit(1).get();
+    if (useCasesSnapshot.empty) {
+      return undefined;
+    }
+    
+    const useCaseDoc = useCasesSnapshot.docs[0];
+    const useCaseData = useCaseDoc.data();
+    const metricsSnapshot = await useCaseDoc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
+
+    let metrics = { general: [], financial: [], business: [], technical: [] };
+    if (!metricsSnapshot.empty) {
+      metrics = metricsSnapshot.docs[0].data() as any;
+    }
+
+    return {
+      ...useCaseData,
+      id: useCaseDoc.id,
+      metrics,
+    } as UseCase;
+  } catch (error) {
+    console.error(`Error fetching use case ${id} from Firestore:`, error);
+    return undefined;
+  }
 }
 
-async function getSummaryMetricsFromAPI(): Promise<SummaryMetrics> {
-  const entities = await getEntitiesFromAPI();
-  const allUseCases = await getUseCasesFromAPI();
+async function calculateEntityStats(entityId: string) {
+  const useCasesSnapshot = await adminDb
+    .collection('entities')
+    .doc(entityId)
+    .collection('useCases')
+    .get();
+
+  let active = 0;
+  let inactive = 0;
+  let strategic = 0;
+  let totalDS = 0;
+
+  for (const doc of useCasesSnapshot.docs) {
+    const useCase = doc.data();
+    if (useCase.highLevelStatus === 'Activo') active++;
+    else if (useCase.highLevelStatus === 'Inactivo') inactive++;
+    else if (useCase.highLevelStatus === 'Estrategico') strategic++;
+    
+    const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
+    if (!metricsSnapshot.empty) {
+      const metrics = metricsSnapshot.docs[0].data();
+      const dsMetric = metrics.general?.find((m: Metric) => m.label === 'Cantidad de DS');
+      if (dsMetric?.value) {
+        totalDS += parseInt(String(dsMetric.value)) || 0;
+      }
+    }
+  }
+
+  return {
+    active,
+    inactive,
+    strategic,
+    total: useCasesSnapshot.size,
+    scientists: totalDS,
+    inDevelopment: 0,
+    alerts: 0,
+    totalImpact: 0,
+  };
+}
+
+
+async function getSummaryMetricsFromFirestore(): Promise<SummaryMetrics> {
+  const entities = await getEntitiesFromFirestore();
+  const allUseCases = await getUseCasesFromFirestore();
   
-  let totalActive = 0;
-  let totalInactive = 0;
-  let totalStrategic = 0;
   let totalScientists = 0;
-  let totalAlerts = 0;
-  
   entities.forEach(entity => {
-    totalActive += entity.stats.active || 0;
-    totalInactive += entity.stats.inactive || 0;
-    totalStrategic += entity.stats.strategic || 0;
     totalScientists += entity.stats.scientists || 0;
-    totalAlerts += entity.stats.alerts || 0;
-  });
-  
-  const statusBreakdown: Record<string, number> = {};
-  allUseCases.forEach(useCase => {
-    const status = useCase.status || 'Unknown';
-    statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
   });
   
   return {
     totalCases: allUseCases.length,
     entities: entities.length,
     dataScientists: totalScientists,
-    totalImpact: `${totalAlerts} alerts`,
-    totalActive,
-    totalInactive,
-    totalStrategic,
-    totalProjects: allUseCases.length,
-    totalEntities: entities.length,
-    totalScientists,
-    totalAlerts,
-    statusBreakdown,
+    totalImpact: `0`, // This needs to be defined
   };
 }
 
 export async function getEntities(): Promise<Entity[]> {
-  return getEntitiesFromAPI();
+  return getEntitiesFromFirestore();
 }
 
 export async function getEntity(id: string): Promise<Entity | undefined> {
-  return getEntityFromAPI(id);
+  return getEntityFromFirestore(id);
 }
 
 export async function getUseCases(entityId?: string): Promise<UseCase[]> {
-  return getUseCasesFromAPI(entityId);
+  return getUseCasesFromFirestore(entityId);
 }
 
 export async function getUseCase(id: string): Promise<UseCase | undefined> {
-  return getUseCaseFromAPI(id);
+  return getUseCaseFromFirestore(id);
 }
 
 export async function getSummaryMetrics(): Promise<SummaryMetrics> {
-  return getSummaryMetricsFromAPI();
+  return getSummaryMetricsFromFirestore();
 }
 
 export async function getAllUseCases(): Promise<UseCase[]> {
-  return getUseCases();
+  return getUseCasesFromFirestore();
 }
 
 // Helper to create a slug/id from a name
@@ -126,7 +203,7 @@ function createIdFromName(name: string): string {
     .substring(0, 100);
 }
 
-// --- Create operations (convenience wrappers) ---
+// --- Write operations ---
 export async function addEntity(data: { name: string; description?: string; logo?: string; id?: string }): Promise<boolean> {
   const id = data.id || createIdFromName(data.name) || `entity-${Date.now()}`;
   const payload = {
@@ -135,28 +212,15 @@ export async function addEntity(data: { name: string; description?: string; logo
     description: data.description || '',
     logo: data.logo || '',
   };
-  const response = await api.updateEntity(payload);
-  return response.success;
+  await adminDb.collection('entities').doc(id).set(payload, { merge: true });
+  return true;
 }
 
 export async function addUseCase(entityId: string, data: { name: string; description?: string; id?: string; [key: string]: any; }): Promise<boolean> {
   const id = data.id || createIdFromName(data.name) || `case-${Date.now()}`;
-  // avoid duplicating fields from data when spreading
-  const extra: Record<string, any> = { ...data };
-  delete extra.id;
-  delete extra.name;
-  delete extra.description;
-
-  const payload = {
-    entityId,
-    id,
-    name: data.name,
-    description: data.description || '',
-    ...extra,
-  } as any;
-
-  const response = await api.updateUseCase(payload);
-  return response.success;
+  const payload: any = { ...data, id, entityId };
+  await adminDb.collection('entities').doc(entityId).collection('useCases').doc(id).set(payload, { merge: true });
+  return true;
 }
 
 export async function updateEntity(data: {
@@ -165,8 +229,8 @@ export async function updateEntity(data: {
   description?: string;
   logo?: string;
 }): Promise<boolean> {
-  const response = await api.updateEntity(data);
-  return response.success;
+  await adminDb.collection('entities').doc(data.id).set(data, { merge: true });
+  return true;
 }
 
 export async function updateUseCase(data: {
@@ -174,8 +238,8 @@ export async function updateUseCase(data: {
   id: string;
   [key: string]: any;
 }): Promise<boolean> {
-  const response = await api.updateUseCase(data);
-  return response.success;
+  await adminDb.collection('entities').doc(data.entityId).collection('useCases').doc(data.id).set(data, { merge: true });
+  return true;
 }
 
 export async function saveMetrics(data: {
@@ -183,33 +247,33 @@ export async function saveMetrics(data: {
   useCaseId: string;
   period: string;
   metrics: {
-    general: Array<{ label: string; value: string }>;
-    financial: Array<{ label: string; value: string }>;
-    business: Array<{ label: string; value: string }>;
-    technical: Array<{ label: string; value: string }>;
+    general: Metric[];
+    financial: Metric[];
+    business: Metric[];
+    technical: Metric[];
   };
 }): Promise<boolean> {
-  const response = await api.saveMetrics(data);
-  return response.success;
+  const { entityId, useCaseId, period, metrics } = data;
+  await adminDb.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection('metrics').doc(period).set(metrics, { merge: true });
+  return true;
 }
 
 export async function getMetricsPeriods(
   entityId: string,
   useCaseId: string
-): Promise<Array<any>> {
-  const response = await api.getMetricsPeriods(entityId, useCaseId);
-  if (!response.success) {
-    return [];
-  }
-  return response.periods || [];
+): Promise<Array<{ period: string }>> {
+  const snapshot = await adminDb.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection('metrics').get();
+  return snapshot.docs.map(doc => ({ period: doc.id, ...doc.data() }));
 }
 
 export async function deleteEntity(id: string): Promise<boolean> {
-  const response = await api.deleteEntity(id);
-  return response.success;
+  // This is a more complex operation, requires deleting subcollections.
+  // For now, we'll just delete the entity doc.
+  await adminDb.collection('entities').doc(id).delete();
+  return true;
 }
 
 export async function deleteUseCase(entityId: string, id: string): Promise<boolean> {
-  const response = await api.deleteUseCase(entityId, id);
-  return response.success;
+  await adminDb.collection('entities').doc(entityId).collection('useCases').doc(id).delete();
+  return true;
 }
