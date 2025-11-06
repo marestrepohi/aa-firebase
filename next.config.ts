@@ -48,6 +48,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'avvillas.com.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'www.centenariocc.com',
         port: '',
         pathname: '/**',

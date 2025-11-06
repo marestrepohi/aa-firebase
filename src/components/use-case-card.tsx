@@ -1,10 +1,19 @@
+'use client';
+
 import Link from "next/link";
+import { useState } from "react";
 import type { UseCase } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, User, Pencil, BarChart3 } from "lucide-react";
+import { UseCaseForm } from "./use-case-form";
+import { MetricsForm } from "./metrics-form";
 
 export function UseCaseCard({ useCase }: { useCase: UseCase }) {
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showMetricsForm, setShowMetricsForm] = useState(false);
+
   // Get status and type from general metrics
   const estado = useCase.metrics.general.find(m => m.label === 'Estado')?.value || useCase.status;
   const tipo = useCase.metrics.general.find(m => m.label === 'Tipo')?.value || '';
@@ -38,13 +47,34 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
   };
 
   return (
-    <Card className="flex flex-col transition-all duration-300 hover:shadow-lg">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
-            {useCase.name}
-          </CardTitle>
-        </div>
+    <>
+      <Card className="group flex flex-col transition-all duration-300 hover:shadow-lg">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
+              {useCase.name}
+            </CardTitle>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setShowEditForm(true)}
+                title="Editar caso de uso"
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setShowMetricsForm(true)}
+                title="Editar métricas"
+              >
+                <BarChart3 className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
         
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline" className={`text-xs font-medium ${getStatusColor(estado as string)}`}>
@@ -157,5 +187,27 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
         </Link>
       </CardContent>
     </Card>
+
+    {showEditForm && (
+      <UseCaseForm
+        useCase={useCase}
+        entityId={useCase.entityId}
+        open={showEditForm}
+        onOpenChange={setShowEditForm}
+        onSuccess={() => window.location.reload()}
+      />
+    )}
+
+    {showMetricsForm && (
+      <MetricsForm
+        entityId={useCase.entityId}
+        useCaseId={useCase.id}
+        initialMetrics={useCase.metrics}
+        open={showMetricsForm}
+        onOpenChange={setShowMetricsForm}
+        onSuccess={() => window.location.reload()}
+      />
+    )}
+  </>
   );
 }

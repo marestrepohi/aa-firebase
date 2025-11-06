@@ -25,11 +25,17 @@ export interface UseCase {
   name: string;
   description: string;
   status: UseCaseStatus;
-  highLevelStatus: 'Activo' | 'Inactivo' | 'Estrategico' | string; // Estado alto nivel
-  tipoProyecto: string; // Tipo Proyecto
-  tipoDesarrollo: string; // Tipo Desarrollo
-  lastUpdated: string;
+  highLevelStatus: 'Activo' | 'Inactivo' | 'Estrategico' | string;
+  tipoProyecto: string;
+  tipoDesarrollo: string;
+  observaciones?: string;
+  sharepoint?: string;
+  jira?: string;
+  actividadesSharepoint?: string;
+  actividadesJira?: string;
+  lastUpdated?: string;
   metrics: {
+    period?: string;
     general: Metric[];
     financial: Metric[];
     business: Metric[];
@@ -44,6 +50,8 @@ export interface EntityStats {
   inDevelopment: number;
   alerts: number;
   totalImpact: number;
+  inactive?: number;
+  strategic?: number;
 }
 
 export interface Entity {
@@ -60,4 +68,12 @@ export interface SummaryMetrics {
   entities: number;
   dataScientists: number;
   totalImpact: string;
+  totalActive?: number;
+  totalInactive?: number;
+  totalStrategic?: number;
+  totalProjects?: number;
+  totalEntities?: number;
+  totalScientists?: number;
+  totalAlerts?: number;
+  statusBreakdown?: Record<string, number>;
 }

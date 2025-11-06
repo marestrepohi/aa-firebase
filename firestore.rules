@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Entidades - lectura y escritura pública (TEMPORAL PARA MIGRACIÓN)
+    // TODO: Cambiar a "if request.auth != null" después de migrar
+    match /entities/{entityId} {
+      allow read: if true;
+      allow write: if true;
+      
+      // Casos de uso dentro de entidades
+      match /useCases/{useCaseId} {
+        allow read: if true;
+        allow write: if true;
+        
+        // Métricas históricas por periodo
+        match /metrics/{period} {
+          allow read: if true;
+          allow write: if true;
+        }
+      }
+    }
+    
+    // Configuración global (periodos disponibles, etc)
+    match /config/{document} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

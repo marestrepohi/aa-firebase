@@ -1,18 +1,26 @@
+'use client';
+
 import Link from 'next/link';
 import Image from "next/image";
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Settings } from 'lucide-react';
 import { Button } from './ui/button';
 import { Entity } from '@/lib/types';
+import { ReactNode } from 'react';
 
 interface HeaderProps {
     entity?: Entity;
+    editButton?: {
+        label: string;
+        onClick: () => void;
+    };
+    rightContent?: ReactNode;
 }
 
-export function Header({ entity }: HeaderProps) {
+export function Header({ entity, editButton, rightContent }: HeaderProps) {
     return (
         <header className="bg-white shadow-sm">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="relative flex h-16 items-center justify-center">
+                <div className="relative flex h-16 items-center justify-between">
                     {entity && (
                         <div className="absolute inset-y-0 left-0 flex items-center">
                              <Button variant="outline" asChild>
@@ -37,6 +45,20 @@ export function Header({ entity }: HeaderProps) {
                             </div>
                         ) : (
                             <span className="text-primary font-semibold text-lg">Aval Digital Labs</span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {rightContent}
+                        {editButton && (
+                            <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={editButton.onClick}
+                                title={editButton.label}
+                            >
+                                <Settings className="h-4 w-4" />
+                            </Button>
                         )}
                     </div>
                 </div>

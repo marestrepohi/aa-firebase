@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getEntity, getUseCases } from '@/lib/data';
-import { Header } from '@/components/header';
-import EntityPageClient from './entity-page-client';
+import { EntityPageClientWrapper } from '@/components/entity-page-client-wrapper';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +14,5 @@ export default async function EntityPage({ params }: { params: { entityId: strin
     notFound();
   }
 
-  return (
-    <>
-      <Header entity={entity} />
-      <EntityPageClient entity={entity} initialUseCases={allUseCases} />
-    </>
-  );
+  return <EntityPageClientWrapper entity={entity} initialUseCases={allUseCases} />;
 }
