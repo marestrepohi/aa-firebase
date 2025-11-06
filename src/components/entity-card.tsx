@@ -49,25 +49,24 @@ export function EntityCard({ entity }: { entity: Entity }) {
 
   return (
     <>
-      <Link href={`/${entity.id}`}>
-        <Card className="group flex flex-col transition-all duration-200 hover:shadow-lg hover:border-primary cursor-pointer h-full">
+      <Card className="group relative flex flex-col transition-all duration-200 hover:shadow-lg hover:border-primary h-full">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 h-7 w-7 z-10"
+          onClick={handleEditClick}
+        >
+          <Pencil className="h-4 w-4" />
+          <span className="sr-only">Editar Entidad</span>
+        </Button>
+        <Link href={`/${entity.id}`} className="flex flex-col flex-grow">
           <CardHeader className="pb-3 border-b">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={handleEditClick}
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                </div>
+            <div className="flex items-start justify-between">
+              <div className="flex-1 pr-8">
+                <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
                 <p className="text-sm text-muted-foreground line-clamp-1">{entity.subName}</p>
               </div>
-              <div className="ml-4">
+              <div className="ml-auto flex-shrink-0">
                 {hasValidLogo ? (
                   <Image 
                     src={entity.logo} 
@@ -91,8 +90,8 @@ export function EntityCard({ entity }: { entity: Entity }) {
               <Stat label="Cantidad DS" value={entity.stats.total} />
             </div>
           </CardContent>
-        </Card>
-      </Link>
+        </Link>
+      </Card>
 
       <EntityForm
         entity={{
