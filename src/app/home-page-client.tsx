@@ -18,24 +18,24 @@ interface HomePageClientProps {
 export default function HomePageClient({ entities, summaryMetrics, allUseCases, isEditing }: HomePageClientProps) {
   const [showStatusTable, setShowStatusTable] = useState(false);
   const [filters, setFilters] = useState({
-    estado: 'all',
+    highLevelStatus: 'all',
     tipoProyecto: 'all',
     tipoDesarrollo: 'all'
   });
 
   const filterOptions = useMemo(() => {
-    const estados = new Set<string>();
+    const highLevelStatuses = new Set<string>();
     const tiposProyecto = new Set<string>();
     const tiposDesarrollo = new Set<string>();
 
     allUseCases.forEach(uc => {
-      if (uc.status) estados.add(uc.status);
+      if (uc.highLevelStatus) highLevelStatuses.add(uc.highLevelStatus);
       if (uc.tipoProyecto) tiposProyecto.add(uc.tipoProyecto);
       if (uc.tipoDesarrollo) tiposDesarrollo.add(uc.tipoDesarrollo);
     });
 
     return {
-      estados: Array.from(estados).sort(),
+      highLevelStatuses: Array.from(highLevelStatuses).sort(),
       tiposProyecto: Array.from(tiposProyecto).sort(),
       tiposDesarrollo: Array.from(tiposDesarrollo).sort()
     };
@@ -43,7 +43,7 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
 
   const filteredUseCases = useMemo(() => {
     return allUseCases.filter(uc => {
-      if (filters.estado !== 'all' && uc.status !== filters.estado) return false;
+      if (filters.highLevelStatus !== 'all' && uc.highLevelStatus !== filters.highLevelStatus) return false;
       if (filters.tipoProyecto !== 'all' && uc.tipoProyecto !== filters.tipoProyecto) return false;
       if (filters.tipoDesarrollo !== 'all' && uc.tipoDesarrollo !== filters.tipoDesarrollo) return false;
       return true;
@@ -60,7 +60,7 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
       <div className="flex flex-col gap-4">
         <GlobalFilters
           onFilterChange={setFilters}
-          estadoOptions={filterOptions.estados}
+          highLevelStatusOptions={filterOptions.highLevelStatuses}
           tipoProyectoOptions={filterOptions.tiposProyecto}
           tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
           currentFilters={filters}

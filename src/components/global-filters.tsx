@@ -6,15 +6,15 @@ import { X } from "lucide-react";
 
 interface GlobalFiltersProps {
   onFilterChange: (filters: {
-    estado: string;
+    highLevelStatus: string;
     tipoProyecto: string;
     tipoDesarrollo: string;
   }) => void;
-  estadoOptions: string[];
+  highLevelStatusOptions: string[];
   tipoProyectoOptions: string[];
   tipoDesarrolloOptions: string[];
   currentFilters: {
-    estado: string;
+    highLevelStatus: string;
     tipoProyecto: string;
     tipoDesarrollo: string;
   };
@@ -22,7 +22,7 @@ interface GlobalFiltersProps {
 
 export function GlobalFilters({
   onFilterChange,
-  estadoOptions,
+  highLevelStatusOptions,
   tipoProyectoOptions,
   tipoDesarrolloOptions,
   currentFilters
@@ -30,14 +30,14 @@ export function GlobalFilters({
   
   const handleClearFilters = () => {
     onFilterChange({
-      estado: 'all',
+      highLevelStatus: 'all',
       tipoProyecto: 'all',
       tipoDesarrollo: 'all'
     });
   };
 
   const hasActiveFilters = 
-    currentFilters.estado !== 'all' || 
+    currentFilters.highLevelStatus !== 'all' || 
     currentFilters.tipoProyecto !== 'all' || 
     currentFilters.tipoDesarrollo !== 'all';
 
@@ -50,9 +50,9 @@ export function GlobalFilters({
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Estado</label>
           <Select
-            value={currentFilters.estado}
+            value={currentFilters.highLevelStatus}
             onValueChange={(value) =>
-              onFilterChange({ ...currentFilters, estado: value })
+              onFilterChange({ ...currentFilters, highLevelStatus: value })
             }
           >
             <SelectTrigger className="w-[180px] h-8 text-xs">
@@ -60,9 +60,9 @@ export function GlobalFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los estados</SelectItem>
-              {estadoOptions.map((estado) => (
-                <SelectItem key={estado} value={estado}>
-                  {estado}
+              {highLevelStatusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
                 </SelectItem>
               ))}
             </SelectContent>
