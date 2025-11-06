@@ -74,7 +74,6 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
             <div className="flex items-start justify-between">
               <div className="flex-1 pr-8">
                 <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
-                <p className="text-sm text-muted-foreground line-clamp-1">{entity.subName}</p>
               </div>
               <div className="ml-auto flex-shrink-0 h-16 w-16 flex items-center justify-center">
                 {hasValidLogo ? (
