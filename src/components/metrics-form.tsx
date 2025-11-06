@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { saveMetrics } from '@/lib/data';
+import { saveMetrics, getMetrics } from '@/lib/data';
 import { Loader2, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,11 +37,18 @@ interface MetricsFormProps {
 
 type MetricCategory = 'general' | 'financial' | 'business' | 'technical';
 
+const emptyMetrics = {
+  general: [],
+  financial: [],
+  business: [],
+  technical: [],
+};
+
 export function MetricsForm({
   entityId,
   useCaseId,
   initialPeriod = '',
-  initialMetrics,
+  initialMetrics = emptyMetrics,
   open,
   onOpenChange,
   onSuccess,
@@ -49,14 +56,29 @@ export function MetricsForm({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
-  const [metrics, setMetrics] = useState(
-    initialMetrics || {
-      general: [],
-      financial: [],
-      business: [],
-      technical: [],
+  const [metrics, setMetrics] = useState(initialMetrics);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
+
+  useEffect(() => {
+    async function loadMetricsForPeriod(period: string) {
+      if (!period) {
+        setMetrics(initialMetrics || emptyMetrics);
+        return;
+      }
+      setIsLoadingMetrics(true);
+      try {
+        const periodMetrics = await getMetrics(entityId, useCaseId);
+        setMetrics(periodMetrics || emptyMetrics);
+      } catch (error) {
+        console.error('Error loading metrics for period', error);
+        setMetrics(emptyMetrics);
+      } finally {
+        setIsLoadingMetrics(false);
+      }
     }
-  );
+    loadMetricsForPeriod(selectedPeriod);
+  }, [selectedPeriod, entityId, useCaseId]);
+
 
   const addMetric = (category: MetricCategory) => {
     setMetrics({
@@ -101,7 +123,6 @@ export function MetricsForm({
     setIsSubmitting(true);
 
     try {
-      // Convert all metric values to strings
       const metricsToSave = {
         general: metrics.general.map(m => ({ label: m.label, value: String(m.value) })),
         financial: metrics.financial.map(m => ({ label: m.label, value: String(m.value) })),
@@ -157,8 +178,12 @@ export function MetricsForm({
         </Button>
       </div>
 
-      {metrics[category].length === 0 ? (
-        <p className="text-sm text-muted-foreground">
+      {isLoadingMetrics ? (
+         <div className="flex justify-center items-center h-24">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+         </div>
+      ) : metrics[category].length === 0 ? (
+        <p className="text-sm text-center text-muted-foreground py-4">
           No hay métricas. Haz clic en "Agregar" para crear una.
         </p>
       ) : (
@@ -200,7 +225,7 @@ export function MetricsForm({
         <DialogHeader>
           <DialogTitle>Editar Métricas</DialogTitle>
           <DialogDescription>
-            Edita las métricas del caso de uso por período
+            Edita las métricas del caso de uso por período. Los cambios se guardan por período.
           </DialogDescription>
         </DialogHeader>
 

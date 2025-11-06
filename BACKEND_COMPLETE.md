@@ -1,236 +1,132 @@
-# 🎉 Backend Firebase - Completado
+# 🎉 Backend Firebase - Completado y Optimizado
 
 ## ✅ Lo que se ha creado
 
 ### 1. Configuración de Firebase
-- ✅ **firebase.json** - Configuración del proyecto
-- ✅ **firestore.rules** - Reglas de seguridad de Firestore
-- ✅ **storage.rules** - Reglas de seguridad de Storage  
-- ✅ **.firebaserc** - Proyecto vinculado: `augusta-edge-project`
-- ✅ **.env.local** - Variables de entorno configuradas
+- ✅ **firebase.json** - Configuración del proyecto.
+- ✅ **firestore.rules** - Reglas de seguridad de Firestore.
+- ✅ **storage.rules** - Reglas de seguridad de Storage.
+- ✅ **.firebaserc** - Proyecto vinculado: `augusta-edge-project`.
+- ✅ **.env.local** - Variables de entorno configuradas para cliente y admin.
 
 ### 2. SDK de Firebase
-- ✅ **src/lib/firebase.ts** - Cliente Firebase (frontend)
-- ✅ **src/lib/firebase-admin.ts** - Admin SDK (backend)
-- ✅ **src/lib/api.ts** - Cliente de API para Cloud Functions
+- ✅ **src/lib/firebase.ts** - Cliente Firebase (frontend) para operaciones en tiempo real.
+- ✅ **src/lib/firebase-admin.ts** - Admin SDK (backend) para el script de migración y lógica de servidor.
+- ✅ **src/lib/data.server.ts** - Capa de datos que usa el Admin SDK para obtener datos en el servidor de forma eficiente.
+- ✅ **src/lib/data.ts** - Capa de datos para operaciones del lado del cliente (formularios).
 
-### 3. Capa de Datos Adaptable
-- ✅ **src/lib/data.ts** - Adaptador que soporta CSV o Firebase
-- ✅ **src/lib/data-csv.ts** - Implementación CSV (legacy)
-- 🔧 Variable `NEXT_PUBLIC_USE_FIREBASE_API` controla el modo
+### 3. Cloud Functions (API)
+- ✅ **functions/src/index.ts** - API optimizada con endpoints para operaciones CRUD. Las funciones ahora son más eficientes, reduciendo las lecturas a la base de datos.
+  - `getEntities` - Listar entidades con estadísticas calculadas eficientemente.
+  - `getEntity` - Obtener una entidad específica.
+  - `getUseCases` - Obtener casos de uso de una entidad.
+  - `getUseCase` - Obtener un caso de uso específico.
+  - `updateEntity` - Crear/actualizar una entidad.
+  - `updateUseCase` - Crear/actualizar un caso de uso.
+  - `saveMetrics` - Guardar métricas por período.
+  - `getMetricsPeriods` - Historial de métricas de un caso.
+  - `deleteEntity` - Eliminar una entidad (con todos sus datos anidados).
+  - `deleteUseCase` - Eliminar un caso de uso.
 
-### 4. Cloud Functions (API)
-- ✅ **functions/src/index.ts** - 10 endpoints implementados:
-  - `getEntities` - Listar entidades
-  - `getEntity` - Obtener entidad específica
-  - `getUseCases` - Casos de uso de una entidad
-  - `updateEntity` - Crear/actualizar entidad
-  - `updateUseCase` - Crear/actualizar caso de uso
-  - `saveMetrics` - Guardar métricas por período
-  - `getMetricsPeriods` - Historial de métricas
-  - `deleteEntity` - Eliminar entidad
-  - `deleteUseCase` - Eliminar caso de uso
+### 4. Script de Migración Mejorado
+- ✅ **scripts/migrate-to-firestore.ts** - Script robusto para migrar `casos.csv` y `entidades.csv` a Firestore.
+  - **Limpia** datos antiguos antes de cada migración para evitar duplicados.
+  - **Genera IDs** consistentes para asegurar la relación entre entidades y casos de uso.
+  - Establece un período inicial (`2024-Q4`) para las métricas migradas.
 
-### 5. Script de Migración
-- ✅ **scripts/migrate-to-firestore.ts** - Migra CSV → Firestore
-  - Lee casos.csv y entidades.csv
-  - Crea estructura jerárquica
-  - Establece período inicial: 2024-Q4
-
-### 6. Componentes de Formularios
-- ✅ **entity-form.tsx** - Formulario editable de entidad
-- ✅ **use-case-form.tsx** - Formulario editable de caso de uso
-- ✅ **metrics-form.tsx** - Formulario de métricas con tabs
-- ✅ **metrics-period-selector.tsx** - Selector de períodos
-
-### 7. Componentes Actualizados
-- ✅ **entity-card.tsx** - Botón de edición agregado
-- ✅ **use-case-card.tsx** - Botones de edición y métricas
+### 5. Formularios y Componentes Funcionales
+- ✅ **entity-form.tsx** y **use-case-form.tsx**: Formularios para editar entidades y casos de uso.
+- ✅ **metrics-form.tsx**: Formulario para gestionar métricas por período.
+- ✅ **Toda la UI** ahora consume datos directamente de Firebase a través de la capa de datos del servidor, eliminando la dependencia de los archivos CSV y usando las Cloud Functions para operaciones de escritura.
 
 ---
 
-## 🚀 Próximos Pasos
+## 🚀 Próximos Pasos (Instrucciones de Uso)
 
-### Paso 1: Descargar Service Account Key
+### Paso 1: Descargar Service Account Key (si no lo has hecho)
 
-1. Ve a [Firebase Console](https://console.firebase.google.com/project/augusta-edge-project/settings/serviceaccounts/adminsdk)
-2. Click en **"Generate new private key"**
-3. Guarda el archivo como `firebase-service-account.json` en la raíz del proyecto
+1. Ve a la [Consola de Firebase](https://console.firebase.google.com/project/augusta-edge-project/settings/serviceaccounts/adminsdk).
+2. Haz clic en **"Generate new private key"**.
+3. Guarda el archivo como `firebase-service-account.json` en la raíz de tu proyecto.
 
-### Paso 2: Actualizar .env.local
+### Paso 2: Actualizar `.env.local`
 
-Abre `.env.local` y actualiza estas líneas con los datos del service account:
+Abre `.env.local` y asegúrate de que estas líneas estén configuradas con los datos de tu service account:
 
 ```env
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@augusta-edge-project.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
-### Paso 3: Ejecutar Migración
+### Paso 3: Ejecutar Migración de Datos
+
+Este paso es crucial. Mueve los datos de tus CSV a Firestore.
 
 ```bash
-# Migrar datos de CSV a Firestore
-npx tsx scripts/migrate-to-firestore.ts
+# Instala dependencias si es la primera vez
+npm install
+
+# Ejecuta el script de migración
+npm run migrate
 ```
 
-Esto migrará:
-- ~23 entidades
-- ~167 casos de uso
-- Métricas iniciales (período 2024-Q4)
+Esto limpiará Firestore y cargará los datos de `entidades.csv` y `casos.csv`.
 
-### Paso 4: Login en Firebase
+### Paso 4: Desplegar Cloud Functions
+
+Para que la app pueda realizar operaciones de escritura (crear, actualizar), necesitas desplegar la API.
 
 ```bash
+# Autentícate con Firebase (solo una vez)
 firebase login
+
+# Instala dependencias de las funciones
+cd functions && npm install && cd ..
+
+# Compila y despliega las funciones
+npm run functions:deploy
 ```
 
-### Paso 5: Desplegar Cloud Functions
+### Paso 5: Iniciar la Aplicación
 
 ```bash
-# Compilar y desplegar
-cd functions
-npm run build
-firebase deploy --only functions
-```
-
-Después del deploy, obtendrás URLs como:
-```
-https://us-central1-augusta-edge-project.cloudfunctions.net/getEntities
-https://us-central1-augusta-edge-project.cloudfunctions.net/updateEntity
-...
-```
-
-### Paso 6: Habilitar Modo Firebase
-
-Actualiza `.env.local`:
-
-```env
-NEXT_PUBLIC_USE_FIREBASE_API=true
-```
-
-### Paso 7: Verificar
-
-```bash
-# Reiniciar el servidor de desarrollo
+# Iniciar el servidor de desarrollo
 npm run dev
 ```
 
-Ahora la app usará Firebase en lugar de CSV!
+¡Y listo! Tu aplicación ahora está 100% integrada con Firebase.
 
 ---
 
-## 🎯 Estructura en Firestore
+## 🎯 Estructura Final en Firestore
 
 ```
 /entities/{entityId}
-  ├── id: "adl"
-  ├── name: "Aval Digital Labs"
-  ├── description: "..."
-  ├── logo: "/logos/adl.png"
+  ├── id: "banco-de-bogota"
+  ├── name: "Banco de Bogotá"
   │
   └── /useCases/{useCaseId}
-      ├── id: "proyecto-123"
+      ├── id: "modelo-de-fraude"
       ├── name: "Modelo de Fraude"
-      ├── status: "En Producción"
-      ├── highLevelStatus: "Activo"
-      ├── tipoProyecto: "Predictivo"
-      ├── tipoDesarrollo: "Modelo"
       │
-      └── /metrics/{period}  (ej: "2024-Q4", "2024-Q3")
+      └── /metrics/{period}  (ej: "2024-Q4")
           ├── period: "2024-Q4"
-          ├── general: [{ label: "...", value: "..." }]
-          ├── financial: [...]
-          ├── business: [...]
-          └── technical: [...]
+          ├── general: [...]
+          └── ...
 ```
 
 ---
 
 ## 🔐 Reglas de Seguridad
 
-### Firestore
-- **Lectura**: Pública (cualquiera puede leer)
-- **Escritura**: Solo usuarios autenticados
-
-### Storage
-- **/logos**: Autenticados pueden subir (max 5MB)
-- **/attachments**: Autenticados pueden subir (max 50MB)
+- **Firestore**: Por ahora, las reglas son abiertas para facilitar el desarrollo. Se recomienda restringirlas en producción.
+- **Storage**: Solo usuarios autenticados pueden subir archivos.
 
 ---
 
-## 🎨 Nuevas Funcionalidades
+## 💡 Ventajas de esta nueva arquitectura
 
-### Editar Entidad
-1. Hover sobre una card de entidad
-2. Click en el botón del lápiz (Pencil)
-3. Editar nombre, descripción, logo
-4. Guardar
-
-### Editar Caso de Uso
-1. En la página de una entidad
-2. Click en botón "Editar" en una card
-3. Modificar todos los campos
-4. Guardar
-
-### Editar Métricas por Período
-1. Click en "Editar Métricas" en una card
-2. Seleccionar período (o crear uno nuevo)
-3. Editar métricas en 4 categorías:
-   - General
-   - Financiero
-   - Negocio
-   - Técnico
-4. Guardar
-
-### Historial de Métricas
-- Cada período se guarda como un documento separado
-- Puedes ver la evolución trimestral (Q1, Q2, Q3, Q4)
-- Comparar períodos históricos
-
----
-
-## 💰 Costos Estimados
-
-Con tu volumen actual (23 entidades, 167 proyectos):
-
-- **Firestore**: GRATIS (dentro de free tier)
-  - 50K lecturas/día incluidas
-  - 20K escrituras/día incluidas
-  
-- **Cloud Functions**: GRATIS (dentro de free tier)
-  - 2M invocaciones/mes incluidas
-  - 400K GB-segundos/mes incluidos
-
-- **Storage**: GRATIS (dentro de free tier)
-  - 5GB almacenamiento incluido
-  - 1GB transferencia/día incluida
-
-**Total: $0/mes** 🎉
-
----
-
-## 🆘 Troubleshooting
-
-### Error: "Service account not found"
-Descarga el service account JSON y configura las variables en `.env.local`
-
-### Error: "Permission denied"
-Las Cloud Functions deben estar desplegadas primero con `firebase deploy --only functions`
-
-### Datos no aparecen
-Verifica que `NEXT_PUBLIC_USE_FIREBASE_API=true` en `.env.local`
-
-### Functions no responden
-Verifica la URL en `NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL`
-
----
-
-## 📚 Documentación
-
-- [Firebase Setup Guide](./FIREBASE_SETUP.md) - Guía detallada completa
-- [Firebase Console](https://console.firebase.google.com/project/augusta-edge-project)
-- [Firestore Database](https://console.firebase.google.com/project/augusta-edge-project/firestore)
-
----
-
-**¡Todo listo para migrar de CSV a Firebase!** 🚀
+1.  **Fuente Única de Verdad**: La aplicación ya no lee los archivos CSV. Todos los datos provienen de Firestore, eliminando inconsistencias.
+2.  **Rendimiento**: Las consultas están optimizadas. Las estadísticas se calculan eficientemente en el backend, reduciendo los tiempos de carga.
+3.  **Escalabilidad**: El sistema está preparado para crecer sin degradar el rendimiento.
+4.  **Mantenibilidad**: El código está mejor organizado, separando las responsabilidades del cliente y del servidor.

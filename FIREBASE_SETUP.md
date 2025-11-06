@@ -1,480 +1,134 @@
-# Firebase Backend Migration Guide
+# Guía de Configuración y Migración a Firebase
 
-Este documento explica cómo migrar de CSV a Firebase/Firestore y cómo usar el nuevo backend.
+Este documento explica cómo configurar el proyecto para usar Firebase y cómo migrar los datos desde los archivos CSV.
 
 ## 📋 Índice
 
-1. [Configuración Inicial](#configuración-inicial)
-2. [Migración de Datos](#migración-de-datos)
-3. [Deploy de Cloud Functions](#deploy-de-cloud-functions)
-4. [API Endpoints](#api-endpoints)
-5. [Actualizar el Frontend](#actualizar-el-frontend)
+1. [Configuración Inicial](#-configuración-inicial)
+2. [Migración de Datos](#-migración-de-datos)
+3. [Despliegue de Cloud Functions](#-despliegue-de-cloud-functions)
+4. [Arquitectura de Datos](#-arquitectura-de-datos)
+5. [Flujo de trabajo y Testing](#-flujo-de-trabajo-y-testing)
 
 ---
 
 ## 🚀 Configuración Inicial
 
-### 1. Crear Proyecto en Firebase
+### 1. Requisitos
+- Tener una cuenta de Firebase y un proyecto creado (ej: `augusta-edge-project`).
+- Tener Node.js y npm instalados.
+- Tener Firebase CLI instalado (`npm install -g firebase-tools`).
 
-1. Ve a [Firebase Console](https://console.firebase.google.com/)
-2. Crea un nuevo proyecto o selecciona uno existente
-3. Habilita **Firestore Database** (modo producción)
-4. Habilita **Cloud Functions**
-5. Habilita **Cloud Storage**
-6. Habilita **Authentication** (Email/Password y Google)
+### 2. Obtener Credenciales de Administrador
 
-### 2. Obtener Credenciales
+Para que el script de migración y la lógica del servidor puedan acceder a tu base de datos, necesitan credenciales de administrador.
 
-#### Credenciales del Cliente (Frontend)
-
-1. En Firebase Console, ve a **Project Settings** (⚙️)
-2. En la sección "Your apps", haz clic en el ícono web `</>`
-3. Registra tu app y copia las credenciales
-
-#### Credenciales Admin (Backend)
-
-1. En Firebase Console, ve a **Project Settings** → **Service Accounts**
-2. Haz clic en "Generate new private key"
-3. Guarda el archivo JSON como `firebase-service-account.json` en la raíz del proyecto
+1.  Ve a la **Consola de Firebase** → **Configuración del proyecto** (⚙️) → **Cuentas de servicio**.
+2.  Haz clic en **"Generar nueva clave privada"**.
+3.  Se descargará un archivo JSON. **Renómbralo a `firebase-service-account.json`** y guárdalo en la raíz de tu proyecto.
 
 ### 3. Configurar Variables de Entorno
 
-Copia `.env.example` a `.env.local`:
+Crea un archivo llamado `.env.local` si aún no existe. Luego, ábrelo y añade las credenciales del archivo JSON que acabas de descargar.
 
-```bash
-cp .env.example .env.local
-```
-
-Edita `.env.local` con tus credenciales:
-
+**Archivo: `.env.local`**
 ```env
-# Firebase Client Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyXXXXXXXXXXXXXXXXX
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=tu-proyecto
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=tu-proyecto.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
-NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:xxxxx
-
 # Firebase Admin Configuration
-FIREBASE_PROJECT_ID=tu-proyecto
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@tu-proyecto.iam.gserviceaccount.com
+FIREBASE_CLIENT_EMAIL=xxxx@augusta-edge-project.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-FIREBASE_STORAGE_BUCKET=tu-proyecto.appspot.com
+
+# El bucket de storage se puede encontrar en la consola de Firebase -> Storage
+FIREBASE_STORAGE_BUCKET=augusta-edge-project.appspot.com
 ```
 
-### 4. Instalar Firebase CLI
-
-```bash
-npm install -g firebase-tools
-firebase login
-firebase init
-```
-
-Selecciona:
-- ✅ Firestore
-- ✅ Functions
-- ✅ Storage
+**Importante**: `FIREBASE_PRIVATE_KEY` debe tener el formato exacto, incluyendo `\n` para los saltos de línea.
 
 ---
 
 ## 📦 Migración de Datos
 
-### 1. Preparar el Script de Migración
+Este es el paso más importante para poblar tu base de datos de Firestore con la información de los CSV.
 
-El script está en `scripts/migrate-to-firestore.ts`. Asegúrate de tener:
+### 1. Preparar los archivos CSV
 
-1. ✅ `firebase-service-account.json` en la raíz
-2. ✅ Variables de entorno configuradas en `.env.local`
-3. ✅ Archivos CSV en `public/casos.csv` y `public/entidades.csv`
+Asegúrate de que tus archivos `public/entidades.csv` y `public/casos.csv` están actualizados y con el formato correcto.
+-   `entidades.csv`: Delimitado por comas.
+-   `casos.csv`: Delimitado por punto y coma.
 
-### 2. Compilar y Ejecutar la Migración
+### 2. Ejecutar el Script de Migración
+
+Abre tu terminal en la raíz del proyecto y ejecuta:
 
 ```bash
-# Compilar TypeScript
-npx tsx scripts/migrate-to-firestore.ts
+# Instala todas las dependencias del proyecto
+npm install
+
+# Ejecuta el script de migración
+npm run migrate
 ```
 
-La migración:
-- Lee todos los datos de los CSV
-- Crea las entidades en Firestore
-- Crea los casos de uso como subcolecciones
-- Crea las métricas con período inicial `2024-Q4`
-
-**Estructura en Firestore:**
-
-```
-/entities/{entityId}
-  ├── name: string
-  ├── description: string
-  ├── logo: string
-  └── /useCases/{useCaseId}
-      ├── name: string
-      ├── status: string
-      ├── highLevelStatus: string
-      └── /metrics/{period} (ej: "2024-Q4")
-          ├── general: Array<{label, value}>
-          ├── financial: Array<{label, value}>
-          ├── business: Array<{label, value}>
-          └── technical: Array<{label, value}>
-```
-
-### 3. Verificar la Migración
-
-En Firebase Console → Firestore Database, deberías ver:
-- Colección `entities` con ~23 documentos
-- Cada entidad con subcolección `useCases`
-- Cada caso con subcolección `metrics` con documento `2024-Q4`
+**¿Qué hace este script?**
+1.  **Limpia Firestore**: Borra todas las entidades y casos de uso existentes para evitar datos duplicados o desactualizados.
+2.  **Lee `entidades.csv`**: Crea un documento por cada entidad en la colección `entities`.
+3.  **Lee `casos.csv`**: Por cada caso de uso, lo anida dentro de su entidad correspondiente como una subcolección `useCases`.
+4.  **Crea Métricas Iniciales**: Para cada caso de uso, crea una subcolección `metrics` con un documento inicial para el período `2024-Q4`.
 
 ---
 
-## ☁️ Deploy de Cloud Functions
+## ☁️ Despliegue de Cloud Functions
 
-### 1. Instalar Dependencias de Functions
+Las Cloud Functions actúan como tu API para operaciones de escritura (crear, editar, borrar).
+
+### 1. Instalar dependencias de las funciones
 
 ```bash
+# Navega a la carpeta de functions e instala sus dependencias
 cd functions
 npm install
 cd ..
 ```
 
-### 2. Deploy Functions a Firebase
+### 2. Autenticarse y Desplegar
 
 ```bash
-firebase deploy --only functions
+# Autentícate con tu cuenta de Google (si no lo has hecho)
+firebase login
+
+# Despliega únicamente las funciones
+npm run functions:deploy
 ```
 
-Esto despliega 10 endpoints:
-- `getEntities` - Obtener todas las entidades
-- `getEntity` - Obtener una entidad específica
-- `getUseCases` - Obtener casos de uso de una entidad
-- `updateEntity` - Actualizar/crear entidad
-- `updateUseCase` - Actualizar/crear caso de uso
-- `saveMetrics` - Guardar métricas de un período
-- `getMetricsPeriods` - Obtener todos los períodos de métricas
-- `deleteEntity` - Eliminar entidad
-- `deleteUseCase` - Eliminar caso de uso
-
-### 3. Obtener URLs de las Functions
-
-Después del deploy, Firebase te dará las URLs:
-
-```
-https://us-central1-tu-proyecto.cloudfunctions.net/getEntities
-https://us-central1-tu-proyecto.cloudfunctions.net/getEntity
-...
-```
-
-Guarda estas URLs para configurar el frontend.
+Al finalizar, las operaciones desde los formularios de la aplicación funcionarán correctamente.
 
 ---
 
-## 🔌 API Endpoints
+## 🔌 Arquitectura de Datos
 
-### GET /getEntities
+La aplicación ahora se comunica con Firestore de dos maneras:
+1.  **Lecturas (Server-Side)**: Las páginas de Next.js (Server Components) usan el **Admin SDK** (`src/lib/data.server.ts`) para leer datos de Firestore de forma ultra-rápida y segura en el servidor.
+2.  **Escrituras (Client-Side)**: Los formularios de la aplicación (crear/editar) usan el **Client SDK** (`src/lib/data.ts`) para realizar cambios, que son validados por las reglas de seguridad de Firestore.
 
-Obtiene todas las entidades con sus estadísticas.
-
-**Response:**
-```json
-{
-  "success": true,
-  "entities": [
-    {
-      "id": "adl",
-      "name": "Aval Digital Labs",
-      "description": "...",
-      "logo": "/logos/adl.png",
-      "stats": {
-        "active": 15,
-        "inactive": 5,
-        "strategic": 3,
-        "total": 23,
-        "scientists": 45,
-        "alerts": 2
-      }
-    }
-  ]
-}
+**Estructura en Firestore:**
 ```
-
-### GET /getEntity?id={entityId}
-
-Obtiene una entidad específica.
-
-**Query Params:**
-- `id` (required): ID de la entidad
-
-### GET /getUseCases?entityId={entityId}
-
-Obtiene todos los casos de uso de una entidad con las métricas más recientes.
-
-**Query Params:**
-- `entityId` (required): ID de la entidad
-
-### POST /updateEntity
-
-Actualiza o crea una entidad.
-
-**Body:**
-```json
-{
-  "id": "adl",
-  "name": "Aval Digital Labs",
-  "description": "Centro de innovación",
-  "logo": "/logos/adl.png"
-}
-```
-
-### POST /updateUseCase
-
-Actualiza o crea un caso de uso.
-
-**Body:**
-```json
-{
-  "entityId": "adl",
-  "id": "proyecto-123",
-  "name": "Modelo de Fraude",
-  "description": "Detección de fraude",
-  "status": "En Producción",
-  "highLevelStatus": "Activo",
-  "tipoProyecto": "Predictivo",
-  "tipoDesarrollo": "Modelo",
-  "observaciones": "...",
-  "sharepoint": "https://...",
-  "jira": "https://..."
-}
-```
-
-### POST /saveMetrics
-
-Guarda métricas de un período específico.
-
-**Body:**
-```json
-{
-  "entityId": "adl",
-  "useCaseId": "proyecto-123",
-  "period": "2024-Q4",
-  "metrics": {
-    "general": [
-      { "label": "Cantidad de DS", "value": "5" }
-    ],
-    "financial": [
-      { "label": "Fee Total", "value": "100000" }
-    ],
-    "business": [...],
-    "technical": [...]
-  }
-}
-```
-
-### GET /getMetricsPeriods?entityId={entityId}&useCaseId={useCaseId}
-
-Obtiene todas las métricas históricas de un caso de uso.
-
-**Response:**
-```json
-{
-  "success": true,
-  "periods": [
-    {
-      "period": "2024-Q4",
-      "general": [...],
-      "financial": [...],
-      "business": [...],
-      "technical": [...]
-    },
-    {
-      "period": "2024-Q3",
-      ...
-    }
-  ]
-}
-```
-
-### DELETE /deleteEntity
-
-Elimina una entidad y todos sus casos de uso.
-
-**Body:**
-```json
-{
-  "id": "entity-id"
-}
-```
-
-### DELETE /deleteUseCase
-
-Elimina un caso de uso y todas sus métricas.
-
-**Body:**
-```json
-{
-  "entityId": "adl",
-  "id": "proyecto-123"
-}
+/entities/{entityId}
+  ├── (datos de la entidad)
+  └── /useCases/{useCaseId}
+      ├── (datos del caso de uso)
+      └── /metrics/{period}
+          └── (datos de métricas para ese período)
 ```
 
 ---
 
-## 🎨 Actualizar el Frontend
+## ✅ Flujo de trabajo y Testing
 
-### 1. Crear Capa de API
+### Flujo de trabajo recomendado
+1.  Realiza cambios en tus archivos CSV.
+2.  Ejecuta `npm run migrate` para sincronizar los cambios con Firestore.
+3.  Inicia la aplicación con `npm run dev` para ver los resultados.
+4.  Si cambias la lógica de la API de escritura, recuerda volver a desplegar con `npm run functions:deploy`.
 
-Crea `src/lib/api.ts`:
-
-```typescript
-const API_BASE = process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL;
-
-export async function getEntities() {
-  const res = await fetch(`${API_BASE}/getEntities`);
-  return res.json();
-}
-
-export async function getUseCases(entityId: string) {
-  const res = await fetch(`${API_BASE}/getUseCases?entityId=${entityId}`);
-  return res.json();
-}
-
-export async function updateEntity(data: any) {
-  const res = await fetch(`${API_BASE}/updateEntity`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
-
-// ... más funciones
-```
-
-### 2. Actualizar data.ts
-
-Modifica `src/lib/data.ts` para usar la API en lugar de CSV:
-
-```typescript
-import { getEntities as apiGetEntities } from './api';
-
-export async function getEntities() {
-  const { entities } = await apiGetEntities();
-  return entities;
-}
-```
-
-### 3. Agregar Variable de Entorno
-
-En `.env.local`:
-
-```env
-NEXT_PUBLIC_FIREBASE_FUNCTIONS_URL=https://us-central1-tu-proyecto.cloudfunctions.net
-```
-
----
-
-## ✅ Testing
-
-### Probar Endpoints
-
-```bash
-# GET Entities
-curl https://us-central1-tu-proyecto.cloudfunctions.net/getEntities
-
-# GET Use Cases
-curl "https://us-central1-tu-proyecto.cloudfunctions.net/getUseCases?entityId=adl"
-
-# POST Update Entity
-curl -X POST https://us-central1-tu-proyecto.cloudfunctions.net/updateEntity \
-  -H "Content-Type: application/json" \
-  -d '{"id":"test","name":"Test Entity"}'
-```
-
-### Verificar en Firebase Console
-
-1. **Firestore Database**: Ver datos migrados
-2. **Functions**: Ver logs de ejecución
-3. **Storage**: Ver logos subidos
-
----
-
-## 🔐 Seguridad
-
-### Firestore Rules
-
-Las reglas están en `firestore.rules`:
-- **Lectura**: Pública (todos pueden leer)
-- **Escritura**: Solo usuarios autenticados
-
-Para producción, considera:
-- Requerir autenticación para lectura
-- Validar permisos por rol (admin, viewer, etc.)
-- Agregar validación de campos
-
-### Storage Rules
-
-Las reglas están en `storage.rules`:
-- Solo usuarios autenticados pueden subir archivos
-- Límite de tamaño de 5MB para logos
-- Límite de 50MB para attachments
-
----
-
-## 📊 Costos Estimados
-
-**Firestore:**
-- 167 proyectos × 23 entidades = ~4,000 documentos
-- Lecturas: ~50K/mes → GRATIS (50K incluidos)
-- Escrituras: ~5K/mes → GRATIS (20K incluidos)
-
-**Cloud Functions:**
-- ~10K invocaciones/mes → GRATIS (2M incluidos)
-
-**Storage:**
-- ~50MB de logos → GRATIS (5GB incluidos)
-
-**Total estimado: $0/mes** (dentro de free tier)
-
----
-
-## 🆘 Troubleshooting
-
-### Error: "Permission denied"
-- Verifica que las reglas de Firestore permitan la operación
-- Verifica que el usuario esté autenticado (si es requerido)
-
-### Error: "Function not found"
-- Verifica que las functions estén desplegadas: `firebase deploy --only functions`
-- Verifica la URL en `.env.local`
-
-### Error: "Service account not found"
-- Verifica que `firebase-service-account.json` exista
-- Verifica que las variables FIREBASE_* estén en `.env.local`
-
-### Datos no aparecen después de migración
-- Verifica en Firebase Console → Firestore Database
-- Revisa los logs del script de migración
-- Re-ejecuta la migración si es necesario
-
----
-
-## 🎯 Próximos Pasos
-
-1. ✅ Configurar Firebase
-2. ✅ Migrar datos de CSV a Firestore
-3. ✅ Desplegar Cloud Functions
-4. ⏳ Actualizar frontend para usar API
-5. ⏳ Crear formularios editables
-6. ⏳ Agregar selector de períodos
-7. ⏳ Implementar autenticación
-
----
-
-¿Necesitas ayuda? Revisa los logs:
-```bash
-# Logs de Functions
-firebase functions:log
-
-# Logs de una función específica
-firebase functions:log --only getEntities
-```
+### Troubleshooting
+-   **Error de Permisos al Migrar**: Asegúrate de que las credenciales en `.env.local` son correctas y el service account tiene rol de "Editor" o "Propietario" en el proyecto de GCP/Firebase.
+-   **Datos no aparecen**: Verifica que `npm run migrate` se ejecutó sin errores.
+-   **Formularios no guardan**: Revisa que las Cloud Functions se desplegaron correctamente y revisa sus logs en la Consola de Firebase (`Functions` → `Registros`).

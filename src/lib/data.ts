@@ -2,7 +2,22 @@
 'use client';
 import type { Metric } from './types';
 import { db } from './firebase'; // Using client-side firebase instance
-import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
+
+export async function getMetrics(entityId: string, useCaseId: string) {
+    const metricsSnapshot = await getDocs(collection(db, 'entities', entityId, 'useCases', useCaseId, 'metrics'));
+    if (metricsSnapshot.empty) {
+        return null;
+    }
+    const metricsData = metricsSnapshot.docs[0].data();
+    return {
+        general: metricsData.general || [],
+        financial: metricsData.financial || [],
+        business: metricsData.business || [],
+        technical: metricsData.technical || [],
+    };
+}
+
 
 export async function getMetricsPeriods(
   entityId: string,
@@ -32,7 +47,8 @@ export async function saveMetrics(data: {
 }): Promise<boolean> {
   const { entityId, useCaseId, period, metrics } = data;
   try {
-    await setDoc(doc(db, 'entities', entityId, 'useCases', useCaseId, 'metrics', period), metrics, { merge: true });
+    const docRef = doc(db, 'entities', entityId, 'useCases', useCaseId, 'metrics', period);
+    await setDoc(docRef, { ...metrics, period }, { merge: true });
     return true;
   } catch (error) {
     console.error("Error saving metrics on client:", error);

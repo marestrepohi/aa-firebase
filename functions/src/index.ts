@@ -9,84 +9,85 @@ const db = admin.firestore();
 // CORS configuration
 const corsHandler = cors({ origin: true });
 
-// Helper function to calculate entity stats
-async function calculateEntityStats(entityId: string) {
-  const useCasesSnapshot = await db
-    .collection('entities')
-    .doc(entityId)
-    .collection('useCases')
-    .get();
+// Helper function to calculate entity stats efficiently
+async function calculateEntityStats(allUseCases: admin.firestore.QueryDocumentSnapshot[]): Promise<Record<string, any>> {
+  const statsByEntity: Record<string, any> = {};
 
-  let active = 0;
-  let inactive = 0;
-  let strategic = 0;
-  let totalDS = 0;
-  let alerts = 0;
+  const metricsPromises = allUseCases.map(doc => 
+    doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get()
+  );
+  const metricsSnapshots = await Promise.all(metricsPromises);
 
-  for (const doc of useCasesSnapshot.docs) {
+  allUseCases.forEach((doc, index) => {
     const useCase = doc.data();
+    const entityId = useCase.entityId;
+
+    if (!statsByEntity[entityId]) {
+      statsByEntity[entityId] = {
+        active: 0,
+        inactive: 0,
+        strategic: 0,
+        total: 0,
+        scientists: 0,
+        alerts: 0,
+      };
+    }
+
+    const stats = statsByEntity[entityId];
+    stats.total++;
+
     const status = useCase.highLevelStatus || '';
+    if (status === 'Activo') stats.active++;
+    else if (status === 'Inactivo') stats.inactive++;
+    else if (status === 'Estrategico') stats.strategic++;
 
-    if (status === 'Activo') active++;
-    else if (status === 'Inactivo') inactive++;
-    else if (status === 'Estrategico') strategic++;
-
-    // Get latest metrics for DS count
-    const metricsSnapshot = await doc.ref
-      .collection('metrics')
-      .orderBy('period', 'desc')
-      .limit(1)
-      .get();
-
+    const metricsSnapshot = metricsSnapshots[index];
     if (!metricsSnapshot.empty) {
       const metrics = metricsSnapshot.docs[0].data();
       const dsMetric = metrics.general?.find((m: any) => m.label === 'Cantidad de DS');
       if (dsMetric?.value) {
-        const dsCount = parseInt(dsMetric.value) || 0;
-        totalDS += dsCount;
+        stats.scientists += parseInt(dsMetric.value) || 0;
       }
     }
-
-    // Check for alerts (simple logic: projects without recent metrics)
+    
     const now = new Date();
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-    
     if (useCase.updatedAt?.toDate() < threeMonthsAgo) {
-      alerts++;
+      stats.alerts++;
     }
-  }
+  });
 
-  return {
-    active,
-    inactive,
-    strategic,
-    total: useCasesSnapshot.size,
-    scientists: totalDS,
-    inDevelopment: active, // Simplified
-    alerts,
-    totalImpact: 0, // Will be calculated from metrics
-  };
+  return statsByEntity;
 }
 
 // Get all entities with stats
 export const getEntities = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
     try {
-      const entitiesSnapshot = await db.collection('entities').get();
-      const entities = [];
+      const [entitiesSnapshot, useCasesSnapshot] = await Promise.all([
+        db.collection('entities').get(),
+        db.collectionGroup('useCases').get(),
+      ]);
 
-      for (const doc of entitiesSnapshot.docs) {
+      const statsByEntity = await calculateEntityStats(useCasesSnapshot.docs);
+
+      const entities = entitiesSnapshot.docs.map(doc => {
         const entityData = doc.data();
-        const stats = await calculateEntityStats(doc.id);
-
-        entities.push({
+        const stats = statsByEntity[doc.id] || {
+          active: 0, inactive: 0, strategic: 0, total: 0, scientists: 0, alerts: 0,
+        };
+        return {
           id: doc.id,
           name: entityData.name,
           description: entityData.description,
           logo: entityData.logo,
-          stats,
-        });
-      }
+          stats: {
+            ...stats,
+            inDevelopment: stats.active, // Simplified, adjust as needed
+            totalImpact: 0, // Placeholder, needs real calculation
+          },
+        };
+      });
 
       res.json({ success: true, entities });
     } catch (error) {
@@ -95,6 +96,7 @@ export const getEntities = functions.https.onRequest((req, res) => {
     }
   });
 });
+
 
 // Get entity by ID
 export const getEntity = functions.https.onRequest((req, res) => {
@@ -112,9 +114,11 @@ export const getEntity = functions.https.onRequest((req, res) => {
         return;
       }
 
-      const entityData = entityDoc.data();
-      const stats = await calculateEntityStats(entityId);
+      const useCasesSnapshot = await db.collection('entities').doc(entityId).collection('useCases').get();
+      const statsByEntity = await calculateEntityStats(useCasesSnapshot.docs);
+      const stats = statsByEntity[entityId] || { active: 0, inactive: 0, strategic: 0, total: 0, scientists: 0, alerts: 0 };
 
+      const entityData = entityDoc.data();
       res.json({
         success: true,
         entity: {
@@ -122,7 +126,11 @@ export const getEntity = functions.https.onRequest((req, res) => {
           name: entityData?.name,
           description: entityData?.description,
           logo: entityData?.logo,
-          stats,
+          stats: {
+            ...stats,
+            inDevelopment: stats.active,
+            totalImpact: 0,
+          },
         },
       });
     } catch (error) {
@@ -148,40 +156,25 @@ export const getUseCases = functions.https.onRequest((req, res) => {
         .collection('useCases')
         .get();
 
-      const useCases = [];
-
-      for (const doc of useCasesSnapshot.docs) {
+      const useCases = await Promise.all(useCasesSnapshot.docs.map(async (doc) => {
         const useCaseData = doc.data();
-
-        // Get latest metrics
         const metricsSnapshot = await doc.ref
           .collection('metrics')
           .orderBy('period', 'desc')
           .limit(1)
           .get();
 
-        let metrics = { general: [], financial: [], business: [], technical: [] };
+        let metrics = { period: '', general: [], financial: [], business: [], technical: [] };
         if (!metricsSnapshot.empty) {
           metrics = metricsSnapshot.docs[0].data() as any;
         }
 
-        useCases.push({
+        return {
           id: doc.id,
-          entityId: useCaseData.entityId,
-          name: useCaseData.name,
-          description: useCaseData.description,
-          status: useCaseData.status,
-          highLevelStatus: useCaseData.highLevelStatus,
-          tipoProyecto: useCaseData.tipoProyecto,
-          tipoDesarrollo: useCaseData.tipoDesarrollo,
-          observaciones: useCaseData.observaciones,
-          sharepoint: useCaseData.sharepoint,
-          jira: useCaseData.jira,
-          actividadesSharepoint: useCaseData.actividadesSharepoint,
-          actividadesJira: useCaseData.actividadesJira,
+          ...useCaseData,
           metrics,
-        });
-      }
+        };
+      }));
 
       res.json({ success: true, useCases });
     } catch (error) {
@@ -216,8 +209,6 @@ export const getUseCase = functions.https.onRequest((req, res) => {
       }
 
       const useCaseData = useCaseDoc.data()!;
-
-      // Get latest metrics
       const metricsSnapshot = await useCaseDoc.ref
         .collection('metrics')
         .orderBy('period', 'desc')
@@ -238,18 +229,7 @@ export const getUseCase = functions.https.onRequest((req, res) => {
 
       const useCase = {
         id: useCaseDoc.id,
-        entityId: useCaseData.entityId,
-        name: useCaseData.name,
-        description: useCaseData.description,
-        status: useCaseData.status,
-        highLevelStatus: useCaseData.highLevelStatus,
-        tipoProyecto: useCaseData.tipoProyecto,
-        tipoDesarrollo: useCaseData.tipoDesarrollo,
-        observaciones: useCaseData.observaciones,
-        sharepoint: useCaseData.sharepoint,
-        jira: useCaseData.jira,
-        actividadesSharepoint: useCaseData.actividadesSharepoint,
-        actividadesJira: useCaseData.actividadesJira,
+        ...useCaseData,
         lastUpdated: useCaseData.updatedAt?.toDate()?.toISOString() || new Date().toISOString(),
         metrics,
       };
@@ -271,32 +251,13 @@ export const updateEntity = functions.https.onRequest((req, res) => {
     }
 
     try {
-      const { id, name, description, logo } = req.body;
-
+      const { id, ...entityData } = req.body;
       if (!id) {
         res.status(400).json({ success: false, error: 'Entity ID is required' });
         return;
       }
-
-      const entityRef = db.collection('entities').doc(id);
-      const entityDoc = await entityRef.get();
-
-      const updateData: any = {
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-
-      if (name !== undefined) updateData.name = name;
-      if (description !== undefined) updateData.description = description;
-      if (logo !== undefined) updateData.logo = logo;
-
-      if (entityDoc.exists) {
-        await entityRef.update(updateData);
-      } else {
-        updateData.id = id;
-        updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
-        await entityRef.set(updateData);
-      }
-
+      const updateData = { ...entityData, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+      await db.collection('entities').doc(id).set(updateData, { merge: true });
       res.json({ success: true, message: 'Entity updated successfully' });
     } catch (error) {
       console.error('Error updating entity:', error);
@@ -315,29 +276,12 @@ export const updateUseCase = functions.https.onRequest((req, res) => {
 
     try {
       const { entityId, id, ...useCaseData } = req.body;
-
       if (!entityId || !id) {
         res.status(400).json({ success: false, error: 'Entity ID and Use Case ID are required' });
         return;
       }
-
-      const useCaseRef = db.collection('entities').doc(entityId).collection('useCases').doc(id);
-      const useCaseDoc = await useCaseRef.get();
-
-      const updateData: any = {
-        ...useCaseData,
-        entityId,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-
-      if (useCaseDoc.exists) {
-        await useCaseRef.update(updateData);
-      } else {
-        updateData.id = id;
-        updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
-        await useCaseRef.set(updateData);
-      }
-
+      const updateData = { ...useCaseData, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+      await db.collection('entities').doc(entityId).collection('useCases').doc(id).set(updateData, { merge: true });
       res.json({ success: true, message: 'Use case updated successfully' });
     } catch (error) {
       console.error('Error updating use case:', error);
@@ -356,7 +300,6 @@ export const saveMetrics = functions.https.onRequest((req, res) => {
 
     try {
       const { entityId, useCaseId, period, metrics } = req.body;
-
       if (!entityId || !useCaseId || !period || !metrics) {
         res.status(400).json({ 
           success: false, 
@@ -364,30 +307,8 @@ export const saveMetrics = functions.https.onRequest((req, res) => {
         });
         return;
       }
-
-      const metricsRef = db
-        .collection('entities')
-        .doc(entityId)
-        .collection('useCases')
-        .doc(useCaseId)
-        .collection('metrics')
-        .doc(period);
-
-      const metricsDoc = await metricsRef.get();
-
-      const saveData = {
-        period,
-        ...metrics,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-
-      if (metricsDoc.exists) {
-        await metricsRef.update(saveData);
-      } else {
-        saveData.createdAt = admin.firestore.FieldValue.serverTimestamp();
-        await metricsRef.set(saveData);
-      }
-
+      const saveData = { ...metrics, period, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+      await db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection('metrics').doc(period).set(saveData, { merge: true });
       res.json({ success: true, message: 'Metrics saved successfully' });
     } catch (error) {
       console.error('Error saving metrics:', error);
@@ -401,7 +322,6 @@ export const getMetricsPeriods = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
     try {
       const { entityId, useCaseId } = req.query;
-
       if (!entityId || !useCaseId) {
         res.status(400).json({ 
           success: false, 
@@ -409,7 +329,6 @@ export const getMetricsPeriods = functions.https.onRequest((req, res) => {
         });
         return;
       }
-
       const metricsSnapshot = await db
         .collection('entities')
         .doc(entityId as string)
@@ -418,12 +337,10 @@ export const getMetricsPeriods = functions.https.onRequest((req, res) => {
         .collection('metrics')
         .orderBy('period', 'desc')
         .get();
-
       const periods = metricsSnapshot.docs.map(doc => ({
         period: doc.id,
         ...doc.data(),
       }));
-
       res.json({ success: true, periods });
     } catch (error) {
       console.error('Error getting metrics periods:', error);
@@ -432,6 +349,42 @@ export const getMetricsPeriods = functions.https.onRequest((req, res) => {
   });
 });
 
+// Helper function for deep deletion
+async function deleteCollection(collectionPath: string, batchSize: number) {
+    const collectionRef = db.collection(collectionPath);
+    const query = collectionRef.orderBy('__name__').limit(batchSize);
+
+    return new Promise((resolve, reject) => {
+        deleteQueryBatch(query, resolve).catch(reject);
+    });
+}
+
+async function deleteQueryBatch(query: FirebaseFirestore.Query, resolve: (value?: unknown) => void) {
+    const snapshot = await query.get();
+
+    if (snapshot.size === 0) {
+        resolve();
+        return;
+    }
+
+    const batch = db.batch();
+    for (const doc of snapshot.docs) {
+        // Recursively delete subcollections
+        const subcollections = await doc.ref.listCollections();
+        for (const subcollection of subcollections) {
+            await deleteCollection(`${doc.ref.path}/${subcollection.id}`, 50);
+        }
+        batch.delete(doc.ref);
+    }
+    
+    await batch.commit();
+
+    process.nextTick(() => {
+        deleteQueryBatch(query, resolve);
+    });
+}
+
+
 // Delete entity
 export const deleteEntity = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
@@ -439,40 +392,14 @@ export const deleteEntity = functions.https.onRequest((req, res) => {
       res.status(405).json({ success: false, error: 'Method not allowed' });
       return;
     }
-
     try {
       const entityId = req.body.id || req.query.id;
-
       if (!entityId) {
         res.status(400).json({ success: false, error: 'Entity ID is required' });
         return;
       }
-
-      // Delete all use cases and their metrics first
-      const useCasesSnapshot = await db
-        .collection('entities')
-        .doc(entityId as string)
-        .collection('useCases')
-        .get();
-
-      const batch = db.batch();
-      
-      for (const useCaseDoc of useCasesSnapshot.docs) {
-        // Delete all metrics
-        const metricsSnapshot = await useCaseDoc.ref.collection('metrics').get();
-        metricsSnapshot.docs.forEach(metricDoc => {
-          batch.delete(metricDoc.ref);
-        });
-        
-        // Delete use case
-        batch.delete(useCaseDoc.ref);
-      }
-
-      // Delete entity
-      batch.delete(db.collection('entities').doc(entityId as string));
-
-      await batch.commit();
-
+      await deleteCollection(`entities/${entityId}/useCases`, 50);
+      await db.collection('entities').doc(entityId).delete();
       res.json({ success: true, message: 'Entity deleted successfully' });
     } catch (error) {
       console.error('Error deleting entity:', error);
@@ -488,38 +415,15 @@ export const deleteUseCase = functions.https.onRequest((req, res) => {
       res.status(405).json({ success: false, error: 'Method not allowed' });
       return;
     }
-
     try {
       const entityId = req.body.entityId || req.query.entityId;
       const useCaseId = req.body.id || req.query.id;
-
       if (!entityId || !useCaseId) {
-        res.status(400).json({ 
-          success: false, 
-          error: 'Entity ID and Use Case ID are required' 
-        });
+        res.status(400).json({ success: false, error: 'Entity ID and Use Case ID are required' });
         return;
       }
-
-      const useCaseRef = db
-        .collection('entities')
-        .doc(entityId as string)
-        .collection('useCases')
-        .doc(useCaseId as string);
-
-      // Delete all metrics
-      const metricsSnapshot = await useCaseRef.collection('metrics').get();
-      const batch = db.batch();
-      
-      metricsSnapshot.docs.forEach(metricDoc => {
-        batch.delete(metricDoc.ref);
-      });
-
-      // Delete use case
-      batch.delete(useCaseRef);
-
-      await batch.commit();
-
+      await deleteCollection(`entities/${entityId}/useCases/${useCaseId}/metrics`, 50);
+      await db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).delete();
       res.json({ success: true, message: 'Use case deleted successfully' });
     } catch (error) {
       console.error('Error deleting use case:', error);

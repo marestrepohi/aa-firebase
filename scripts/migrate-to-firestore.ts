@@ -8,12 +8,12 @@ const serviceAccount = require('../firebase-service-account.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${serviceAccount.project_id}.appspot.com`,
 });
 
 const db = admin.firestore();
 
-// CSV Parser (same robust parser from data.ts)
+// CSV Parser
 function parseCSVLine(line: string, delimiter: string = ';'): string[] {
   const result: string[] = [];
   let current = '';
@@ -21,72 +21,43 @@ function parseCSVLine(line: string, delimiter: string = ';'): string[] {
   
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
+    if (char === '"' && (i === 0 || line[i-1] !== '"')) {
         inQuotes = !inQuotes;
-      }
-    } else if (char === delimiter && !inQuotes) {
+        continue;
+    }
+    if (char === delimiter && !inQuotes) {
       result.push(current.trim());
       current = '';
     } else {
       current += char;
     }
   }
-  
   result.push(current.trim());
-  return result;
+  return result.map(s => s.replace(/^"|"$/g, '').replace(/""/g, '"'));
 }
 
 function parseCSV(content: string, delimiter: string = ';'): string[][] {
-  // Remove BOM if present
   if (content.charCodeAt(0) === 0xFEFF) {
     content = content.slice(1);
   }
-  
-  const lines: string[] = [];
-  let currentLine = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < content.length; i++) {
-    const char = content[i];
-    
-    if (char === '"') {
-      inQuotes = !inQuotes;
-      currentLine += char;
-    } else if (char === '\n' && !inQuotes) {
-      if (currentLine.trim()) {
-        lines.push(currentLine);
-      }
-      currentLine = '';
-    } else if (char === '\r') {
-      continue;
-    } else {
-      currentLine += char;
-    }
-  }
-  
-  if (currentLine.trim()) {
-    lines.push(currentLine);
-  }
-  
+  const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
   return lines.map(line => parseCSVLine(line, delimiter));
 }
+
 
 // Helper function to create a valid Firestore document ID from a string
 function createValidDocId(str: string): string {
   if (!str) return '';
-  
-  return str
+  const slug = str
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .normalize('NFD') // Normalize to decomposed form
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
-    .substring(0, 100); // Limit length
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
+  return slug || `item-${Date.now()}`;
 }
 
 // Read and parse CSV files
@@ -95,19 +66,16 @@ function readEntitiesFromCSV(): any[] {
   const content = fs.readFileSync(csvPath, 'utf-8');
   const rows = parseCSV(content, ','); // Use comma delimiter
   
-  if (rows.length === 0) return [];
+  if (rows.length < 2) return [];
   
-  const headers = rows[0].map(h => h.trim());
+  const headers = rows.shift()!.map(h => h.trim());
   const entities: any[] = [];
   
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
+  for (const row of rows) {
     const entity: any = {};
-    
     headers.forEach((header, index) => {
       entity[header] = row[index] || '';
     });
-    
     entities.push(entity);
   }
   
@@ -117,21 +85,18 @@ function readEntitiesFromCSV(): any[] {
 function readUseCasesFromCSV(): any[] {
   const csvPath = path.join(process.cwd(), 'public', 'casos.csv');
   const content = fs.readFileSync(csvPath, 'utf-8');
-  const rows = parseCSV(content, ';'); // Use semicolon delimiter for casos.csv
+  const rows = parseCSV(content, ';'); // Use semicolon delimiter
   
-  if (rows.length === 0) return [];
+  if (rows.length < 2) return [];
   
-  const headers = rows[0].map(h => h.trim());
+  const headers = rows.shift()!.map(h => h.trim());
   const useCases: any[] = [];
   
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
+  for (const row of rows) {
     const useCase: any = {};
-    
     headers.forEach((header, index) => {
       useCase[header] = row[index] || '';
     });
-    
     useCases.push(useCase);
   }
   
@@ -148,8 +113,13 @@ async function migrateEntities() {
   let count = 0;
   
   for (const entity of entities) {
-    const entityName = entity['Entidad'] || entity['ID Entidad'] || '';
-    const entityId = createValidDocId(entityName) || `entity-${count}`;
+    const entityName = entity['Entidad'] || '';
+    const entityId = createValidDocId(entityName);
+    
+    if (!entityId) {
+        console.warn(`⚠️  Skipping entity with no name.`);
+        continue;
+    }
     const entityRef = db.collection('entities').doc(entityId);
     
     const entityData = {
@@ -164,7 +134,6 @@ async function migrateEntities() {
     batch.set(entityRef, entityData);
     count++;
     
-    // Firestore batch limit is 500 operations
     if (count % 400 === 0) {
       await batch.commit();
       console.log(`✅ Migrated ${count} entities...`);
@@ -182,32 +151,31 @@ async function migrateUseCases() {
   console.log(`Found ${useCases.length} use cases`);
   
   let count = 0;
-  const INITIAL_PERIOD = '2024-Q4'; // Initial period for all existing data
+  const INITIAL_PERIOD = '2024-Q4';
   
-  // Process in smaller batches due to nested writes
   for (const useCase of useCases) {
-    const entityName = useCase['Entidad'] || useCase['ID Entidad'] || '';
-    const entityId = createValidDocId(entityName);
+    const entityName = useCase['Entidad'] || '';
     const projectName = useCase['Proyecto'] || '';
-    const useCaseId = createValidDocId(projectName) || `case-${count}`;
     
-    if (!entityId) {
-      console.warn(`⚠️ Skipping use case without entity ID: ${useCaseId}`);
+    const entityId = createValidDocId(entityName);
+    const useCaseId = createValidDocId(projectName);
+    
+    if (!entityId || !useCaseId) {
+      console.warn(`⚠️ Skipping use case without entity or project name: ${entityName} / ${projectName}`);
       continue;
     }
     
     const useCaseRef = db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId);
     
-    // Main use case data
     const useCaseData = {
       id: useCaseId,
       entityId: entityId,
-      name: useCase['Proyecto'] || useCase['Nombre Proyecto'] || '',
+      name: projectName,
       description: useCase['Observaciones'] || useCase['Descripción'] || '',
-      status: useCase['Estado'] || '',
-      highLevelStatus: useCase['Estado alto nivel'] || '',
-      tipoProyecto: useCase['Tipo Proyecto'] || '',
-      tipoDesarrollo: useCase['Tipo Desarrollo'] || '',
+      status: useCase['Estado'] || 'En Estimación',
+      highLevelStatus: useCase['Estado alto nivel'] || 'Activo',
+      tipoProyecto: useCase['Tipo Proyecto'] || 'No definido',
+      tipoDesarrollo: useCase['Tipo Desarrollo'] || 'No definido',
       observaciones: useCase['Observaciones'] || '',
       sharepoint: useCase['Sharepoint Link'] || useCase['Sharepoint'] || '',
       jira: useCase['Jira Link'] || useCase['Jira'] || '',
@@ -219,7 +187,6 @@ async function migrateUseCases() {
     
     await useCaseRef.set(useCaseData);
     
-    // Create metrics subcollection with initial period
     const metricsRef = useCaseRef.collection('metrics').doc(INITIAL_PERIOD);
     
     const metricsData = {
@@ -230,38 +197,38 @@ async function migrateUseCases() {
         { label: 'Fecha de Finalización Estimada', value: useCase['Fecha de Finalización Estimada'] || '' },
         { label: 'Fecha de Salida a Producción', value: useCase['Fecha de Salida a Producción'] || '' },
         { label: 'Fecha de Terminación', value: useCase['Fecha de Terminación'] || '' },
-        { label: 'Cantidad de DS', value: useCase['Cantidad de DS'] || '' },
-        { label: 'Cantidad de Modelos', value: useCase['Cantidad de Modelos'] || '' },
-        { label: 'Cantidad de Apis', value: useCase['Cantidad de Apis'] || '' },
-        { label: 'Cantidad de Tableros', value: useCase['Cantidad de Tableros'] || '' },
+        { label: 'Cantidad de DS', value: useCase['Cantidad de DS'] || '0' },
+        { label: 'Cantidad de Modelos', value: useCase['Cantidad de Modelos'] || '0' },
+        { label: 'Cantidad de Apis', value: useCase['Cantidad de Apis'] || '0' },
+        { label: 'Cantidad de Tableros', value: useCase['Cantidad de Tableros'] || '0' },
       ],
       financial: [
-        { label: 'Fee Proyecto', value: useCase['Fee Proyecto'] || '' },
-        { label: 'Fee DevOps', value: useCase['Fee DevOps'] || '' },
-        { label: 'Fee MLOps', value: useCase['Fee MLOps'] || '' },
-        { label: 'Fee Mantenimiento', value: useCase['Fee Mantenimiento'] || '' },
-        { label: 'Fee Consultoría', value: useCase['Fee Consultoría'] || '' },
-        { label: 'Fee MCA', value: useCase['Fee MCA'] || '' },
-        { label: 'Fee Total', value: useCase['Fee Total'] || '' },
-        { label: 'Margen %', value: useCase['Margen %'] || '' },
+        { label: 'Fee Proyecto', value: useCase['Fee Proyecto'] || '0' },
+        { label: 'Fee DevOps', value: useCase['Fee DevOps'] || '0' },
+        { label: 'Fee MLOps', value: useCase['Fee MLOps'] || '0' },
+        { label: 'Fee Mantenimiento', value: useCase['Fee Mantenimiento'] || '0' },
+        { label: 'Fee Consultoría', value: useCase['Fee Consultoría'] || '0' },
+        { label: 'Fee MCA', value: useCase['Fee MCA'] || '0' },
+        { label: 'Fee Total', value: useCase['Fee Total'] || '0' },
+        { label: 'Margen %', value: useCase['Margen %'] || '0' },
       ],
       business: [
-        { label: 'Ahorro Anual', value: useCase['Ahorro Anual'] || '' },
-        { label: 'Ahorro Anual sin fee', value: useCase['Ahorro Anual sin fee'] || '' },
-        { label: 'Ingreso Anual Esperado', value: useCase['Ingreso Anual Esperado'] || '' },
-        { label: 'Payback', value: useCase['Payback'] || '' },
-        { label: 'Impacto Clientes', value: useCase['Impacto Clientes'] || '' },
-        { label: 'Impacto Clientes con Modelo Implementado', value: useCase['Impacto Clientes con Modelo Implementado'] || '' },
-        { label: 'Impacto Colaboradores', value: useCase['Impacto Colaboradores'] || '' },
+        { label: 'Ahorro Anual', value: useCase['Ahorro Anual'] || '0' },
+        { label: 'Ahorro Anual sin fee', value: useCase['Ahorro Anual sin fee'] || '0' },
+        { label: 'Ingreso Anual Esperado', value: useCase['Ingreso Anual Esperado'] || '0' },
+        { label: 'Payback', value: useCase['Payback'] || '0' },
+        { label: 'Impacto Clientes', value: useCase['Impacto Clientes'] || '0' },
+        { label: 'Impacto Clientes con Modelo Implementado', value: useCase['Impacto Clientes con Modelo Implementado'] || '0' },
+        { label: 'Impacto Colaboradores', value: useCase['Impacto Colaboradores'] || '0' },
       ],
       technical: [
-        { label: 'Tipo de Problema', value: useCase['Tipo de Problema'] || '' },
-        { label: 'Plataforma', value: useCase['Plataforma'] || '' },
-        { label: 'Fase', value: useCase['Fase'] || '' },
-        { label: 'Estratégico / No Estratégico', value: useCase['Estratégico / No Estratégico'] || '' },
-        { label: 'Familia del Caso de Uso', value: useCase['Familia del Caso de Uso'] || '' },
-        { label: 'Madurez del Caso de Uso', value: useCase['Madurez del Caso de Uso'] || '' },
-        { label: 'NPS', value: useCase['NPS'] || '' },
+        { label: 'Tipo de Problema', value: useCase['Tipo de Problema'] || 'No definido' },
+        { label: 'Plataforma', value: useCase['Plataforma'] || 'No definida' },
+        { label: 'Fase', value: useCase['Fase'] || 'No definida' },
+        { label: 'Estratégico / No Estratégico', value: useCase['Estratégico / No Estratégico'] || 'No definido' },
+        { label: 'Familia del Caso de Uso', value: useCase['Familia del Caso de Uso'] || 'No definida' },
+        { label: 'Madurez del Caso de Uso', value: useCase['Madurez del Caso de Uso'] || 'No definida' },
+        { label: 'NPS', value: useCase['NPS'] || '0' },
       ],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -279,47 +246,42 @@ async function migrateUseCases() {
   return count;
 }
 
-// Delete all existing data
+
 async function cleanupOldData() {
   console.log('🗑️  Cleaning up old data...');
-  
-  const entitiesSnapshot = await db.collection('entities').get();
-  const batch = db.batch();
-  let count = 0;
-  
-  for (const doc of entitiesSnapshot.docs) {
-    // Delete all subcollections first
-    const useCasesSnapshot = await doc.ref.collection('useCases').get();
-    for (const useCaseDoc of useCasesSnapshot.docs) {
-      const metricsSnapshot = await useCaseDoc.ref.collection('metrics').get();
-      metricsSnapshot.docs.forEach(metricDoc => {
-        batch.delete(metricDoc.ref);
-      });
-      batch.delete(useCaseDoc.ref);
+  const collections = ['entities'];
+  for (const collectionName of collections) {
+    const snapshot = await db.collection(collectionName).get();
+    if (snapshot.empty) continue;
+    
+    const batch = db.batch();
+    for (const doc of snapshot.docs) {
+      const useCasesSnapshot = await doc.ref.collection('useCases').get();
+      for (const useCaseDoc of useCasesSnapshot.docs) {
+        const metricsSnapshot = await useCaseDoc.ref.collection('metrics').get();
+        metricsSnapshot.docs.forEach(mDoc => batch.delete(mDoc.ref));
+        batch.delete(useCaseDoc.ref);
+      }
+      batch.delete(doc.ref);
     }
-    batch.delete(doc.ref);
-    count++;
+    await batch.commit();
+    console.log(`✅ Deleted all documents and subcollections in ${collectionName}`);
   }
-  
-  await batch.commit();
-  console.log(`✅ Deleted ${count} entities and their subcollections\n`);
+  console.log('✅ Cleanup complete');
 }
 
 // Main migration
 async function migrate() {
   console.log('🚀 Starting migration from CSV to Firestore...\n');
-  
   try {
     await cleanupOldData();
     const entitiesCount = await migrateEntities();
     console.log('');
     const useCasesCount = await migrateUseCases();
-    
     console.log('\n✨ Migration completed successfully!');
     console.log(`   📊 Entities: ${entitiesCount}`);
     console.log(`   📊 Use Cases: ${useCasesCount}`);
     console.log('');
-    
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);
