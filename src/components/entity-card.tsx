@@ -94,9 +94,9 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
           </CardHeader>
           <CardContent className="flex-grow pt-4 w-full">
             <div className="grid grid-cols-3 gap-2 text-sm">
-              <Stat label="Casos Activos" value={entity.stats.active} />
-              <Stat label="Casos Inactivos" value={entity.stats.inDevelopment} />
-              <Stat label="Cantidad DS" value={entity.stats.total} />
+              <Stat label="Activos" value={entity.stats.active || 0} />
+              <Stat label="Inactivos" value={entity.stats.inactive || 0} />
+              <Stat label="Total" value={entity.stats.total || 0} />
             </div>
           </CardContent>
         </CardContentLink>
