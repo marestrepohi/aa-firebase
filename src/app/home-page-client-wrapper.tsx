@@ -29,11 +29,13 @@ export default function HomePageClientWrapper({ entities, allUseCases }: HomePag
           </Button>
         }
       />
-      <HomePageClient
-        entities={entities}
-        allUseCases={allUseCases}
-        isEditing={isEditing}
-      />
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <HomePageClient
+          entities={entities}
+          allUseCases={allUseCases}
+          isEditing={isEditing}
+        />
+      </div>
     </>
   );
 }

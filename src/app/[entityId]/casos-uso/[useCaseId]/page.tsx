@@ -56,7 +56,7 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
   return (
     <>
       <Header title={useCase.name} />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-8">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-8">
         <Tabs defaultValue="information">
           <div className="flex justify-between items-end">
               <TabsList>

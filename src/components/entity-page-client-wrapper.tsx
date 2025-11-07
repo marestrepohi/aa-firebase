@@ -33,7 +33,9 @@ export function EntityPageClientWrapper({ entity, initialUseCases }: EntityPageC
         }
       />
       
-      <EntityPageClient entity={entity} initialUseCases={initialUseCases} isEditing={isEditing} />
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <EntityPageClient entity={entity} initialUseCases={initialUseCases} isEditing={isEditing} />
+      </div>
       
       {showEditForm && (
         <EntityForm
