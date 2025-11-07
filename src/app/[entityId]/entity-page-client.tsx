@@ -58,13 +58,23 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
   const stats = useMemo(() => {
     const active = filteredUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
     const inactive = filteredUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
-    
-    return [
-      { label: 'Casos de Uso Totales', count: filteredUseCases.length, color: 'text-gray-800' },
-      { label: 'Activos', count: active, color: 'text-green-600' },
-      { label: 'Inactivos', count: inactive, color: 'text-red-600' },
-    ];
-  }, [filteredUseCases]);
+    const uniqueDS1 = new Set(filteredUseCases.map(uc => uc.ds1).filter(Boolean));
+    const uniqueDE = new Set(filteredUseCases.map(uc => uc.de).filter(Boolean));
+
+    const totalImpact = filteredUseCases.reduce((sum, uc) => {
+        const impact = parseFloat(String(uc.impactoFinanciero || '0').replace(/[^0-9.-]+/g, ''));
+        return sum + (isNaN(impact) ? 0 : impact);
+    }, 0);
+
+    return {
+      totalCases: filteredUseCases.length,
+      active,
+      inactive,
+      dataScientists: uniqueDS1.size,
+      dataEngineers: uniqueDE.size,
+      totalImpact: totalImpact,
+    };
+}, [filteredUseCases]);
 
   return (
     <div className="p-4 md:p-8 space-y-8">

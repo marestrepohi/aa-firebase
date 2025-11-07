@@ -1,25 +1,46 @@
-import { Badge } from "@/components/ui/badge";
+import { Users, BarChart, TrendingUp, TrendingDown, DollarSign, Code } from 'lucide-react';
 
-interface StatusCount {
+interface StatCardProps {
   label: string;
-  count: number;
-  color: string;
+  value: string | number;
+  icon: React.ReactNode;
+}
+
+function StatCard({ label, value, icon }: StatCardProps) {
+    return (
+        <div className="bg-slate-50 rounded-lg p-4 flex items-center gap-4">
+            <div className="bg-white p-3 rounded-full">
+                {icon}
+            </div>
+            <div>
+                <p className="text-2xl font-bold text-gray-800">{value}</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
+            </div>
+        </div>
+    );
 }
 
 interface EntityStatsPanelProps {
-  stats: StatusCount[];
+  stats: {
+    totalCases: number;
+    active: number;
+    inactive: number;
+    dataScientists: number;
+    dataEngineers: number;
+    totalImpact: number;
+  };
 }
 
 export function EntityStatsPanel({ stats }: EntityStatsPanelProps) {
   return (
     <div className="bg-white rounded-lg border p-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="flex flex-col items-center justify-center p-4">
-            <span className={`text-3xl font-bold ${stat.color}`}>{stat.count}</span>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mt-1">{stat.label}</span>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <StatCard label="Casos de Uso" value={stats.totalCases} icon={<BarChart className="h-6 w-6 text-blue-500" />} />
+        <StatCard label="Activos" value={stats.active} icon={<TrendingUp className="h-6 w-6 text-green-500" />} />
+        <StatCard label="Inactivos" value={stats.inactive} icon={<TrendingDown className="h-6 w-6 text-red-500" />} />
+        <StatCard label="Científicos de Datos" value={stats.dataScientists} icon={<Users className="h-6 w-6 text-indigo-500" />} />
+        <StatCard label="Ingenieros de Datos" value={stats.dataEngineers} icon={<Code className="h-6 w-6 text-purple-500" />} />
+        <StatCard label="Impacto Financiero" value={stats.totalImpact.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })} icon={<DollarSign className="h-6 w-6 text-amber-500" />} />
       </div>
     </div>
   );
