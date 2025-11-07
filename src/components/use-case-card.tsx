@@ -51,7 +51,7 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2 mb-2">
             <CardTitle className="text-base font-semibold line-clamp-2 flex-1 pr-4">
-               <Link href={`/${useCase.entityId}/casos-uso/${useCase.id}`} className="hover:underline">
+               <Link href={`/${useCase.entityId}/casos-uso/${useCase.id}`} className="hover:underline" prefetch={false}>
                 {useCase.name}
               </Link>
             </CardTitle>
@@ -127,6 +127,7 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
             <Link 
               href={`/${useCase.entityId}/casos-uso/${useCase.id}`}
               className="flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
+              prefetch={false}
             >
               Ver Detalles <ChevronRight className="w-4 h-4 ml-1" />
             </Link>

@@ -50,7 +50,7 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
     isEditing ? (
       <div className="flex flex-col flex-grow p-0 cursor-default">{children}</div>
     ) : (
-      <Link href={`/${entity.id}`} className="flex flex-col flex-grow p-0">
+      <Link href={`/${entity.id}`} className="flex flex-col flex-grow p-0" prefetch={false}>
         {children}
       </Link>
     );
