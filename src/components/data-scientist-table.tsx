@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import * as React from "react";
 import Link from 'next/link';
 import type { UseCase } from "@/lib/types";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
