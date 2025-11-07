@@ -54,9 +54,9 @@ async function calculateEntityStats(allUseCases: admin.firestore.QueryDocumentSn
     const metricsSnapshot = metricsSnapshots[index];
     if (!metricsSnapshot.empty) {
       const metrics = metricsSnapshot.docs[0].data();
-      const dsMetric = metrics.general?.find((m: any) => m.label === 'Cantidad de DS');
-      if (dsMetric?.value) {
-        stats.scientists += parseInt(dsMetric.value) || 0;
+      const dsMetrics = metrics.technical?.filter((m: any) => m.label.startsWith('DS') && m.value);
+      if (dsMetrics) {
+        stats.scientists += dsMetrics.length;
       }
     }
   });
@@ -145,11 +145,32 @@ export async function getUseCase(entityId: string, useCaseId: string): Promise<U
 }
 
 export async function getAllUseCases(): Promise<UseCase[]> {
-  const entities = await getEntities();
-  const allUseCases = await Promise.all(
-    entities.map(entity => getUseCases(entity.id))
-  );
-  return allUseCases.flat();
+  const useCasesSnapshot = await adminDb.collectionGroup('useCases').get();
+  if (useCasesSnapshot.empty) return [];
+
+  const useCases = await Promise.all(useCasesSnapshot.docs.map(async doc => {
+    const useCaseData = doc.data();
+    const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
+    
+    let metrics: any = { general: [], financial: [], business: [], technical: [] };
+    if (!metricsSnapshot.empty) {
+      metrics = metricsSnapshot.docs[0].data();
+    }
+    
+    const useCase = {
+      ...useCaseData,
+      id: doc.id,
+      lastUpdated: serializeDate(useCaseData.updatedAt),
+      createdAt: serializeDate(useCaseData.createdAt),
+      metrics: serializeObject(metrics),
+    } as UseCase;
+    
+    delete (useCase as any).updatedAt;
+    
+    return useCase;
+  }));
+
+  return useCases;
 }
 
 export async function getSummaryMetrics(): Promise<SummaryMetrics> {

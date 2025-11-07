@@ -176,8 +176,8 @@ async function migrateUseCases() {
   const INITIAL_PERIOD = '2024-Q4';
   
   for (const useCase of useCases) {
-    const entityName = useCase['Entidad'] || '';
-    const projectName = useCase['Proyecto'] || '';
+    const entityName = useCase['entidad'] || '';
+    const projectName = useCase['proyecto'] || '';
     
     const entityId = createValidDocId(entityName);
     const useCaseId = createValidDocId(projectName);
@@ -193,70 +193,72 @@ async function migrateUseCases() {
       id: useCaseId,
       entityId: entityId,
       name: projectName,
-      description: useCase['Observaciones'] || useCase['Descripción'] || '',
-      status: useCase['Estado'] || 'En Estimación',
-      highLevelStatus: useCase['Estado alto nivel'] || 'Activo',
-      tipoProyecto: useCase['Tipo Proyecto'] || 'No definido',
-      tipoDesarrollo: useCase['Tipo Desarrollo'] || 'No definido',
-      observaciones: useCase['Observaciones'] || '',
-      sharepoint: useCase['Sharepoint Link'] || useCase['Sharepoint'] || '',
-      jira: useCase['Jira Link'] || useCase['Jira'] || '',
-      actividadesSharepoint: useCase['Sharepoint Actividades'] || useCase['# Actividades Sharepoint'] || '',
-      actividadesJira: useCase['Jira Actividades'] || useCase['# Actividades Jira'] || '',
+      description: useCase['observaciones'] || '',
+      etapa: useCase['etapa'] || '',
+      status: useCase['estado'] || 'En Estimación',
+      highLevelStatus: useCase['estadoAltoNivel'] || 'Activo',
+      estadoDesarrolloMante: useCase['estadoDesarrolloMante'] || '',
+      subtarea: useCase['subtarea'] || '',
+      idFinanciera: useCase['idFinanciera'] || '',
+      tipoProyecto: useCase['tipoProyecto'] || 'No definido',
+      suite: useCase['suite'] || '',
+      tipoDesarrollo: useCase['tipoDesarrollo'] || 'No definido',
+      observaciones: useCase['observaciones'] || '',
+      sharepoint: useCase['sharepointLink'] || '',
+      jira: useCase['jiraLink'] || '',
+      confluenceLink: useCase['confluenceLink'] || '',
+      mantenimiento: useCase['mantenimiento'] || '',
+      dsEntidad: useCase['DsEntidad'] || '',
+      sponsor: useCase['sponsor'] || '',
+      mainContact: useCase['mainContact'] || '',
+      sandbox: useCase['sandbox'] || '',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
-    await useCaseRef.set(useCaseData);
+    await useCaseRef.set(useCaseData, { merge: true });
     
     const metricsRef = useCaseRef.collection('metrics').doc(INITIAL_PERIOD);
     
     const metricsData = {
       period: INITIAL_PERIOD,
       general: [
-        { label: 'Fecha de Estimación', value: useCase['Fecha de Estimación'] || '' },
-        { label: 'Fecha de Inicio', value: useCase['Fecha de Inicio'] || '' },
-        { label: 'Fecha de Finalización Estimada', value: useCase['Fecha de Finalización Estimada'] || '' },
-        { label: 'Fecha de Salida a Producción', value: useCase['Fecha de Salida a Producción'] || '' },
-        { label: 'Fecha de Terminación', value: useCase['Fecha de Terminación'] || '' },
-        { label: 'Cantidad de DS', value: useCase['Cantidad de DS'] || '0' },
-        { label: 'Cantidad de Modelos', value: useCase['Cantidad de Modelos'] || '0' },
-        { label: 'Cantidad de Apis', value: useCase['Cantidad de Apis'] || '0' },
-        { label: 'Cantidad de Tableros', value: useCase['Cantidad de Tableros'] || '0' },
+        { label: 'Fecha de Inicio', value: useCase['fechaInicio'] || '' },
+        { label: 'Fecha de Entrega', value: useCase['fechaEntrega'] || '' },
+        { label: 'Tallaje', value: useCase['tallaje'] || '0' },
+        { label: 'Horas Totales Tallaje', value: useCase['totalHorasTallaje'] || '0' },
+        { label: '% Horas Semana', value: useCase['horasSemanaPorcentaje'] || '0' },
       ],
       financial: [
-        { label: 'Fee Proyecto', value: useCase['Fee Proyecto'] || '0' },
-        { label: 'Fee DevOps', value: useCase['Fee DevOps'] || '0' },
-        { label: 'Fee MLOps', value: useCase['Fee MLOps'] || '0' },
-        { label: 'Fee Mantenimiento', value: useCase['Fee Mantenimiento'] || '0' },
-        { label: 'Fee Consultoría', value: useCase['Fee Consultoría'] || '0' },
-        { label: 'Fee MCA', value: useCase['Fee MCA'] || '0' },
-        { label: 'Fee Total', value: useCase['Fee Total'] || '0' },
-        { label: 'Margen %', value: useCase['Margen %'] || '0' },
+        { label: 'Nivel', value: useCase['nivelImpactoFinanciero'] || '' },
+        { label: 'Unidad', value: useCase['unidadImpactoFinanciero'] || '' },
+        { label: 'Impacto', value: useCase['impactoFinanciero'] || '0' },
+        { label: 'ADL', value: useCase['financieroAdl'] || '0' },
+        { label: 'Entidad', value: useCase['financieroEntidad'] || '0' },
       ],
       business: [
-        { label: 'Ahorro Anual', value: useCase['Ahorro Anual'] || '0' },
-        { label: 'Ahorro Anual sin fee', value: useCase['Ahorro Anual sin fee'] || '0' },
-        { label: 'Ingreso Anual Esperado', value: useCase['Ingreso Anual Esperado'] || '0' },
-        { label: 'Payback', value: useCase['Payback'] || '0' },
-        { label: 'Impacto Clientes', value: useCase['Impacto Clientes'] || '0' },
-        { label: 'Impacto Clientes con Modelo Implementado', value: useCase['Impacto Clientes con Modelo Implementado'] || '0' },
-        { label: 'Impacto Colaboradores', value: useCase['Impacto Colaboradores'] || '0' },
+        { label: 'Sponsor', value: useCase['sponsor'] || '' },
+        { label: 'Main Contact', value: useCase['mainContact'] || '' },
+        { label: 'Sandbox', value: useCase['sandbox'] || '' },
       ],
       technical: [
-        { label: 'Tipo de Problema', value: useCase['Tipo de Problema'] || 'No definido' },
-        { label: 'Plataforma', value: useCase['Plataforma'] || 'No definida' },
-        { label: 'Fase', value: useCase['Fase'] || 'No definida' },
-        { label: 'Estratégico / No Estratégico', value: useCase['Estratégico / No Estratégico'] || 'No definido' },
-        { label: 'Familia del Caso de Uso', value: useCase['Familia del Caso de Uso'] || 'No definida' },
-        { label: 'Madurez del Caso de Uso', value: useCase['Madurez del Caso de Uso'] || 'No definida' },
-        { label: 'NPS', value: useCase['NPS'] || '0' },
+        { label: 'DS1', value: useCase['ds1'] || '' },
+        { label: 'DS2', value: useCase['ds2'] || '' },
+        { label: 'DS3', value: useCase['ds3'] || '' },
+        { label: 'DS4', value: useCase['ds4'] || '' },
+        { label: 'DE', value: useCase['de'] || '' },
+        { label: 'MDS', value: useCase['mds'] || '' },
+        { label: 'Mantenimiento', value: useCase['mantenimiento'] || '' },
+        { label: 'Horas DS1', value: useCase['horasDs1'] || '0' },
+        { label: 'Horas DS2', value: useCase['horasDS2'] || '0' },
+        { label: 'Horas DS3', value: useCase['horasDS3'] || '0' },
+        { label: 'Horas DS4', value: useCase['horasDS4'] || '0' },
       ],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
-    await metricsRef.set(metricsData);
+    await metricsRef.set(metricsData, { merge: true });
     
     count++;
     if (count % 10 === 0) {

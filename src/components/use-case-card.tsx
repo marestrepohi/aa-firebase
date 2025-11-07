@@ -24,7 +24,7 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
   
   const sharepointLink = useCase.sharepoint;
   const jiraLink = useCase.jira;
-  const confluenceLink = ''; // No data for this one
+  const confluenceLink = useCase.confluenceLink;
   
   const getStatusColor = (status: string): string => {
     const statusLower = status.toLowerCase();

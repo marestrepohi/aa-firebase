@@ -24,15 +24,19 @@ export interface UseCase {
   entityId: string;
   name: string;
   description: string;
+  etapa: string;
   status: UseCaseStatus;
   highLevelStatus: 'Activo' | 'Inactivo' | 'Estrategico' | string;
+  estadoDesarrolloMante: string;
+  subtarea: string;
+  idFinanciera: string;
   tipoProyecto: string;
+  suite: string;
   tipoDesarrollo: string;
   observaciones?: string;
   sharepoint?: string;
   jira?: string;
-  actividadesSharepoint?: string;
-  actividadesJira?: string;
+  confluenceLink?: string;
   lastUpdated?: string;
   metrics: {
     period?: string;
@@ -59,7 +63,6 @@ export interface Entity {
   name: string;
   description: string;
   logo: string;
-  subName: string;
   stats: EntityStats;
 }
 

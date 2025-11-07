@@ -44,9 +44,9 @@ async function calculateEntityStats(allUseCases: admin.firestore.QueryDocumentSn
     const metricsSnapshot = metricsSnapshots[index];
     if (!metricsSnapshot.empty) {
       const metrics = metricsSnapshot.docs[0].data();
-      const dsMetric = metrics.general?.find((m: any) => m.label === 'Cantidad de DS');
-      if (dsMetric?.value) {
-        stats.scientists += parseInt(dsMetric.value) || 0;
+      const dsMetrics = metrics.technical?.filter((m: any) => m.label.startsWith('DS') && m.value);
+      if (dsMetrics) {
+        stats.scientists += dsMetrics.length;
       }
     }
     
