@@ -23,10 +23,10 @@ export function Header({ entity, editButton, rightContent }: HeaderProps) {
                 <div className="relative flex h-16 items-center justify-between">
                     {entity && (
                         <div className="absolute inset-y-0 left-0 flex items-center">
-                             <Button variant="outline" asChild>
+                             <Button variant="ghost" size="icon" asChild>
                                 <Link href="/">
-                                    <ChevronLeft className="-ml-1 mr-2 h-4 w-4" />
-                                    Volver
+                                    <ChevronLeft className="h-5 w-5" />
+                                    <span className="sr-only">Volver</span>
                                 </Link>
                             </Button>
                         </div>
