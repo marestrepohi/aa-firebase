@@ -55,7 +55,7 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
                 {useCase.name}
               </Link>
             </CardTitle>
-            <div className={`flex gap-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            <div className={`flex gap-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-0'}`}>
               <Button
                 variant="ghost"
                 size="icon"
