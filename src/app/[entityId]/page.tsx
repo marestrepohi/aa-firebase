@@ -15,8 +15,6 @@ export default async function EntityPage({ params }: { params: { entityId: strin
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <EntityPageClientWrapper entity={entity} initialUseCases={allUseCases} />
-    </div>
+    <EntityPageClientWrapper entity={entity} initialUseCases={allUseCases} />
     );
 }
