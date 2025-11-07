@@ -56,8 +56,6 @@ export function GlobalFilters({
   return (
     <div className="bg-white border rounded-lg p-3 w-full">
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <span className="text-xs font-semibold text-gray-700">Filtros:</span>
-        
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Estado Alto Nivel</label>
           <Select
