@@ -51,15 +51,23 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
   }, [allUseCases]);
 
   const filteredUseCases = useMemo(() => {
-    return allUseCases.filter(uc => {
-      if (filters.highLevelStatus !== 'all' && uc.highLevelStatus !== filters.highLevelStatus) return false;
-      if (filters.estado !== 'all' && uc.status !== filters.estado) return false;
-      if (filters.tipoProyecto !== 'all' && uc.tipoProyecto !== filters.tipoProyecto) return false;
-      if (filters.tipoDesarrollo !== 'all' && uc.tipoDesarrollo !== filters.tipoDesarrollo) return false;
-      if (filters.suite !== 'all' && uc.suite !== filters.suite) return false;
-      return true;
-    });
-  }, [allUseCases, filters]);
+    const entityMap = new Map(entities.map(e => [e.id, e]));
+
+    return allUseCases
+      .filter(uc => {
+        if (filters.highLevelStatus !== 'all' && uc.highLevelStatus !== filters.highLevelStatus) return false;
+        if (filters.estado !== 'all' && uc.status !== filters.estado) return false;
+        if (filters.tipoProyecto !== 'all' && uc.tipoProyecto !== filters.tipoProyecto) return false;
+        if (filters.tipoDesarrollo !== 'all' && uc.tipoDesarrollo !== filters.tipoDesarrollo) return false;
+        if (filters.suite !== 'all' && uc.suite !== filters.suite) return false;
+        return true;
+      })
+      .map(uc => ({
+        ...uc,
+        entity: entityMap.get(uc.entityId),
+      }));
+
+  }, [allUseCases, entities, filters]);
 
   const summaryMetrics = useMemo(() => {
     const uniqueEntities = new Set(filteredUseCases.map(uc => uc.entityId));
