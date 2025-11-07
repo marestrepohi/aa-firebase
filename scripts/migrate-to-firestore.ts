@@ -135,7 +135,7 @@ async function migrateEntities() {
   let count = 0;
   
   for (const entity of entities) {
-    const entityName = entity['Entidad'] || '';
+    const entityName = entity['entidad'] || '';
     const entityId = createValidDocId(entityName);
     
     if (!entityId) {
@@ -147,8 +147,8 @@ async function migrateEntities() {
     const entityData = {
       id: entityId,
       name: entityName,
-      description: entity['descripcion'] || entity['Descripción'] || '',
-      logo: entity['logo_url'] || entity['Logo'] || '',
+      description: entity['descripcion'] || '',
+      logo: entity['logoUrl'] || '',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
