@@ -6,46 +6,52 @@ import { X } from "lucide-react";
 
 interface EntityFiltersProps {
   onFilterChange: (filters: {
-    highLevelStatus: string;
+    estadoAltoNivel: string;
     estado: string;
     tipoProyecto: string;
     tipoDesarrollo: string;
+    suite: string;
   }) => void;
+  estadoAltoNivelOptions: string[];
   estadoOptions: string[];
   tipoProyectoOptions: string[];
   tipoDesarrolloOptions: string[];
-  highLevelStatusOptions: string[];
+  suiteOptions: string[];
   currentFilters: {
-    highLevelStatus: string;
+    estadoAltoNivel: string;
     estado: string;
     tipoProyecto: string;
     tipoDesarrollo: string;
+    suite: string;
   };
 }
 
 export function EntityFilters({
   onFilterChange,
+  estadoAltoNivelOptions,
   estadoOptions,
   tipoProyectoOptions,
   tipoDesarrolloOptions,
-  highLevelStatusOptions,
+  suiteOptions,
   currentFilters
 }: EntityFiltersProps) {
   
   const handleClearFilters = () => {
     onFilterChange({
-      highLevelStatus: 'all',
+      estadoAltoNivel: 'all',
       estado: 'all',
       tipoProyecto: 'all',
-      tipoDesarrollo: 'all'
+      tipoDesarrollo: 'all',
+      suite: 'all'
     });
   };
 
   const hasActiveFilters = 
-    currentFilters.highLevelStatus !== 'all' || 
+    currentFilters.estadoAltoNivel !== 'all' || 
     currentFilters.estado !== 'all' || 
     currentFilters.tipoProyecto !== 'all' || 
-    currentFilters.tipoDesarrollo !== 'all';
+    currentFilters.tipoDesarrollo !== 'all' ||
+    currentFilters.suite !== 'all';
 
   return (
     <div className="bg-white rounded-lg border p-3">
@@ -56,9 +62,9 @@ export function EntityFilters({
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Estado Alto Nivel</label>
           <Select
-            value={currentFilters.highLevelStatus}
+            value={currentFilters.estadoAltoNivel}
             onValueChange={(value) =>
-              onFilterChange({ ...currentFilters, highLevelStatus: value })
+              onFilterChange({ ...currentFilters, estadoAltoNivel: value })
             }
           >
             <SelectTrigger className="w-[140px] h-8 text-xs">
@@ -66,7 +72,7 @@ export function EntityFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {highLevelStatusOptions.map((status) => (
+              {estadoAltoNivelOptions.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status}
                 </SelectItem>
@@ -138,6 +144,29 @@ export function EntityFilters({
               {tipoDesarrolloOptions.map((tipo) => (
                 <SelectItem key={tipo} value={tipo}>
                   {tipo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Filtro de Suite */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600 whitespace-nowrap">Suite</label>
+          <Select
+            value={currentFilters.suite}
+            onValueChange={(value) =>
+              onFilterChange({ ...currentFilters, suite: value })
+            }
+          >
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {suiteOptions.map((suite) => (
+                <SelectItem key={suite} value={suite}>
+                  {suite}
                 </SelectItem>
               ))}
             </SelectContent>

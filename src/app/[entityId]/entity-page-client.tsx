@@ -13,47 +13,52 @@ interface EntityPageClientProps {
 
 export default function EntityPageClient({ entity, initialUseCases }: EntityPageClientProps) {
   const [filters, setFilters] = useState({
-    highLevelStatus: 'all',
+    estadoAltoNivel: 'all',
     estado: 'all',
     tipoProyecto: 'all',
     tipoDesarrollo: 'all',
+    suite: 'all',
   });
 
   const filterOptions = useMemo(() => {
-    const highLevelStatuses = new Set<string>();
+    const estadosAltoNivel = new Set<string>();
     const estados = new Set<string>();
     const tiposProyecto = new Set<string>();
     const tiposDesarrollo = new Set<string>();
+    const suites = new Set<string>();
 
     initialUseCases.forEach((uc) => {
-      if (uc.highLevelStatus) highLevelStatuses.add(uc.highLevelStatus);
-      if (uc.status) estados.add(uc.status);
+      if (uc.estadoAltoNivel) estadosAltoNivel.add(uc.estadoAltoNivel);
+      if (uc.estado) estados.add(uc.estado);
       if (uc.tipoProyecto) tiposProyecto.add(uc.tipoProyecto);
       if (uc.tipoDesarrollo) tiposDesarrollo.add(uc.tipoDesarrollo);
+      if (uc.suite) suites.add(uc.suite);
     });
 
     return {
-      highLevelStatuses: Array.from(highLevelStatuses).sort(),
+      estadosAltoNivel: Array.from(estadosAltoNivel).sort(),
       estados: Array.from(estados).sort(),
       tiposProyecto: Array.from(tiposProyecto).sort(),
       tiposDesarrollo: Array.from(tiposDesarrollo).sort(),
+      suites: Array.from(suites).sort(),
     };
   }, [initialUseCases]);
 
   const filteredUseCases = useMemo(() => {
     return initialUseCases.filter((uc) => {
-      if (filters.highLevelStatus !== 'all' && uc.highLevelStatus !== filters.highLevelStatus) return false;
-      if (filters.estado !== 'all' && uc.status !== filters.estado) return false;
+      if (filters.estadoAltoNivel !== 'all' && uc.estadoAltoNivel !== filters.estadoAltoNivel) return false;
+      if (filters.estado !== 'all' && uc.estado !== filters.estado) return false;
       if (filters.tipoProyecto !== 'all' && uc.tipoProyecto !== filters.tipoProyecto) return false;
       if (filters.tipoDesarrollo !== 'all' && uc.tipoDesarrollo !== filters.tipoDesarrollo) return false;
+      if (filters.suite !== 'all' && uc.suite !== filters.suite) return false;
       return true;
     });
   }, [initialUseCases, filters]);
   
   const stats = useMemo(() => {
-    const active = filteredUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
-    const inactive = filteredUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
-    const strategic = filteredUseCases.filter(uc => uc.highLevelStatus === 'Estrategico').length;
+    const active = filteredUseCases.filter(uc => uc.estadoAltoNivel === 'Activo').length;
+    const inactive = filteredUseCases.filter(uc => uc.estadoAltoNivel === 'Inactivo').length;
+    const strategic = filteredUseCases.filter(uc => uc.estadoAltoNivel === 'Estrategico').length;
     
     return [
       { label: 'Casos de Uso Totales', count: filteredUseCases.length, color: 'text-gray-800' },
@@ -68,10 +73,11 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
       <EntityStatsPanel stats={stats} />
       <EntityFilters
         onFilterChange={setFilters}
-        highLevelStatusOptions={filterOptions.highLevelStatuses}
+        estadoAltoNivelOptions={filterOptions.estadosAltoNivel}
         estadoOptions={filterOptions.estados}
         tipoProyectoOptions={filterOptions.tiposProyecto}
         tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
+        suiteOptions={filterOptions.suites}
         currentFilters={filters}
       />
       
