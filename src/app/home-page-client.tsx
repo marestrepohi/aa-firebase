@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { SummaryCard } from "@/components/summary-card";
 import { EntityCard } from "@/components/entity-card";
 import { CaseStatusTable } from "@/components/case-status-table";
+import { DataScientistTable } from "@/components/data-scientist-table";
 import { GlobalFilters } from "@/components/global-filters";
 import { Button } from "@/components/ui/button";
 import type { Entity, UseCase } from '@/lib/types';
@@ -16,6 +17,7 @@ interface HomePageClientProps {
 
 export default function HomePageClient({ entities, allUseCases, isEditing }: HomePageClientProps) {
   const [showStatusTable, setShowStatusTable] = useState(false);
+  const [showDataScientistTable, setShowDataScientistTable] = useState(false);
   const [filters, setFilters] = useState({
     highLevelStatus: 'all',
     estado: 'all',
@@ -131,11 +133,27 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
           } 
         />
         <SummaryCard title="ENTIDADES" value={summaryMetrics.entities} />
-        <SummaryCard title="CIENTÍFICOS DE DATOS" value={summaryMetrics.dataScientists} />
+        <SummaryCard 
+          title="CIENTÍFICOS DE DATOS" 
+          value={summaryMetrics.dataScientists} 
+          action={
+            <Button 
+              variant="link" 
+              className="p-0 h-auto text-blue-600 hover:text-blue-800"
+              onClick={() => setShowDataScientistTable(!showDataScientistTable)}
+            >
+              {showDataScientistTable ? 'Cerrar' : 'Detalle'}
+            </Button>
+          }
+        />
       </div>
 
       {showStatusTable && (
         <CaseStatusTable useCases={filteredUseCases} />
+      )}
+      
+      {showDataScientistTable && (
+        <DataScientistTable useCases={filteredUseCases} />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
