@@ -18,33 +18,43 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
   const [showStatusTable, setShowStatusTable] = useState(false);
   const [filters, setFilters] = useState({
     highLevelStatus: 'all',
+    estado: 'all',
     tipoProyecto: 'all',
-    tipoDesarrollo: 'all'
+    tipoDesarrollo: 'all',
+    suite: 'all',
   });
 
   const filterOptions = useMemo(() => {
     const highLevelStatuses = new Set<string>();
+    const estados = new Set<string>();
     const tiposProyecto = new Set<string>();
     const tiposDesarrollo = new Set<string>();
+    const suites = new Set<string>();
 
     allUseCases.forEach(uc => {
       if (uc.highLevelStatus) highLevelStatuses.add(uc.highLevelStatus);
+      if (uc.status) estados.add(uc.status);
       if (uc.tipoProyecto) tiposProyecto.add(uc.tipoProyecto);
       if (uc.tipoDesarrollo) tiposDesarrollo.add(uc.tipoDesarrollo);
+      if (uc.suite) suites.add(uc.suite);
     });
 
     return {
       highLevelStatuses: Array.from(highLevelStatuses).sort(),
+      estados: Array.from(estados).sort(),
       tiposProyecto: Array.from(tiposProyecto).sort(),
-      tiposDesarrollo: Array.from(tiposDesarrollo).sort()
+      tiposDesarrollo: Array.from(tiposDesarrollo).sort(),
+      suites: Array.from(suites).sort(),
     };
   }, [allUseCases]);
 
   const filteredUseCases = useMemo(() => {
     return allUseCases.filter(uc => {
       if (filters.highLevelStatus !== 'all' && uc.highLevelStatus !== filters.highLevelStatus) return false;
+      if (filters.estado !== 'all' && uc.status !== filters.estado) return false;
       if (filters.tipoProyecto !== 'all' && uc.tipoProyecto !== filters.tipoProyecto) return false;
       if (filters.tipoDesarrollo !== 'all' && uc.tipoDesarrollo !== filters.tipoDesarrollo) return false;
+      if (filters.suite !== 'all' && uc.suite !== filters.suite) return false;
       return true;
     });
   }, [allUseCases, filters]);
@@ -98,8 +108,10 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
         <GlobalFilters
           onFilterChange={setFilters}
           highLevelStatusOptions={filterOptions.highLevelStatuses}
+          estadoOptions={filterOptions.estados}
           tipoProyectoOptions={filterOptions.tiposProyecto}
           tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
+          suiteOptions={filterOptions.suites}
           currentFilters={filters}
         />
       </div>

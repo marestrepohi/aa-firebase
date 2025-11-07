@@ -7,46 +7,57 @@ import { X } from "lucide-react";
 interface GlobalFiltersProps {
   onFilterChange: (filters: {
     highLevelStatus: string;
+    estado: string;
     tipoProyecto: string;
     tipoDesarrollo: string;
+    suite: string;
   }) => void;
   highLevelStatusOptions: string[];
+  estadoOptions: string[];
   tipoProyectoOptions: string[];
   tipoDesarrolloOptions: string[];
+  suiteOptions: string[];
   currentFilters: {
     highLevelStatus: string;
+    estado: string;
     tipoProyecto: string;
     tipoDesarrollo: string;
+    suite: string;
   };
 }
 
 export function GlobalFilters({
   onFilterChange,
   highLevelStatusOptions,
+  estadoOptions,
   tipoProyectoOptions,
   tipoDesarrolloOptions,
+  suiteOptions,
   currentFilters
 }: GlobalFiltersProps) {
   
   const handleClearFilters = () => {
     onFilterChange({
       highLevelStatus: 'all',
+      estado: 'all',
       tipoProyecto: 'all',
-      tipoDesarrollo: 'all'
+      tipoDesarrollo: 'all',
+      suite: 'all',
     });
   };
 
   const hasActiveFilters = 
     currentFilters.highLevelStatus !== 'all' || 
+    currentFilters.estado !== 'all' ||
     currentFilters.tipoProyecto !== 'all' || 
-    currentFilters.tipoDesarrollo !== 'all';
+    currentFilters.tipoDesarrollo !== 'all' ||
+    currentFilters.suite !== 'all';
 
   return (
     <div className="bg-white border rounded-lg p-3 w-full">
       <div className="flex flex-wrap items-center justify-center gap-3">
         <span className="text-xs font-semibold text-gray-700">Filtros:</span>
         
-        {/* Filtro de Estado */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Estado Alto Nivel</label>
           <Select
@@ -69,7 +80,28 @@ export function GlobalFilters({
           </Select>
         </div>
 
-        {/* Filtro de Tipo Proyecto */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600 whitespace-nowrap">Estado</label>
+          <Select
+            value={currentFilters.estado}
+            onValueChange={(value) =>
+              onFilterChange({ ...currentFilters, estado: value })
+            }
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              {estadoOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Tipo Proyecto</label>
           <Select
@@ -92,7 +124,6 @@ export function GlobalFilters({
           </Select>
         </div>
 
-        {/* Filtro de Tipo Desarrollo */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Tipo Desarrollo</label>
           <Select
@@ -109,6 +140,28 @@ export function GlobalFilters({
               {tipoDesarrolloOptions.map((tipo) => (
                 <SelectItem key={tipo} value={tipo}>
                   {tipo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-600 whitespace-nowrap">Suite</label>
+          <Select
+            value={currentFilters.suite}
+            onValueChange={(value) =>
+              onFilterChange({ ...currentFilters, suite: value })
+            }
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {suiteOptions.map((suite) => (
+                <SelectItem key={suite} value={suite}>
+                  {suite}
                 </SelectItem>
               ))}
             </SelectContent>
