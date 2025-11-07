@@ -77,8 +77,7 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
 }, [filteredUseCases]);
 
   return (
-    <div className="p-4 md:p-8 space-y-8">
-      <EntityStatsPanel stats={stats} />
+    <div className="p-4 md:p-8 space-y-4">
       <EntityFilters
         onFilterChange={setFilters}
         estadoAltoNivelOptions={filterOptions.estadosAltoNivel}
@@ -88,6 +87,7 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
         suiteOptions={filterOptions.suites}
         currentFilters={filters}
       />
+      <EntityStatsPanel stats={stats} />
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredUseCases.length > 0 ? (
