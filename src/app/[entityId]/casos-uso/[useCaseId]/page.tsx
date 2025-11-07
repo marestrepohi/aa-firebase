@@ -5,7 +5,6 @@ import { PageHeader } from '@/components/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricsCard } from '@/components/metrics-card';
-import { GenerateAlertButton } from '@/components/generate-alert-button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, Info, DollarSign, Briefcase, Activity, Settings2, User, Link as LinkIcon, Calendar, GitCommit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -59,7 +58,7 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
 
   return (
     <>
-      <Header entity={entity} />
+      <Header title={useCase.name} />
       <div className="p-4 md:p-8 space-y-8">
         <PageHeader
           title={useCase.name}
@@ -72,14 +71,6 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
                   <span>{useCase.name}</span>
               </div>
           }
-          action={
-              <Button variant="outline" asChild>
-                  <Link href={`/${entity.id}`}>
-                      <ChevronLeft className="-ml-1 mr-2 h-4 w-4" />
-                      Volver
-                  </Link>
-              </Button>
-          }
         />
 
         <Tabs defaultValue="information">
@@ -88,7 +79,6 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
               <TabsTrigger value="information">Información General</TabsTrigger>
               <TabsTrigger value="metrics">Métricas por Período</TabsTrigger>
               </TabsList>
-              <GenerateAlertButton useCase={useCase} />
           </div>
           <div className="mt-6">
               <TabsContent value="information">

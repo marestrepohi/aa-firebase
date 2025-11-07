@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from "next/image";
 import { ChevronLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { Entity } from '@/lib/types';
@@ -9,21 +8,20 @@ import { ReactNode } from 'react';
 
 interface HeaderProps {
     entity?: Entity;
-    editButton?: {
-        label: string;
-        onClick: () => void;
-    };
+    title?: string;
     rightContent?: ReactNode;
 }
 
-export function Header({ entity, editButton, rightContent }: HeaderProps) {
+export function Header({ entity, title, rightContent }: HeaderProps) {
+    const isHomePage = !entity && !title;
+    
     return (
         <header className="bg-white shadow-sm">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="relative flex h-16 items-center">
                     {/* Left Section (Back Button) */}
                     <div className="flex-none flex items-center">
-                        {entity ? (
+                        {!isHomePage ? (
                             <Button variant="ghost" size="icon" asChild>
                                 <Link href="/">
                                     <ChevronLeft className="h-5 w-5" />
@@ -39,16 +37,14 @@ export function Header({ entity, editButton, rightContent }: HeaderProps) {
                     {/* Center Section (Title) */}
                     <div className="flex-1 flex justify-center">
                         <div className="flex flex-shrink-0 items-center">
-                            {entity ? (
-                                <span className="text-primary font-bold text-lg">{entity.name}</span>
-                            ) : (
-                                <span className="text-primary font-bold text-lg">Aval Digital Labs</span>
-                            )}
+                            <span className="text-primary font-bold text-lg">
+                                {title ? title : (entity ? entity.name : 'Aval Digital Labs')}
+                            </span>
                         </div>
                     </div>
 
                     {/* Right Section (Actions) */}
-                    <div className="flex-none flex items-center justify-end gap-2">
+                    <div className="flex-none flex items-center justify-end gap-2" style={{ minWidth: '40px' }}>
                          {rightContent}
                          {/* Placeholder to keep title centered if no actions */}
                          {!rightContent && <div className="w-10"></div>}
