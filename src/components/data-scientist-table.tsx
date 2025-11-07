@@ -82,19 +82,17 @@ export function DataScientistTable({ useCases }: DataScientistTableProps) {
             <tbody>
               {dsArray.map(({ dsName, caseCount, groupedCases }) => (
                 <Collapsible asChild key={dsName} className="group">
-                  <>
-                    <tr className="border-b last:border-b-0 hover:bg-gray-50 data-[state=open]:bg-gray-50">
-                      <td className="py-3 px-4 text-gray-900 font-medium">{dsName}</td>
-                      <td className="py-3 px-4 text-center font-semibold text-gray-900">{caseCount}</td>
-                      <td className="py-3 px-4 text-center">
-                        <CollapsibleTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                <span className="sr-only">Desplegar</span>
-                           </Button>
-                        </CollapsibleTrigger>
-                      </td>
-                    </tr>
+                  <tr className="border-b last:border-b-0 hover:bg-gray-50 data-[state=open]:bg-gray-50">
+                    <td className="py-3 px-4 text-gray-900 font-medium">{dsName}</td>
+                    <td className="py-3 px-4 text-center font-semibold text-gray-900">{caseCount}</td>
+                    <td className="py-3 px-4 text-center">
+                      <CollapsibleTrigger asChild>
+                         <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                              <span className="sr-only">Desplegar</span>
+                         </Button>
+                      </CollapsibleTrigger>
+                    </td>
                     <CollapsibleContent asChild>
                         <tr className="bg-gray-100/50">
                             <td colSpan={3} className="p-0">
@@ -117,7 +115,7 @@ export function DataScientistTable({ useCases }: DataScientistTableProps) {
                             </td>
                         </tr>
                     </CollapsibleContent>
-                  </>
+                  </tr>
                 </Collapsible>
               ))}
             </tbody>
