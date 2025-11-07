@@ -93,8 +93,8 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
   }, [entities, filteredUseCases]);
 
   return (
-    <div className="p-4 md:p-8 space-y-8">
-      <div className="flex flex-col gap-4">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
+      <div>
         <GlobalFilters
           onFilterChange={setFilters}
           highLevelStatusOptions={filterOptions.highLevelStatuses}
@@ -104,7 +104,7 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
         />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SummaryCard 
           title="TOTAL DE CASOS" 
           value={summaryMetrics.totalCases} 
@@ -126,7 +126,7 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
         <CaseStatusTable useCases={filteredUseCases} />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {entitiesWithFilteredStats.length > 0 ? (
           entitiesWithFilteredStats.map(entity => (
             <EntityCard key={entity.id} entity={entity} isEditing={isEditing} />
