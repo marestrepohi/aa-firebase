@@ -42,7 +42,7 @@ export function Header({ entity, editButton, rightContent }: HeaderProps) {
                             {entity ? (
                                 <span className="text-primary font-bold text-lg">{entity.name}</span>
                             ) : (
-                                <span className="text-primary font-semibold text-lg">Aval Digital Labs</span>
+                                <span className="text-primary font-bold text-lg">Aval Digital Labs</span>
                             )}
                         </div>
                     </div>
