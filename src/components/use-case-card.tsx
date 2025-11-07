@@ -10,7 +10,7 @@ import { ExternalLink, User, Pencil, BarChart3, ChevronRight } from "lucide-reac
 import { UseCaseForm } from "./use-case-form";
 import { MetricsForm } from "./metrics-form";
 
-export function UseCaseCard({ useCase }: { useCase: UseCase }) {
+export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditing?: boolean }) {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showMetricsForm, setShowMetricsForm] = useState(false);
   
@@ -55,7 +55,7 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
                 {useCase.name}
               </Link>
             </CardTitle>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className={`flex gap-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
               <Button
                 variant="ghost"
                 size="icon"
