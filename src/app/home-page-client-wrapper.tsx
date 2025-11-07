@@ -19,18 +19,13 @@ export default function HomePageClientWrapper({ entities, allUseCases }: HomePag
     <>
       <Header
         rightContent={
-          <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>
+          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
             {isEditing ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Finalizar Edición
-              </>
+              <Check className="h-4 w-4" />
             ) : (
-              <>
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar Entidades
-              </>
+              <Pencil className="h-4 w-4" />
             )}
+            <span className="sr-only">{isEditing ? 'Finalizar Edición' : 'Editar Entidades'}</span>
           </Button>
         }
       />
