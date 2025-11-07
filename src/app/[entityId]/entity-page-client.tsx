@@ -78,7 +78,7 @@ export default function EntityPageClient({ entity, initialUseCases, isEditing }:
 }, [filteredUseCases]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 py-8">
       <EntityFilters
         onFilterChange={setFilters}
         estadoAltoNivelOptions={filterOptions.estadosAltoNivel}
