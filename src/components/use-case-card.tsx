@@ -17,14 +17,18 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
   const estado = useCase.status || 'No definido';
   const tipo = useCase.tipoProyecto || '';
   
-  const teamMembers = useCase.metrics.technical || [];
+  const teamMembers = [
+    { label: 'DS1', value: useCase.ds1 },
+    { label: 'DS2', value: useCase.ds2 },
+    { label: 'DS3', value: useCase.ds3 },
+    { label: 'DS4', value: useCase.ds4 },
+    { label: 'DE', value: useCase.de },
+    { label: 'MDS', value: useCase.mds },
+  ].filter(member => member.value);
   
-  const nivelImpacto = useCase.metrics.financial.find(m => m.label === 'Nivel')?.value || '';
-  const impactoFinanciero = useCase.metrics.financial.find(m => m.label === 'Impacto');
-  
-  const sharepointLink = useCase.sharepoint;
-  const jiraLink = useCase.jira;
-  const confluenceLink = useCase.confluenceLink;
+  const nivelImpacto = useCase.nivelImpactoFinanciero || '';
+  const impactoFinanciero = useCase.impactoFinanciero;
+  const impactoUnidad = useCase.unidadImpactoFinanciero;
   
   const getStatusColor = (status: string): string => {
     const statusLower = status.toLowerCase();
@@ -87,14 +91,14 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
       
         <CardContent className="flex-grow flex flex-col space-y-4 pt-4">
           <div className="flex-grow space-y-4">
-            {teamMembers.length > 0 && teamMembers.some(m => m.value) && (
+            {teamMembers.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
                   <User className="w-3 h-3" />
                   Equipo Asignado
                 </div>
                 <div className="space-y-1">
-                  {teamMembers.filter(m => m.value).map((member, idx) => (
+                  {teamMembers.map((member, idx) => (
                     <div key={idx} className="flex items-start gap-2">
                       <Badge variant="secondary" className="text-xs px-2 py-0.5">
                         {member.label}
@@ -106,13 +110,13 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
               </div>
             )}
             
-            {impactoFinanciero?.value && (
+            {impactoFinanciero && impactoFinanciero !== '0' && (
               <div className={`rounded-md p-3 ${getImpactColor(nivelImpacto as string)}`}>
                 <div className="text-xs font-medium text-muted-foreground mb-1">
                   💰 Impacto Financiero
                 </div>
                 <div className="text-lg font-bold">
-                  {impactoFinanciero.value} {impactoFinanciero.unit}
+                  {impactoFinanciero} {impactoUnidad}
                 </div>
                 {nivelImpacto && <div className="text-xs text-muted-foreground mt-1">Nivel {nivelImpacto}</div>}
               </div>
@@ -124,7 +128,7 @@ export function UseCaseCard({ useCase }: { useCase: UseCase }) {
               href={`/${useCase.entityId}/casos-uso/${useCase.id}`}
               className="flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
             >
-              Ver Métricas <ChevronRight className="w-4 h-4 ml-1" />
+              Ver Detalles <ChevronRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
         </CardContent>

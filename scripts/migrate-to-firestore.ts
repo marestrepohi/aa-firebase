@@ -38,7 +38,7 @@ function parseCSV(content: string, delimiter: string = ','): string[][] {
         }
 
         if (char === delimiter && !inQuotedField) {
-            currentRow.push(currentField);
+            currentRow.push(currentField.trim());
             currentField = '';
             continue;
         }
@@ -48,7 +48,7 @@ function parseCSV(content: string, delimiter: string = ','): string[][] {
                 i++;
             }
             if (currentField.length > 0 || currentRow.length > 0) {
-              currentRow.push(currentField);
+              currentRow.push(currentField.trim());
               rows.push(currentRow);
               currentRow = [];
               currentField = '';
@@ -59,7 +59,7 @@ function parseCSV(content: string, delimiter: string = ','): string[][] {
     }
 
     if (currentField.length > 0 || currentRow.length > 0) {
-        currentRow.push(currentField);
+        currentRow.push(currentField.trim());
         rows.push(currentRow);
     }
 
@@ -77,7 +77,7 @@ function createValidDocId(str: string): string {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/[^\w.-]+/g, '') // Keep dots
+    .replace(/[^\w.-]+/g, '')
     .replace(/--+/g, '-');
   return slug || `item-${Date.now()}`;
 }
@@ -189,11 +189,11 @@ async function migrateUseCases() {
     
     const useCaseRef = db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId);
     
+    // All data from CSV goes to the main use case document
     const useCaseData = {
       id: useCaseId,
       entityId: entityId,
       name: projectName,
-      description: useCase['observaciones'] || '',
       etapa: useCase['etapa'] || '',
       status: useCase['estado'] || 'En Estimación',
       highLevelStatus: useCase['estadoAltoNivel'] || 'Activo',
@@ -204,56 +204,49 @@ async function migrateUseCases() {
       suite: useCase['suite'] || '',
       tipoDesarrollo: useCase['tipoDesarrollo'] || 'No definido',
       observaciones: useCase['observaciones'] || '',
-      sharepoint: useCase['sharepointLink'] || '',
-      jira: useCase['jiraLink'] || '',
+      sharepointLink: useCase['sharepointLink'] || '',
+      jiraLink: useCase['jiraLink'] || '',
       confluenceLink: useCase['confluenceLink'] || '',
       mantenimiento: useCase['mantenimiento'] || '',
       dsEntidad: useCase['DsEntidad'] || '',
       sponsor: useCase['sponsor'] || '',
       mainContact: useCase['mainContact'] || '',
       sandbox: useCase['sandbox'] || '',
+      ds1: useCase['ds1'] || '',
+      ds2: useCase['ds2'] || '',
+      ds3: useCase['ds3'] || '',
+      ds4: useCase['ds4'] || '',
+      de: useCase['de'] || '',
+      mds: useCase['mds'] || '',
+      horasDs1: useCase['horasDs1'] || '0',
+      horasDs2: useCase['horasDS2'] || '0',
+      horasDs3: useCase['horasDS3'] || '0',
+      horasDs4: useCase['horasDS4'] || '0',
+      fechaInicio: useCase['fechaInicio'] || '',
+      fechaEntrega: useCase['fechaEntrega'] || '',
+      tallaje: useCase['tallaje'] || '0',
+      totalHorasTallaje: useCase['totalHorasTallaje'] || '0',
+      horasSemanaPorcentaje: useCase['horasSemanaPorcentaje'] || '0',
+      nivelImpactoFinanciero: useCase['nivelImpactoFinanciero'] || '',
+      unidadImpactoFinanciero: useCase['unidadImpactoFinanciero'] || '',
+      impactoFinanciero: useCase['impactoFinanciero'] || '0',
+      financieroAdl: useCase['financieroAdl'] || '0',
+      financieroEntidad: useCase['financieroEntidad'] || '0',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
     await useCaseRef.set(useCaseData, { merge: true });
     
+    // Create an empty metrics document for the initial period
     const metricsRef = useCaseRef.collection('metrics').doc(INITIAL_PERIOD);
     
     const metricsData = {
       period: INITIAL_PERIOD,
-      general: [
-        { label: 'Fecha de Inicio', value: useCase['fechaInicio'] || '' },
-        { label: 'Fecha de Entrega', value: useCase['fechaEntrega'] || '' },
-        { label: 'Tallaje', value: useCase['tallaje'] || '0' },
-        { label: 'Horas Totales Tallaje', value: useCase['totalHorasTallaje'] || '0' },
-        { label: '% Horas Semana', value: useCase['horasSemanaPorcentaje'] || '0' },
-      ],
-      financial: [
-        { label: 'Nivel', value: useCase['nivelImpactoFinanciero'] || '' },
-        { label: 'Unidad', value: useCase['unidadImpactoFinanciero'] || '' },
-        { label: 'Impacto', value: useCase['impactoFinanciero'] || '0' },
-        { label: 'ADL', value: useCase['financieroAdl'] || '0' },
-        { label: 'Entidad', value: useCase['financieroEntidad'] || '0' },
-      ],
-      business: [
-        { label: 'Sponsor', value: useCase['sponsor'] || '' },
-        { label: 'Main Contact', value: useCase['mainContact'] || '' },
-        { label: 'Sandbox', value: useCase['sandbox'] || '' },
-      ],
-      technical: [
-        { label: 'DS1', value: useCase['ds1'] || '' },
-        { label: 'DS2', value: useCase['ds2'] || '' },
-        { label: 'DS3', value: useCase['ds3'] || '' },
-        { label: 'DS4', value: useCase['ds4'] || '' },
-        { label: 'DE', value: useCase['de'] || '' },
-        { label: 'MDS', value: useCase['mds'] || '' },
-        { label: 'Mantenimiento', value: useCase['mantenimiento'] || '' },
-        { label: 'Horas DS1', value: useCase['horasDs1'] || '0' },
-        { label: 'Horas DS2', value: useCase['horasDS2'] || '0' },
-        { label: 'Horas DS3', value: useCase['horasDS3'] || '0' },
-        { label: 'Horas DS4', value: useCase['horasDS4'] || '0' },
-      ],
+      general: [],
+      financial: [],
+      business: [],
+      technical: [],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
@@ -266,7 +259,7 @@ async function migrateUseCases() {
     }
   }
   
-  console.log(`✅ Successfully migrated ${count} use cases with metrics`);
+  console.log(`✅ Successfully migrated ${count} use cases with empty metrics`);
   return count;
 }
 
