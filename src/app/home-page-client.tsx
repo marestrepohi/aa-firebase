@@ -6,16 +6,15 @@ import { EntityCard } from "@/components/entity-card";
 import { CaseStatusTable } from "@/components/case-status-table";
 import { GlobalFilters } from "@/components/global-filters";
 import { Button } from "@/components/ui/button";
-import type { Entity, SummaryMetrics, UseCase } from '@/lib/types';
+import type { Entity, UseCase } from '@/lib/types';
 
 interface HomePageClientProps {
   entities: Entity[];
-  summaryMetrics: SummaryMetrics;
   allUseCases: UseCase[];
   isEditing: boolean;
 }
 
-export default function HomePageClient({ entities, summaryMetrics, allUseCases, isEditing }: HomePageClientProps) {
+export default function HomePageClient({ entities, allUseCases, isEditing }: HomePageClientProps) {
   const [showStatusTable, setShowStatusTable] = useState(false);
   const [filters, setFilters] = useState({
     highLevelStatus: 'all',
@@ -50,9 +49,47 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
     });
   }, [allUseCases, filters]);
 
-  const filteredEntities = useMemo(() => {
-    const entitiesWithCases = new Set(filteredUseCases.map(uc => uc.entityId));
-    return entities.filter(entity => entitiesWithCases.has(entity.id));
+  const summaryMetrics = useMemo(() => {
+    const uniqueEntities = new Set(filteredUseCases.map(uc => uc.entityId));
+    const uniqueDataScientists = new Set(filteredUseCases.map(uc => uc.ds1).filter(Boolean));
+    
+    return {
+      totalCases: filteredUseCases.length,
+      entities: uniqueEntities.size,
+      dataScientists: uniqueDataScientists.size,
+    }
+  }, [filteredUseCases]);
+
+  const entitiesWithFilteredStats = useMemo(() => {
+    const useCasesByEntity: Record<string, UseCase[]> = {};
+    
+    filteredUseCases.forEach(uc => {
+      if (!useCasesByEntity[uc.entityId]) {
+        useCasesByEntity[uc.entityId] = [];
+      }
+      useCasesByEntity[uc.entityId].push(uc);
+    });
+
+    return entities
+      .filter(entity => useCasesByEntity[entity.id]) // Only show entities that have filtered cases
+      .map(entity => {
+        const entityUseCases = useCasesByEntity[entity.id];
+        const active = entityUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
+        const inactive = entityUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
+        const strategic = entityUseCases.filter(uc => uc.highLevelStatus === 'Estrategico').length;
+        
+        return {
+          ...entity,
+          stats: {
+            ...entity.stats,
+            active,
+            inactive,
+            strategic,
+            total: entityUseCases.length,
+          }
+        };
+      });
+
   }, [entities, filteredUseCases]);
 
   return (
@@ -67,7 +104,7 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
         />
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <SummaryCard 
           title="TOTAL DE CASOS" 
           value={summaryMetrics.totalCases} 
@@ -83,7 +120,6 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
         />
         <SummaryCard title="ENTIDADES" value={summaryMetrics.entities} />
         <SummaryCard title="CIENTÍFICOS DE DATOS" value={summaryMetrics.dataScientists} />
-        <SummaryCard title="IMPACTO TOTAL" value={`${summaryMetrics.totalImpact} mil`} />
       </div>
 
       {showStatusTable && (
@@ -91,8 +127,8 @@ export default function HomePageClient({ entities, summaryMetrics, allUseCases, 
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredEntities.length > 0 ? (
-          filteredEntities.map(entity => (
+        {entitiesWithFilteredStats.length > 0 ? (
+          entitiesWithFilteredStats.map(entity => (
             <EntityCard key={entity.id} entity={entity} isEditing={isEditing} />
           ))
         ) : (

@@ -5,15 +5,14 @@ import { Header } from '@/components/header';
 import HomePageClient from './home-page-client';
 import { Button } from '@/components/ui/button';
 import { Pencil, Check } from 'lucide-react';
-import type { Entity, SummaryMetrics, UseCase } from '@/lib/types';
+import type { Entity, UseCase } from '@/lib/types';
 
 interface HomePageClientWrapperProps {
   entities: Entity[];
-  summaryMetrics: SummaryMetrics;
   allUseCases: UseCase[];
 }
 
-export default function HomePageClientWrapper({ entities, summaryMetrics, allUseCases }: HomePageClientWrapperProps) {
+export default function HomePageClientWrapper({ entities, allUseCases }: HomePageClientWrapperProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -37,7 +36,6 @@ export default function HomePageClientWrapper({ entities, summaryMetrics, allUse
       />
       <HomePageClient
         entities={entities}
-        summaryMetrics={summaryMetrics}
         allUseCases={allUseCases}
         isEditing={isEditing}
       />
