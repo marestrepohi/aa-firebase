@@ -36,7 +36,8 @@ function buildDsArray(cases: UseCase[]): DsInfo[] {
   return Object.entries(dist)
     .map(([dsName, userCases]) => {
         const groupedCases = userCases.reduce((acc, currentCase) => {
-            const entityName = entitiesMap[currentCase.entityId] || currentCase.entityId;
+            // @ts-ignore - uc.entity might not exist on type, but we pass it.
+            const entityName = currentCase.entity?.name || currentCase.entityId;
             if (!acc[entityName]) {
                 acc[entityName] = [];
             }
@@ -49,19 +50,7 @@ function buildDsArray(cases: UseCase[]): DsInfo[] {
     .sort((a, b) => b.caseCount - a.caseCount);
 }
 
-// A map to get entity names from IDs - assumes allUseCases are passed with entity info
-// This is a simplification. A better approach would be to have entities available.
-const entitiesMap: Record<string, string> = {};
-
-
 export function DataScientistTable({ useCases }: DataScientistTableProps) {
-  useCases.forEach(uc => {
-      // This is a temporary way to populate the map. 
-      // In a real app, you'd pass entities down or have a better lookup.
-      // @ts-ignore - uc.entity might not exist on type, but we pass it.
-      if(uc.entity) entitiesMap[uc.entityId] = uc.entity.name;
-  });
-  
   const dsArray = buildDsArray(useCases);
 
   return (
@@ -81,18 +70,20 @@ export function DataScientistTable({ useCases }: DataScientistTableProps) {
             </thead>
             <tbody>
               {dsArray.map(({ dsName, caseCount, groupedCases }) => (
-                <Collapsible asChild key={dsName} className="group">
-                  <tr className="border-b last:border-b-0 hover:bg-gray-50 data-[state=open]:bg-gray-50">
-                    <td className="py-3 px-4 text-gray-900 font-medium">{dsName}</td>
-                    <td className="py-3 px-4 text-center font-semibold text-gray-900">{caseCount}</td>
-                    <td className="py-3 px-4 text-center">
-                      <CollapsibleTrigger asChild>
-                         <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                              <span className="sr-only">Desplegar</span>
-                         </Button>
-                      </CollapsibleTrigger>
-                    </td>
+                <Collapsible asChild key={dsName} >
+                  <>
+                    <tr className="group border-b last:border-b-0 hover:bg-gray-50 data-[state=open]:bg-gray-50">
+                      <td className="py-3 px-4 text-gray-900 font-medium">{dsName}</td>
+                      <td className="py-3 px-4 text-center font-semibold text-gray-900">{caseCount}</td>
+                      <td className="py-3 px-4 text-center">
+                        <CollapsibleTrigger asChild>
+                           <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                <span className="sr-only">Desplegar</span>
+                           </Button>
+                        </CollapsibleTrigger>
+                      </td>
+                    </tr>
                     <CollapsibleContent asChild>
                         <tr className="bg-gray-100/50">
                             <td colSpan={3} className="p-0">
@@ -115,7 +106,7 @@ export function DataScientistTable({ useCases }: DataScientistTableProps) {
                             </td>
                         </tr>
                     </CollapsibleContent>
-                  </tr>
+                  </>
                 </Collapsible>
               ))}
             </tbody>
