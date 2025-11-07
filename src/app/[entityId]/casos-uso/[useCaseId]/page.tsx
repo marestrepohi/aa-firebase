@@ -1,13 +1,10 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getEntity, getUseCase } from '@/lib/data.server';
-import { PageHeader } from '@/components/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricsCard } from '@/components/metrics-card';
-import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, Info, DollarSign, Briefcase, Activity, Settings2, User, Link as LinkIcon, Calendar, GitCommit } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Info, DollarSign, Briefcase, Activity, Settings2, User, Link as LinkIcon } from 'lucide-react';
 import { Header } from '@/components/header';
 
 
@@ -60,19 +57,6 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
     <>
       <Header title={useCase.name} />
       <div className="p-4 md:p-8 space-y-8">
-        <PageHeader
-          title={useCase.name}
-          description={
-              <div className="flex items-center gap-2 text-base">
-                  <Button variant="link" asChild className="p-0 h-auto text-base text-muted-foreground hover:text-primary">
-                      <Link href={`/${entity.id}`}>{entity.name}</Link>
-                  </Button>
-                  <span>/</span>
-                  <span>{useCase.name}</span>
-              </div>
-          }
-        />
-
         <Tabs defaultValue="information">
           <div className="flex justify-between items-end">
               <TabsList>
