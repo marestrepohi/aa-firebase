@@ -11,9 +11,11 @@ export default async function Home() {
   ]);
 
   return (
-    <HomePageClientWrapper 
-      entities={entities} 
-      allUseCases={allUseCases}
-    />
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <HomePageClientWrapper 
+          entities={entities} 
+          allUseCases={allUseCases}
+        />
+    </div>
   );
 }
