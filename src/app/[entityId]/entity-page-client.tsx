@@ -4,17 +4,15 @@ import { useState, useMemo } from 'react';
 import { UseCaseCard } from '@/components/use-case-card';
 import { EntityFilters } from '@/components/entity-filters';
 import { EntityStatsPanel } from '@/components/entity-stats-panel';
-import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
 import type { Entity, UseCase } from '@/lib/types';
 
 interface EntityPageClientProps {
   entity: Entity;
   initialUseCases: UseCase[];
+  isEditing: boolean;
 }
 
-export default function EntityPageClient({ entity, initialUseCases }: EntityPageClientProps) {
-  const [isEditing, setIsEditing] = useState(false);
+export default function EntityPageClient({ entity, initialUseCases, isEditing }: EntityPageClientProps) {
   const [filters, setFilters] = useState({
     estadoAltoNivel: 'all',
     estado: 'all',
@@ -80,23 +78,16 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
 }, [filteredUseCases]);
 
   return (
-    <div className="p-4 md:p-8 space-y-4">
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-grow">
-          <EntityFilters
-            onFilterChange={setFilters}
-            estadoAltoNivelOptions={filterOptions.estadosAltoNivel}
-            estadoOptions={filterOptions.estados}
-            tipoProyectoOptions={filterOptions.tiposProyecto}
-            tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
-            suiteOptions={filterOptions.suites}
-            currentFilters={filters}
-          />
-        </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)} title="Activar modo de edición">
-            <Pencil className="h-4 w-4" />
-        </Button>
-      </div>
+    <div className="space-y-4">
+      <EntityFilters
+        onFilterChange={setFilters}
+        estadoAltoNivelOptions={filterOptions.estadosAltoNivel}
+        estadoOptions={filterOptions.estados}
+        tipoProyectoOptions={filterOptions.tiposProyecto}
+        tipoDesarrolloOptions={filterOptions.tiposDesarrollo}
+        suiteOptions={filterOptions.suites}
+        currentFilters={filters}
+      />
       <EntityStatsPanel stats={stats} />
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
