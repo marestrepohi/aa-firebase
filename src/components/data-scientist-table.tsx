@@ -70,8 +70,8 @@ export function DataScientistTable({ useCases }: DataScientistTableProps) {
             </thead>
             <tbody>
               {dsArray.map(({ dsName, caseCount, groupedCases }) => (
-                <Collapsible asChild key={dsName} >
-                  <>
+                <Collapsible asChild key={dsName}>
+                   <React.Fragment>
                     <tr className="group border-b last:border-b-0 hover:bg-gray-50 data-[state=open]:bg-gray-50">
                       <td className="py-3 px-4 text-gray-900 font-medium">{dsName}</td>
                       <td className="py-3 px-4 text-center font-semibold text-gray-900">{caseCount}</td>
@@ -106,7 +106,7 @@ export function DataScientistTable({ useCases }: DataScientistTableProps) {
                             </td>
                         </tr>
                     </CollapsibleContent>
-                  </>
+                  </React.Fragment>
                 </Collapsible>
               ))}
             </tbody>
