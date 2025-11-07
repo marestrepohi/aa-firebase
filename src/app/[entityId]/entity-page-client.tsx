@@ -28,8 +28,8 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
     const suites = new Set<string>();
 
     initialUseCases.forEach((uc) => {
-      if (uc.estadoAltoNivel) estadosAltoNivel.add(uc.estadoAltoNivel);
-      if (uc.estado) estados.add(uc.estado);
+      if (uc.highLevelStatus) estadosAltoNivel.add(uc.highLevelStatus);
+      if (uc.status) estados.add(uc.status);
       if (uc.tipoProyecto) tiposProyecto.add(uc.tipoProyecto);
       if (uc.tipoDesarrollo) tiposDesarrollo.add(uc.tipoDesarrollo);
       if (uc.suite) suites.add(uc.suite);
@@ -46,8 +46,8 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
 
   const filteredUseCases = useMemo(() => {
     return initialUseCases.filter((uc) => {
-      if (filters.estadoAltoNivel !== 'all' && uc.estadoAltoNivel !== filters.estadoAltoNivel) return false;
-      if (filters.estado !== 'all' && uc.estado !== filters.estado) return false;
+      if (filters.estadoAltoNivel !== 'all' && uc.highLevelStatus !== filters.estadoAltoNivel) return false;
+      if (filters.estado !== 'all' && uc.status !== filters.estado) return false;
       if (filters.tipoProyecto !== 'all' && uc.tipoProyecto !== filters.tipoProyecto) return false;
       if (filters.tipoDesarrollo !== 'all' && uc.tipoDesarrollo !== filters.tipoDesarrollo) return false;
       if (filters.suite !== 'all' && uc.suite !== filters.suite) return false;
@@ -56,9 +56,9 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
   }, [initialUseCases, filters]);
   
   const stats = useMemo(() => {
-    const active = filteredUseCases.filter(uc => uc.estadoAltoNivel === 'Activo').length;
-    const inactive = filteredUseCases.filter(uc => uc.estadoAltoNivel === 'Inactivo').length;
-    const strategic = filteredUseCases.filter(uc => uc.estadoAltoNivel === 'Estrategico').length;
+    const active = filteredUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
+    const inactive = filteredUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
+    const strategic = filteredUseCases.filter(uc => uc.highLevelStatus === 'Estrategico').length;
     
     return [
       { label: 'Casos de Uso Totales', count: filteredUseCases.length, color: 'text-gray-800' },
@@ -81,7 +81,7 @@ export default function EntityPageClient({ entity, initialUseCases }: EntityPage
         currentFilters={filters}
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredUseCases.length > 0 ? (
           filteredUseCases.map((useCase) => (
             <UseCaseCard key={useCase.id} useCase={useCase} />

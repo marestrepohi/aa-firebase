@@ -56,7 +56,6 @@ export function EntityFilters({
   return (
     <div className="bg-white rounded-lg border p-3">
       <div className="flex flex-wrap items-center gap-3">
-        {/* Filtro de Estado Alto Nivel */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Estado Alto Nivel</label>
           <Select
@@ -79,7 +78,6 @@ export function EntityFilters({
           </Select>
         </div>
 
-        {/* Filtro de Estado */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Estado</label>
           <Select
@@ -102,7 +100,6 @@ export function EntityFilters({
           </Select>
         </div>
 
-        {/* Filtro de Tipo Proyecto */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Tipo Proyecto</label>
           <Select
@@ -125,7 +122,6 @@ export function EntityFilters({
           </Select>
         </div>
 
-        {/* Filtro de Tipo Desarrollo */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Tipo Desarrollo</label>
           <Select
@@ -148,7 +144,6 @@ export function EntityFilters({
           </Select>
         </div>
         
-        {/* Filtro de Suite */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Suite</label>
           <Select
