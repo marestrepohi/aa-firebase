@@ -65,47 +65,50 @@ export function DataScientistTable({ useCases }: DataScientistTableProps) {
               <tr className="border-b bg-gray-50">
                 <th className="text-left py-3 px-4 font-medium text-gray-700 w-full">Científico de Datos</th>
                 <th className="text-center py-3 px-4 font-medium text-gray-700">Nº de Casos</th>
+                <th className="w-12"></th>
               </tr>
             </thead>
             <tbody>
               {dsArray.map(({ dsName, caseCount, groupedCases }) => (
-                <Collapsible asChild key={dsName}>
-                   <tr className="group border-b last:border-b-0 hover:bg-gray-50 data-[state=open]:bg-gray-50">
+                <Collapsible asChild key={dsName} className="group">
+                  <React.Fragment>
+                    <tr className="border-b last:border-b-0 hover:bg-gray-50 data-[state=open]:bg-gray-50">
                       <td className="py-3 px-4 text-gray-900 font-medium">
-                        <Collapsible asChild>
-                            <div className="flex flex-col">
-                                <div className="flex items-center">
-                                    <span>{dsName}</span>
-                                    <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
-                                            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                            <span className="sr-only">Desplegar</span>
-                                        </Button>
-                                    </CollapsibleTrigger>
-                                </div>
-                                <CollapsibleContent className="pt-3">
-                                     <div className="p-4 space-y-3 bg-slate-50 rounded-md">
-                                        {Object.entries(groupedCases).map(([entityName, cases]) => (
-                                            <div key={entityName}>
-                                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{entityName}</h4>
-                                                <ul className="space-y-1 pl-4">
-                                                    {cases.map(c => (
-                                                        <li key={c.id}>
-                                                          <Link href={`/${c.entityId}/casos-uso/${c.id}`} className="text-sm text-blue-600 hover:underline">
-                                                            {c.name}
-                                                          </Link>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CollapsibleContent>
-                            </div>
-                        </Collapsible>
+                        {dsName}
                       </td>
-                      <td className="py-3 px-4 text-center font-semibold text-gray-900 align-top">{caseCount}</td>
+                      <td className="py-3 px-4 text-center font-semibold text-gray-900">{caseCount}</td>
+                      <td className="py-3 px-4 text-center">
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                <span className="sr-only">Desplegar</span>
+                            </Button>
+                        </CollapsibleTrigger>
+                      </td>
                     </tr>
+                    <CollapsibleContent asChild>
+                        <tr className="bg-gray-100/50">
+                            <td colSpan={3} className="p-0">
+                                <div className="p-4 space-y-3">
+                                    {Object.entries(groupedCases).map(([entityName, cases]) => (
+                                        <div key={entityName}>
+                                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{entityName}</h4>
+                                            <ul className="space-y-1 pl-4">
+                                                {cases.map(c => (
+                                                    <li key={c.id}>
+                                                      <Link href={`/${c.entityId}/casos-uso/${c.id}`} className="text-sm text-blue-600 hover:underline">
+                                                        {c.name}
+                                                      </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ))}
+                                </div>
+                            </td>
+                        </tr>
+                    </CollapsibleContent>
+                  </React.Fragment>
                 </Collapsible>
               ))}
             </tbody>
