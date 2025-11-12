@@ -20,32 +20,24 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
     return (
         <header className="bg-gradient-to-r from-purple-600 to-blue-600 shadow-md">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="relative flex h-16 items-center">
-                    {/* Left Section (Back Button) */}
-                    <div className="flex-none flex items-center" style={{ minWidth: '40px' }}>
-                        {!isHomePage ? (
-                            <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
+                <div className="relative flex h-16 items-center justify-between">
+                    {/* Left Section: Back button and Title */}
+                    <div className="flex items-center gap-2">
+                        {!isHomePage && (
+                            <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white -ml-2">
                                 <Link href={entity ? "/" : `/${entity?.id}`}>
                                     <ChevronLeft className="h-5 w-5" />
                                     <span className="sr-only">Volver</span>
                                 </Link>
                             </Button>
-                        ) : (
-                            <div className="w-10"></div>
                         )}
-                    </div>
-                    
-                    {/* Center Section (Title) */}
-                    <div className="flex-1 flex justify-center items-center gap-4">
-                        <div className="flex flex-shrink-0 items-center">
-                            <span className="text-white font-bold text-lg text-center">
-                                {pageTitle}
-                            </span>
-                        </div>
+                        <span className="text-white font-bold text-lg">
+                            {pageTitle}
+                        </span>
                     </div>
 
-                    {/* Right Section (Actions or Logo) */}
-                    <div className="flex-none flex items-center justify-end" style={{ minWidth: '40px' }}>
+                    {/* Right Section: Actions or Logo */}
+                    <div className="flex items-center">
                          {rightContent ? (
                              <div className="text-white">
                                 {rightContent}
