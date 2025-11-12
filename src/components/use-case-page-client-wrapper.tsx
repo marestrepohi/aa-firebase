@@ -27,9 +27,9 @@ export function UseCasePageClientWrapper({ entity, useCase }: UseCasePageClientW
   const editOptions = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button>
-          <Pencil className="-ml-1 mr-2" />
-          Editar
+        <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-white">
+          <Pencil className="h-4 w-4" />
+          <span className="sr-only">Editar</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
