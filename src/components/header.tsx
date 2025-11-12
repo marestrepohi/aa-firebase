@@ -15,6 +15,7 @@ interface HeaderProps {
 
 export function Header({ entity, title, rightContent }: HeaderProps) {
     const isHomePage = !entity && !title;
+    const pageTitle = title || entity?.name || 'Seguimiento Casos de Uso';
     
     return (
         <header className="bg-gradient-to-r from-purple-600 to-blue-600 shadow-md">
@@ -24,7 +25,7 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
                     <div className="flex-none flex items-center" style={{ minWidth: '40px' }}>
                         {!isHomePage ? (
                             <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
-                                <Link href="/">
+                                <Link href={entity ? "/" : `/${entity?.id}`}>
                                     <ChevronLeft className="h-5 w-5" />
                                     <span className="sr-only">Volver</span>
                                 </Link>
@@ -37,8 +38,8 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
                     {/* Center Section (Title) */}
                     <div className="flex-1 flex justify-center items-center gap-4">
                         <div className="flex flex-shrink-0 items-center">
-                            <span className="text-white font-bold text-lg">
-                                {title ? title : 'Seguimiento Casos de Uso'}
+                            <span className="text-white font-bold text-lg text-center">
+                                {pageTitle}
                             </span>
                         </div>
                          {/* If there's a button, show logo next to title */}

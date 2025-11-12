@@ -14,6 +14,7 @@ interface EntityPageClientWrapperProps {
 }
 
 export function EntityPageClientWrapper({ entity, initialUseCases }: EntityPageClientWrapperProps) {
+  const [showEditForm, setShowEditForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -21,7 +22,7 @@ export function EntityPageClientWrapper({ entity, initialUseCases }: EntityPageC
       <Header 
         entity={entity}
         rightContent={
-          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
+          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)} className="text-white hover:bg-white/20 hover:text-white">
             {isEditing ? (
               <Check className="h-4 w-4" />
             ) : (
@@ -31,9 +32,19 @@ export function EntityPageClientWrapper({ entity, initialUseCases }: EntityPageC
           </Button>
         }
       />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <EntityPageClient entity={entity} initialUseCases={initialUseCases} isEditing={isEditing} />
       </div>
+      
+      {showEditForm && (
+        <EntityForm
+          entity={entity}
+          open={showEditForm}
+          onOpenChange={setShowEditForm}
+          onSuccess={() => window.location.reload()}
+        />
+      )}
     </>
   );
 }
