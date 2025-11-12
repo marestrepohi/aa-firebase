@@ -232,6 +232,18 @@ async function migrateUseCases() {
       impactoFinanciero: useCase['impactoFinanciero'] || '0',
       financieroAdl: useCase['financieroAdl'] || '0',
       financieroEntidad: useCase['financieroEntidad'] || '0',
+      objetivo: useCase['objetivo'] || '',
+      solucion: useCase['solucion'] || '',
+      dolores: useCase['dolores'] || '',
+      riesgos: useCase['riesgos'] || '',
+      impactoEsperado: useCase['impactoEsperado'] || '',
+      impactoGenerado: useCase['impactoGenerado'] || '',
+      roadmap: [
+        { name: 'Definición y Desarrollo', completed: false },
+        { name: 'Piloto', completed: false },
+        { name: 'Automatización y Operativización', completed: false },
+        { name: 'Seguimiento y Recalibración', completed: false },
+      ],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };

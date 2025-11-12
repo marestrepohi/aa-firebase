@@ -1,38 +1,46 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getEntity, getUseCase } from '@/lib/data.server';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MetricsCard } from '@/components/metrics-card';
-import { Info, DollarSign, Briefcase, Activity, Settings2, User, Link as LinkIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/header';
-
+import { Progress } from '@/components/ui/progress';
+import { format } from 'date-fns';
+import Image from 'next/image';
 
 export const dynamic = 'force-dynamic';
 
-function InfoDetail({ label, value }: { label: string; value?: string | number }) {
-  if (!value) return null;
+function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
+  if (!children) return null;
   return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold">{value}</p>
+    <div className={`border border-primary rounded-md p-3 relative ${className}`}>
+      <h2 className="absolute -top-2.5 left-3 bg-background px-1 text-sm font-semibold text-primary">{title}</h2>
+      <div className="text-sm text-gray-700 pt-2">{children}</div>
     </div>
   );
 }
 
-function LinkDetail({ label, value }: { label: string; value?: string }) {
-  if (!value) return null;
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <a href={value} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1">
-        <LinkIcon className="h-3 w-3" />
-        Abrir enlace
-      </a>
-    </div>
-  );
-}
+function Roadmap({ phases }: { phases: any }) {
+    if (!phases || !Array.isArray(phases)) return null;
+    const totalPhases = 4;
+    const completedPhases = phases.filter(p => p.completed).length;
+    const progress = (completedPhases / totalPhases) * 100;
 
+    return (
+        <div className="border border-primary rounded-md p-3 relative">
+            <h2 className="absolute -top-2.5 left-3 bg-background px-1 text-sm font-semibold text-primary">RoadMap y entregables:</h2>
+            <div className="pt-4">
+                <div className="flex justify-between mb-2">
+                    {phases.map((phase, index) => (
+                        <div key={index} className={`text-xs text-center ${phase.completed ? 'font-bold' : 'text-gray-500'}`} style={{ flex: 1 }}>
+                            Fase {index + 1}: {phase.name}
+                        </div>
+                    ))}
+                </div>
+                <Progress value={progress} className="h-2" />
+            </div>
+        </div>
+    );
+}
 
 export default async function UseCasePage({ params }: { params: { entityId: string; useCaseId: string } }) {
   const [entity, useCase] = await Promise.all([
@@ -43,80 +51,87 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
   if (!entity || !useCase || useCase.entityId !== entity.id) {
     notFound();
   }
+  
+  const team = [useCase.ds1, useCase.ds2, useCase.ds3, useCase.ds4, useCase.de, useCase.mds].filter(Boolean).join(' - ');
 
-  const team = [
-    { label: "DS1", value: useCase.ds1 },
-    { label: "DS2", value: useCase.ds2 },
-    { label: "DS3", value: useCase.ds3 },
-    { label: "DS4", value: useCase.ds4 },
-    { label: "DE", value: useCase.de },
-    { label: "MDS", value: useCase.mds },
-  ].filter(m => m.value);
+  const technicalMetricsList = useCase.metrics?.technical?.map(m => `${m.label}: ${m.value}`).join(' | ');
+
+  const roadmapPhases = useCase.roadmap || [
+      { name: 'Definición y Desarrollo', completed: false },
+      { name: 'Piloto', completed: false },
+      { name: 'Automatización y Operativización', completed: false },
+      { name: 'Seguimiento y Recalibración', completed: false },
+  ];
 
   return (
     <>
       <Header title={useCase.name} />
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-8">
-        <Tabs defaultValue="information">
-          <div className="flex justify-between items-end">
-              <TabsList>
-              <TabsTrigger value="information">Información General</TabsTrigger>
-              <TabsTrigger value="metrics">Métricas por Período</TabsTrigger>
-              </TabsList>
+      <div className="px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+        <div className="p-6 border-2 border-primary/50 bg-background rounded-lg space-y-6">
+          
+          {/* Fila del Encabezado */}
+          <div className="grid grid-cols-12 gap-4 items-start">
+            <div className="col-span-4">
+              <InfoBox title="Proyecto">{useCase.name}</InfoBox>
+            </div>
+            <div className="col-span-4 flex items-center justify-center h-full">
+              <div className="flex items-center gap-4">
+                {entity.logo && <Image src={entity.logo} alt={entity.name} width={100} height={40} className="object-contain" unoptimized />}
+              </div>
+            </div>
+            <div className="col-span-2">
+              <InfoBox title="Estado">{useCase.status}</InfoBox>
+            </div>
+            <div className="col-span-2">
+              <InfoBox title="Fecha actualización">
+                {useCase.lastUpdated ? format(new Date(useCase.lastUpdated), 'dd/MM/yyyy') : 'N/A'}
+              </InfoBox>
+            </div>
           </div>
-          <div className="mt-6">
-              <TabsContent value="information">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Info /> Información General</CardTitle>
-                    <CardDescription>Detalles, estado y enlaces del caso de uso.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">Descripción</p>
-                      <p className="text-base">{useCase.observaciones || 'No hay descripción.'}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <InfoDetail label="Estado" value={useCase.status} />
-                      <InfoDetail label="Estado Alto Nivel" value={useCase.highLevelStatus} />
-                      <InfoDetail label="Tipo de Proyecto" value={useCase.tipoProyecto} />
-                      <InfoDetail label="Tipo de Desarrollo" value={useCase.tipoDesarrollo} />
-                      <InfoDetail label="Etapa" value={useCase.etapa} />
-                      <InfoDetail label="Suite" value={useCase.suite} />
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <LinkDetail label="SharePoint" value={useCase.sharepointLink} />
-                      <LinkDetail label="Jira" value={useCase.jiraLink} />
-                      <LinkDetail label="Confluence" value={useCase.confluenceLink} />
-                    </div>
-                    
-                    {team.length > 0 && (
-                       <div>
-                         <h4 className="text-sm font-semibold mb-2 flex items-center gap-2"><User className="h-4 w-4" /> Equipo Asignado</h4>
-                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                           {team.map(member => (
-                             <InfoDetail key={member.label} label={member.label} value={member.value} />
-                           ))}
-                         </div>
-                       </div>
-                    )}
-                    
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="metrics">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <MetricsCard title="Métricas Generales" metrics={useCase.metrics.general} icon={<Settings2 className="h-5 w-5 text-muted-foreground" />} />
-                  <MetricsCard title="Métricas Financieras" metrics={useCase.metrics.financial} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
-                  <MetricsCard title="Métricas de Negocio" metrics={useCase.metrics.business} icon={<Briefcase className="h-5 w-5 text-muted-foreground" />} />
-                  <MetricsCard title="Métricas Técnicas" metrics={useCase.metrics.technical} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
-                </div>
-              </TabsContent>
+          
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-8">
+                <InfoBox title="Sponsor del proyecto">{useCase.sponsor}</InfoBox>
+            </div>
+            <div className="col-span-4">
+                <InfoBox title="Equipo Técnico">{team}</InfoBox>
+            </div>
           </div>
-        </Tabs>
+
+          {/* Fila Objetivo y Dolores */}
+          <div className="grid grid-cols-2 gap-6">
+            <InfoBox title="Objetivo" className="min-h-[120px]">{useCase.objetivo}</InfoBox>
+            <InfoBox title="Dolores" className="min-h-[120px]">{useCase.dolores}</InfoBox>
+          </div>
+
+          {/* Fila Solución y Riesgos */}
+          <div className="grid grid-cols-2 gap-6">
+            <InfoBox title="Solución" className="min-h-[120px]">{useCase.solucion}</InfoBox>
+            <InfoBox title="Riesgos" className="min-h-[120px]">{useCase.riesgos}</InfoBox>
+          </div>
+          
+          {/* Fila Métricas e Impacto */}
+          <div className="grid grid-cols-2 gap-6">
+            <InfoBox title="Métricas Técnicas" className="min-h-[100px]">{technicalMetricsList}</InfoBox>
+            <InfoBox title="Impacto Generado KPIs" className="min-h-[100px]">{useCase.impactoGenerado}</InfoBox>
+          </div>
+          
+          {/* Fila Impacto Esperado */}
+          <div>
+            <InfoBox title="Impacto Esperado KPIs" className="min-h-[100px]">{useCase.impactoEsperado}</InfoBox>
+          </div>
+          
+          {/* Fila Roadmap */}
+          <div>
+            <Roadmap phases={roadmapPhases} />
+          </div>
+
+          {/* Fila Observaciones */}
+          <div>
+            <InfoBox title="Observaciones">{useCase.observaciones}</InfoBox>
+          </div>
+
+        </div>
       </div>
     </>
   );

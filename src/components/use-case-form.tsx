@@ -21,9 +21,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { updateUseCase } from '@/lib/data';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from './ui/checkbox';
 
 interface UseCaseFormProps {
   useCase?: any;
@@ -42,20 +43,53 @@ export function UseCaseForm({
 }: UseCaseFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const defaultRoadmap = [
+    { name: 'Definición y Desarrollo', completed: false },
+    { name: 'Piloto', completed: false },
+    { name: 'Automatización y Operativización', completed: false },
+    { name: 'Seguimiento y Recalibración', completed: false },
+  ];
+
   const [formData, setFormData] = useState({
     id: useCase?.id || '',
     name: useCase?.name || '',
-    description: useCase?.description || '',
     status: useCase?.status || 'En Estimación',
     highLevelStatus: useCase?.highLevelStatus || 'Activo',
     tipoProyecto: useCase?.tipoProyecto || '',
     tipoDesarrollo: useCase?.tipoDesarrollo || '',
     observaciones: useCase?.observaciones || '',
-    sharepoint: useCase?.sharepoint || '',
-    jira: useCase?.jira || '',
-    actividadesSharepoint: useCase?.actividadesSharepoint || '',
-    actividadesJira: useCase?.actividadesJira || '',
+    sponsor: useCase?.sponsor || '',
+    objetivo: useCase?.objetivo || '',
+    solucion: useCase?.solucion || '',
+    dolores: useCase?.dolores || '',
+    riesgos: useCase?.riesgos || '',
+    impactoEsperado: useCase?.impactoEsperado || '',
+    impactoGenerado: useCase?.impactoGenerado || '',
+    roadmap: useCase?.roadmap || defaultRoadmap,
+    ds1: useCase?.ds1 || '',
+    ds2: useCase?.ds2 || '',
+    ds3: useCase?.ds3 || '',
+    ds4: useCase?.ds4 || '',
+    de: useCase?.de || '',
+    mds: useCase?.mds || '',
   });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData({ ...formData, [id]: value });
+  };
+  
+  const handleSelectChange = (id: string, value: string) => {
+    setFormData({ ...formData, [id]: value });
+  };
+
+  const handleRoadmapChange = (index: number, checked: boolean) => {
+    const newRoadmap = [...formData.roadmap];
+    newRoadmap[index].completed = checked;
+    setFormData({ ...formData, roadmap: newRoadmap });
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +131,7 @@ export function UseCaseForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{useCase ? 'Editar Caso de Uso' : 'Nuevo Caso de Uso'}</DialogTitle>
           <DialogDescription>
@@ -107,193 +141,116 @@ export function UseCaseForm({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="id">ID *</Label>
-                <Input
-                  id="id"
-                  value={formData.id}
-                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                  placeholder="ej: proyecto-123"
-                  required
-                  disabled={!!useCase} // Can't change ID of existing use case
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="ej: Modelo de Fraude"
-                  required
-                />
-              </div>
+        <ScrollArea className="max-h-[60vh] pr-4 -mr-4">
+          <form onSubmit={handleSubmit} className="space-y-6 p-1">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="id">ID *</Label>
+                    <Input id="id" value={formData.id} onChange={handleInputChange} placeholder="ej: proyecto-churn" required disabled={!!useCase} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="name">Nombre *</Label>
+                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="ej: Modelo de Churn" required />
+                </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Descripción del caso de uso..."
-                rows={3}
-              />
+                <Label htmlFor="sponsor">Sponsor del Proyecto</Label>
+                <Input id="sponsor" value={formData.sponsor} onChange={handleInputChange} placeholder="Nombres de sponsors..." />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="status">Estado</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Seleccionar estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="En Estimación">En Estimación</SelectItem>
-                    <SelectItem value="En Desarrollo">En Desarrollo</SelectItem>
-                    <SelectItem value="En Producción">En Producción</SelectItem>
-                    <SelectItem value="En Mantenimiento">En Mantenimiento</SelectItem>
-                    <SelectItem value="Cancelado">Cancelado</SelectItem>
-                    <SelectItem value="Pausado">Pausado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="highLevelStatus">Estado Alto Nivel</Label>
-                <Select
-                  value={formData.highLevelStatus}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, highLevelStatus: value })
-                  }
-                >
-                  <SelectTrigger id="highLevelStatus">
-                    <SelectValue placeholder="Seleccionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Activo">Activo</SelectItem>
-                    <SelectItem value="Inactivo">Inactivo</SelectItem>
-                    <SelectItem value="Estrategico">Estratégico</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="status">Estado</Label>
+                    <Select value={formData.status} onValueChange={(v) => handleSelectChange('status', v)}>
+                        <SelectTrigger id="status"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="En Estimación">En Estimación</SelectItem>
+                            <SelectItem value="Seguimiento">Seguimiento</SelectItem>
+                            <SelectItem value="En Desarrollo">En Desarrollo</SelectItem>
+                            <SelectItem value="En Producción">En Producción</SelectItem>
+                            <SelectItem value="En Mantenimiento">En Mantenimiento</SelectItem>
+                            <SelectItem value="Cancelado">Cancelado</SelectItem>
+                            <SelectItem value="Pausado">Pausado</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="highLevelStatus">Estado Alto Nivel</Label>
+                    <Select value={formData.highLevelStatus} onValueChange={(v) => handleSelectChange('highLevelStatus', v)}>
+                        <SelectTrigger id="highLevelStatus"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Activo">Activo</SelectItem>
+                            <SelectItem value="Inactivo">Inactivo</SelectItem>
+                            <SelectItem value="Estrategico">Estratégico</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tipoProyecto">Tipo de Proyecto</Label>
-                <Select
-                  value={formData.tipoProyecto}
-                  onValueChange={(value) => setFormData({ ...formData, tipoProyecto: value })}
-                >
-                  <SelectTrigger id="tipoProyecto">
-                    <SelectValue placeholder="Seleccionar tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Predictivo">Predictivo</SelectItem>
-                    <SelectItem value="Descriptivo">Descriptivo</SelectItem>
-                    <SelectItem value="Prescriptivo">Prescriptivo</SelectItem>
-                    <SelectItem value="Generativo">Generativo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tipoDesarrollo">Tipo de Desarrollo</Label>
-                <Select
-                  value={formData.tipoDesarrollo}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, tipoDesarrollo: value })
-                  }
-                >
-                  <SelectTrigger id="tipoDesarrollo">
-                    <SelectValue placeholder="Seleccionar tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Modelo">Modelo</SelectItem>
-                    <SelectItem value="API">API</SelectItem>
-                    <SelectItem value="Dashboard">Dashboard</SelectItem>
-                    <SelectItem value="Consultoría">Consultoría</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
+            
             <div className="space-y-2">
-              <Label htmlFor="observaciones">Observaciones</Label>
-              <Textarea
-                id="observaciones"
-                value={formData.observaciones}
-                onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-                placeholder="Observaciones adicionales..."
-                rows={2}
-              />
+                <Label htmlFor="objetivo">Objetivo</Label>
+                <Textarea id="objetivo" value={formData.objetivo} onChange={handleInputChange} placeholder="Objetivo del proyecto..." rows={3} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="solucion">Solución</Label>
+                <Textarea id="solucion" value={formData.solucion} onChange={handleInputChange} placeholder="Solución propuesta..." rows={3} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="dolores">Dolores</Label>
+                <Textarea id="dolores" value={formData.dolores} onChange={handleInputChange} placeholder="Problemas o dolores que resuelve..." rows={3} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="riesgos">Riesgos</Label>
+                <Textarea id="riesgos" value={formData.riesgos} onChange={handleInputChange} placeholder="Riesgos identificados..." rows={3} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="impactoEsperado">Impacto Esperado (KPIs)</Label>
+                <Textarea id="impactoEsperado" value={formData.impactoEsperado} onChange={handleInputChange} placeholder="KPIs de impacto esperado..." rows={3} />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="impactoGenerado">Impacto Generado (KPIs)</Label>
+                <Textarea id="impactoGenerado" value={formData.impactoGenerado} onChange={handleInputChange} placeholder="KPIs de impacto generado..." rows={3} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="sharepoint">SharePoint URL</Label>
-                <Input
-                  id="sharepoint"
-                  type="url"
-                  value={formData.sharepoint}
-                  onChange={(e) => setFormData({ ...formData, sharepoint: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="actividadesSharepoint"># Actividades SharePoint</Label>
-                <Input
-                  id="actividadesSharepoint"
-                  value={formData.actividadesSharepoint}
-                  onChange={(e) =>
-                    setFormData({ ...formData, actividadesSharepoint: e.target.value })
-                  }
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="jira">Jira URL</Label>
-                <Input
-                  id="jira"
-                  type="url"
-                  value={formData.jira}
-                  onChange={(e) => setFormData({ ...formData, jira: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="actividadesJira"># Actividades Jira</Label>
-                <Input
-                  id="actividadesJira"
-                  value={formData.actividadesJira}
-                  onChange={(e) =>
-                    setFormData({ ...formData, actividadesJira: e.target.value })
-                  }
-                  placeholder="0"
-                />
+            <div>
+              <Label>Equipo Técnico</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <Input id="ds1" value={formData.ds1} onChange={handleInputChange} placeholder="DS1" />
+                <Input id="ds2" value={formData.ds2} onChange={handleInputChange} placeholder="DS2" />
+                <Input id="ds3" value={formData.ds3} onChange={handleInputChange} placeholder="DS3" />
+                <Input id="ds4" value={formData.ds4} onChange={handleInputChange} placeholder="DS4" />
+                <Input id="de" value={formData.de} onChange={handleInputChange} placeholder="DE" />
+                <Input id="mds" value={formData.mds} onChange={handleInputChange} placeholder="MDS" />
               </div>
             </div>
 
-            <DialogFooter className="mt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
+            <div>
+                <Label>Roadmap</Label>
+                <div className="space-y-2 mt-2">
+                    {formData.roadmap.map((phase, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                            <Checkbox 
+                                id={`roadmap-${index}`}
+                                checked={phase.completed}
+                                onCheckedChange={(checked) => handleRoadmapChange(index, !!checked)}
+                            />
+                            <label htmlFor={`roadmap-${index}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                Fase {index + 1}: {phase.name}
+                            </label>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            
+            <div className="space-y-2">
+                <Label htmlFor="observaciones">Observaciones Generales</Label>
+                <Textarea id="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Observaciones adicionales..." rows={3} />
+            </div>
+
+            <DialogFooter className="mt-6 sticky bottom-0 bg-background py-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>

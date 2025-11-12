@@ -15,6 +15,8 @@ const serializeObject = (obj: any) => {
     for (const key in newObj) {
       if (newObj[key] instanceof admin.firestore.Timestamp) {
         newObj[key] = serializeDate(newObj[key]);
+      } else if (typeof newObj[key] === 'object' && newObj[key] !== null) {
+        newObj[key] = serializeObject(newObj[key]);
       }
     }
     return newObj;
@@ -116,6 +118,7 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
       lastUpdated: serializeDate(useCaseData.updatedAt),
       createdAt: serializeDate(useCaseData.createdAt),
       metrics: serializeObject(metrics),
+      roadmap: useCaseData.roadmap || null,
     } as UseCase;
     
     delete (useCase as any).updatedAt;
@@ -163,6 +166,7 @@ export async function getAllUseCases(): Promise<UseCase[]> {
       lastUpdated: serializeDate(useCaseData.updatedAt),
       createdAt: serializeDate(useCaseData.createdAt),
       metrics: serializeObject(metrics),
+      roadmap: useCaseData.roadmap || null,
     } as UseCase;
     
     delete (useCase as any).updatedAt;

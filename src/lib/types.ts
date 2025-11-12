@@ -56,6 +56,13 @@ export interface UseCase {
   sponsor?: string;
   mainContact?: string;
   sandbox?: string;
+  objetivo?: string;
+  solucion?: string;
+  dolores?: string;
+  riesgos?: string;
+  impactoEsperado?: string;
+  impactoGenerado?: string;
+  roadmap?: { name: string; completed: boolean }[];
   metrics: {
     period?: string;
     general: Metric[];
