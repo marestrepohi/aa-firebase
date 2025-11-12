@@ -102,20 +102,22 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
         </CardContentLink>
       </Card>
 
-      <EntityForm
-        entity={{
-          id: entity.id,
-          name: entity.name,
-          description: entity.description || '',
-          logo: entity.logo || '',
-        }}
-        open={showEditForm}
-        onOpenChange={setShowEditForm}
-        onSuccess={() => {
-          setShowEditForm(false);
-          window.location.reload();
-        }}
-      />
+      {isEditing && showEditForm && (
+        <EntityForm
+          entity={{
+            id: entity.id,
+            name: entity.name,
+            description: entity.description || '',
+            logo: entity.logo || '',
+          }}
+          open={showEditForm}
+          onOpenChange={setShowEditForm}
+          onSuccess={() => {
+            setShowEditForm(false);
+            window.location.reload();
+          }}
+        />
+      )}
     </>
   );
 }
