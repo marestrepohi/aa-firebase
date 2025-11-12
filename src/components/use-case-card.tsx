@@ -29,6 +29,12 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
   const nivelImpacto = useCase.nivelImpactoFinanciero || '';
   const impactoFinanciero = useCase.impactoFinanciero;
   const impactoUnidad = useCase.unidadImpactoFinanciero;
+
+  const externalLinks = [
+    { name: 'SharePoint', url: useCase.sharepointLink },
+    { name: 'Jira', url: useCase.jiraLink },
+    { name: 'Confluence', url: useCase.confluenceLink },
+  ].filter(link => link.url);
   
   const getStatusColor = (status: string): string => {
     const statusLower = status.toLowerCase();
@@ -123,7 +129,17 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
             )}
           </div>
 
-          <div className="pt-4 border-t flex justify-end">
+          <div className="pt-4 border-t flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              {externalLinks.map(link => (
+                <Button key={link.name} variant="outline" size="sm" asChild className="h-7 text-xs px-2">
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-3 h-3 mr-1.5" />
+                    {link.name}
+                  </a>
+                </Button>
+              ))}
+            </div>
             <Link 
               href={`/${useCase.entityId}/casos-uso/${useCase.id}`}
               className="flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
