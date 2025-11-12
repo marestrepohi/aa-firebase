@@ -12,11 +12,11 @@ import { MetricsForm } from './metrics-form';
 import { format } from 'date-fns';
 
 function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
-  if (!children) return null;
+  const content = children || <span className="text-muted-foreground italic">No definido</span>;
   return (
     <div className={`border border-gray-200 rounded-md p-3 relative ${className}`}>
       <h2 className="absolute -top-2.5 left-3 bg-background px-1 text-sm font-semibold text-gray-500">{title}</h2>
-      <div className="text-sm text-gray-700 pt-2">{children}</div>
+      <div className="text-sm text-gray-700 pt-2">{content}</div>
     </div>
   );
 }
