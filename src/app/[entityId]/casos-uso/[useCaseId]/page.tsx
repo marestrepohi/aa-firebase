@@ -1,3 +1,4 @@
+
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getEntity, getUseCase } from '@/lib/data.server';
@@ -54,7 +55,11 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
   
   const team = [useCase.ds1, useCase.ds2, useCase.ds3, useCase.ds4, useCase.de, useCase.mds].filter(Boolean).join(' - ');
 
-  const technicalMetricsList = useCase.metrics?.technical?.map(m => `${m.label}: ${m.value}`).join(' | ');
+  const technicalMetrics = useCase.metrics?.technical;
+  const technicalMetricsList = Array.isArray(technicalMetrics)
+    ? technicalMetrics.map(m => `${m.label}: ${m.value}`).join(' | ')
+    : '';
+
 
   const roadmapPhases = useCase.roadmap || [
       { name: 'Definición y Desarrollo', completed: false },
@@ -65,7 +70,7 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
 
   return (
     <>
-      <Header title={useCase.name} />
+      <Header title={useCase.name} entity={entity}/>
       <div className="px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <div className="p-6 border-2 border-primary/50 bg-background rounded-lg space-y-6">
           
