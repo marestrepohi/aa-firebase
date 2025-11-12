@@ -1,13 +1,17 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
 import { Header } from '@/components/header';
-import { PageHeader } from '@/components/page-header';
 import { UseCasePageClient } from '@/components/use-case-page-client';
 import { UseCaseForm } from '@/components/use-case-form';
 import { Button } from '@/components/ui/button';
-import { Pencil, BarChart3 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Pencil, BarChart3, Info } from 'lucide-react';
 import type { Entity, UseCase } from '@/lib/types';
 import { MetricsForm } from './metrics-form';
 
@@ -20,38 +24,36 @@ export function UseCasePageClientWrapper({ entity, useCase }: UseCasePageClientW
   const [showEditForm, setShowEditForm] = useState(false);
   const [showMetricsForm, setShowMetricsForm] = useState(false);
 
+  const editOptions = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button>
+          <Pencil className="-ml-1 mr-2" />
+          Editar
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setShowEditForm(true)}>
+          <Info className="mr-2 h-4 w-4" />
+          <span>Información General</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setShowMetricsForm(true)}>
+          <BarChart3 className="mr-2 h-4 w-4" />
+          <span>Métricas por Período</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <>
-      <Header 
+      <Header
         entity={entity}
         title={useCase.name}
+        rightContent={editOptions}
       />
       
       <div className="p-4 md:p-8 space-y-8">
-        <PageHeader
-          title={useCase.name}
-          description={
-              <div className="flex items-center gap-2 text-base">
-                  <span className="text-muted-foreground">Caso de uso de:</span>
-                  <Button variant="link" asChild className="p-0 h-auto text-base text-primary hover:text-primary/80">
-                      <Link href={`/${entity.id}`}>{entity.name}</Link>
-                  </Button>
-              </div>
-          }
-          action={
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setShowMetricsForm(true)}>
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Gestionar Métricas
-              </Button>
-              <Button onClick={() => setShowEditForm(true)}>
-                  <Pencil className="-ml-1 mr-2" />
-                  Editar Información
-              </Button>
-            </div>
-          }
-        />
-
         <UseCasePageClient entity={entity} useCase={useCase} />
       </div>
       
