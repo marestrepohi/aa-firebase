@@ -266,56 +266,101 @@ export const updateEntity = functions.https.onRequest((req, res) => {
   });
 });
 
-// Update use case
+// Update use case with versioning
 export const updateUseCase = functions.https.onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    if (req.method !== 'POST' && req.method !== 'PUT') {
-      res.status(405).json({ success: false, error: 'Method not allowed' });
-      return;
-    }
+    corsHandler(req, res, async () => {
+        if (req.method !== 'POST' && req.method !== 'PUT') {
+            res.status(405).json({ success: false, error: 'Method not allowed' });
+            return;
+        }
 
-    try {
-      const { entityId, id, ...useCaseData } = req.body;
-      if (!entityId || !id) {
-        res.status(400).json({ success: false, error: 'Entity ID and Use Case ID are required' });
-        return;
-      }
-      const updateData = { ...useCaseData, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
-      await db.collection('entities').doc(entityId).collection('useCases').doc(id).set(updateData, { merge: true });
-      res.json({ success: true, message: 'Use case updated successfully' });
-    } catch (error) {
-      console.error('Error updating use case:', error);
-      res.status(500).json({ success: false, error: 'Failed to update use case' });
-    }
-  });
+        try {
+            const { entityId, id, ...useCaseData } = req.body;
+            if (!entityId || !id) {
+                res.status(400).json({ success: false, error: 'Entity ID and Use Case ID are required' });
+                return;
+            }
+
+            const useCaseRef = db.collection('entities').doc(entityId).collection('useCases').doc(id);
+            const historyRef = useCaseRef.collection('history');
+            
+            const timestamp = new Date();
+            const versionId = timestamp.toISOString();
+
+            // Create a history record before updating
+            await db.runTransaction(async (transaction) => {
+                const currentDoc = await transaction.get(useCaseRef);
+                if (currentDoc.exists) {
+                    const historyData = {
+                        ...currentDoc.data(),
+                        versionedAt: timestamp,
+                    };
+                    transaction.set(historyRef.doc(versionId), historyData);
+                }
+
+                // Now update the main document
+                const updateData = { 
+                    ...useCaseData, 
+                    updatedAt: timestamp 
+                };
+                transaction.set(useCaseRef, updateData, { merge: true });
+            });
+
+            res.json({ success: true, message: 'Use case updated successfully with versioning' });
+        } catch (error) {
+            console.error('Error updating use case:', error);
+            res.status(500).json({ success: false, error: 'Failed to update use case' });
+        }
+    });
 });
 
-// Save metrics for a specific period
+
+// Save metrics for a specific period with versioning
 export const saveMetrics = functions.https.onRequest((req, res) => {
-  corsHandler(req, res, async () => {
-    if (req.method !== 'POST' && req.method !== 'PUT') {
-      res.status(405).json({ success: false, error: 'Method not allowed' });
-      return;
-    }
+    corsHandler(req, res, async () => {
+        if (req.method !== 'POST' && req.method !== 'PUT') {
+            res.status(405).json({ success: false, error: 'Method not allowed' });
+            return;
+        }
 
-    try {
-      const { entityId, useCaseId, period, metrics } = req.body;
-      if (!entityId || !useCaseId || !period || !metrics) {
-        res.status(400).json({ 
-          success: false, 
-          error: 'Entity ID, Use Case ID, period, and metrics are required' 
-        });
-        return;
-      }
-      const saveData = { ...metrics, period, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
-      await db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection('metrics').doc(period).set(saveData, { merge: true });
-      res.json({ success: true, message: 'Metrics saved successfully' });
-    } catch (error) {
-      console.error('Error saving metrics:', error);
-      res.status(500).json({ success: false, error: 'Failed to save metrics' });
-    }
-  });
+        try {
+            const { entityId, useCaseId, period, metrics } = req.body;
+            if (!entityId || !useCaseId || !period || !metrics) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Entity ID, Use Case ID, period, and metrics are required'
+                });
+                return;
+            }
+            
+            const metricsRef = db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection('metrics').doc(period);
+            const historyRef = metricsRef.collection('history');
+
+            const timestamp = new Date();
+            const versionId = timestamp.toISOString();
+            
+            await db.runTransaction(async (transaction) => {
+                const currentDoc = await transaction.get(metricsRef);
+                if (currentDoc.exists) {
+                    const historyData = {
+                        ...currentDoc.data(),
+                        versionedAt: timestamp,
+                    };
+                    transaction.set(historyRef.doc(versionId), historyData);
+                }
+
+                const saveData = { ...metrics, period, updatedAt: timestamp };
+                transaction.set(metricsRef, saveData, { merge: true });
+            });
+
+            res.json({ success: true, message: 'Metrics saved successfully with versioning' });
+        } catch (error) {
+            console.error('Error saving metrics:', error);
+            res.status(500).json({ success: false, error: 'Failed to save metrics' });
+        }
+    });
 });
+
 
 // Get metrics for all periods of a use case
 export const getMetricsPeriods = functions.https.onRequest((req, res) => {
@@ -422,7 +467,9 @@ export const deleteUseCase = functions.https.onRequest((req, res) => {
         res.status(400).json({ success: false, error: 'Entity ID and Use Case ID are required' });
         return;
       }
+      // This will also delete the 'history' sub-subcollections
       await deleteCollection(`entities/${entityId}/useCases/${useCaseId}/metrics`, 50);
+      await deleteCollection(`entities/${entityId}/useCases/${useCaseId}/history`, 50);
       await db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).delete();
       res.json({ success: true, message: 'Use case deleted successfully' });
     } catch (error) {
@@ -430,4 +477,48 @@ export const deleteUseCase = functions.https.onRequest((req, res) => {
       res.status(500).json({ success: false, error: 'Failed to delete use case' });
     }
   });
+});
+
+export const revertUseCaseVersion = functions.https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        if (req.method !== 'POST') {
+            res.status(405).json({ success: false, error: 'Method not allowed' });
+            return;
+        }
+
+        try {
+            const { entityId, useCaseId, versionId } = req.body;
+            if (!entityId || !useCaseId || !versionId) {
+                res.status(400).json({ success: false, error: 'Entity ID, Use Case ID, and Version ID are required' });
+                return;
+            }
+
+            const useCaseRef = db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId);
+            const historyDocRef = useCaseRef.collection('history').doc(versionId);
+
+            const historyDoc = await historyDocRef.get();
+            if (!historyDoc.exists) {
+                res.status(404).json({ success: false, error: 'History version not found' });
+                return;
+            }
+            
+            const versionData = historyDoc.data()!;
+            
+            // The version data contains a 'versionedAt' field which we don't want in the main doc
+            const { versionedAt, ...revertData } = versionData;
+
+            // Update the main document with the historical data
+            await useCaseRef.set({
+                ...revertData,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(), // Set a new update timestamp
+                lastRevertedFrom: versionId, // Optional: track the revert operation
+            }, { merge: true });
+
+            res.json({ success: true, message: `Use case reverted to version ${versionId}` });
+
+        } catch (error) {
+            console.error('Error reverting use case version:', error);
+            res.status(500).json({ success: false, error: 'Failed to revert use case version' });
+        }
+    });
 });
