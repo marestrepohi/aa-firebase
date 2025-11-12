@@ -35,10 +35,9 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
           <div className="flex justify-between items-end">
               <TabsList>
                 <TabsTrigger value="information">Información General</TabsTrigger>
-                <TabsTrigger value="general">Métricas Generales</TabsTrigger>
-                <TabsTrigger value="financial">Métricas Financieras</TabsTrigger>
-                <TabsTrigger value="business">Métricas de Negocio</TabsTrigger>
                 <TabsTrigger value="technical">Métricas Técnicas</TabsTrigger>
+                <TabsTrigger value="business">Métricas de Negocio</TabsTrigger>
+                <TabsTrigger value="financial">Métricas Financieras</TabsTrigger>
               </TabsList>
               <Button variant="outline" onClick={() => setShowMetricsForm(true)}>
                   <BarChart3 className="mr-2 h-4 w-4" />
@@ -74,17 +73,14 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                       </CardContent>
                   </Card>
               </TabsContent>
-              <TabsContent value="general">
-                  <MetricsCard title="Métricas Generales" metrics={useCase.metrics.general} icon={<Settings2 className="h-5 w-5 text-muted-foreground" />} />
-              </TabsContent>
-              <TabsContent value="financial">
-                  <MetricsCard title="Métricas Financieras" metrics={useCase.metrics.financial} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
+              <TabsContent value="technical">
+                  <MetricsCard title="Métricas Técnicas" metrics={useCase.metrics.technical} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
               <TabsContent value="business">
                   <MetricsCard title="Métricas de Negocio" metrics={useCase.metrics.business} icon={<Briefcase className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
-              <TabsContent value="technical">
-                  <MetricsCard title="Métricas Técnicas" metrics={useCase.metrics.technical} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
+              <TabsContent value="financial">
+                  <MetricsCard title="Métricas Financieras" metrics={useCase.metrics.financial} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
           </div>
       </Tabs>

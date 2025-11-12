@@ -35,7 +35,7 @@ interface MetricsFormProps {
   onSuccess?: () => void;
 }
 
-type MetricCategory = 'general' | 'financial' | 'business' | 'technical';
+type MetricCategory = 'financial' | 'business' | 'technical';
 
 const emptyMetrics = {
   general: [],
@@ -237,30 +237,23 @@ export function MetricsForm({
             onPeriodChange={setSelectedPeriod}
           />
 
-          <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="financial">Financiero</TabsTrigger>
-              <TabsTrigger value="business">Negocio</TabsTrigger>
+          <Tabs defaultValue="technical" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="technical">Técnico</TabsTrigger>
+              <TabsTrigger value="business">Negocio</TabsTrigger>
+              <TabsTrigger value="financial">Financiero</TabsTrigger>
             </TabsList>
 
             <ScrollArea className="h-[400px] mt-4">
               <div className="pr-4">
-                <TabsContent value="general">
-                  {renderMetricsSection('general', 'Métricas Generales')}
+                <TabsContent value="technical">
+                  {renderMetricsSection('technical', 'Métricas Técnicas')}
                 </TabsContent>
-
-                <TabsContent value="financial">
-                  {renderMetricsSection('financial', 'Métricas Financieras')}
-                </TabsContent>
-
                 <TabsContent value="business">
                   {renderMetricsSection('business', 'Métricas de Negocio')}
                 </TabsContent>
-
-                <TabsContent value="technical">
-                  {renderMetricsSection('technical', 'Métricas Técnicas')}
+                <TabsContent value="financial">
+                  {renderMetricsSection('financial', 'Métricas Financieras')}
                 </TabsContent>
               </div>
             </ScrollArea>
