@@ -38,13 +38,13 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
                     <div className="flex-1 flex justify-center items-center gap-4">
                         <div className="flex flex-shrink-0 items-center">
                             <span className="text-white font-bold text-lg">
-                                {title ? title : (entity ? entity.name : 'Seguimiento Casos de Uso')}
+                                {title ? title : 'Seguimiento Casos de Uso'}
                             </span>
                         </div>
                          {/* If there's a button, show logo next to title */}
                         {rightContent && (
                             <div className="flex-shrink-0">
-                                <Image src="/logo-aa-01.png" alt="Logo" width={90} height={25} unoptimized />
+                                <Image src="/logo-aa-02.png" alt="Logo" width={80} height={22} unoptimized />
                             </div>
                         )}
                     </div>
@@ -57,7 +57,7 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
                              </div>
                          ) : (
                             <div className="flex-shrink-0">
-                                <Image src="/logo-aa-01.png" alt="Logo" width={90} height={25} unoptimized />
+                                <Image src="/logo-aa-02.png" alt="Logo" width={80} height={22} unoptimized />
                             </div>
                          )}
                     </div>
