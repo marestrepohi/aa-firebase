@@ -22,7 +22,7 @@ export default async function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased bg-gray-50">
+      <body className="font-body antialiased bg-slate-50">
         <main className="min-h-screen">
           {children}
         </main>

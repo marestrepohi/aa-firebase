@@ -17,13 +17,13 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
     const isHomePage = !entity && !title;
     
     return (
-        <header className="bg-white shadow-sm">
+        <header className="bg-gradient-to-r from-purple-600 to-blue-600 shadow-md">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="relative flex h-16 items-center">
                     {/* Left Section (Back Button) */}
                     <div className="flex-none flex items-center" style={{ minWidth: '40px' }}>
                         {!isHomePage ? (
-                            <Button variant="ghost" size="icon" asChild>
+                            <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
                                 <Link href="/">
                                     <ChevronLeft className="h-5 w-5" />
                                     <span className="sr-only">Volver</span>
@@ -37,7 +37,7 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
                     {/* Center Section (Title) */}
                     <div className="flex-1 flex justify-center items-center gap-4">
                         <div className="flex flex-shrink-0 items-center">
-                            <span className="text-primary font-bold text-lg">
+                            <span className="text-white font-bold text-lg">
                                 {title ? title : (entity ? entity.name : 'Seguimiento Casos de Uso')}
                             </span>
                         </div>
@@ -52,7 +52,9 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
                     {/* Right Section (Actions or Logo) */}
                     <div className="flex-none flex items-center justify-end" style={{ minWidth: '40px' }}>
                          {rightContent ? (
-                             rightContent
+                             <div className="text-white">
+                                {rightContent}
+                             </div>
                          ) : (
                             <div className="flex-shrink-0">
                                 <Image src="/logo-aa-01.png" alt="Logo" width={90} height={25} unoptimized />

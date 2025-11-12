@@ -10,7 +10,7 @@ interface SummaryCardProps {
 
 export function SummaryCard({ title, value, action }: SummaryCardProps) {
   return (
-    <Card>
+    <Card className="border-primary/20 border-2">
       <CardContent className="p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">

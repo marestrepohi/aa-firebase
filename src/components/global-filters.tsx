@@ -54,7 +54,7 @@ export function GlobalFilters({
     currentFilters.suite !== 'all';
 
   return (
-    <div className="bg-white border rounded-lg p-3 w-full">
+    <div className="bg-white border-2 border-primary/20 rounded-lg p-3 w-full shadow-sm">
       <div className="flex flex-wrap items-center justify-center gap-3">
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 whitespace-nowrap">Estado Alto Nivel</label>
