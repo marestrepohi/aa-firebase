@@ -96,7 +96,7 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
         </CardHeader>
       
         <CardContent className="flex-grow flex flex-col space-y-4 pt-4">
-          <div className="flex-grow space-y-4">
+          <div className="space-y-4">
             {teamMembers.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -128,6 +128,8 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
               </div>
             )}
           </div>
+
+          <div className="flex-grow" />
 
           <div className="pt-4 border-t flex justify-between items-center">
             <div className="flex items-center gap-2">
