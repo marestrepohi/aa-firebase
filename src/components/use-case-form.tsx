@@ -151,9 +151,8 @@ export function UseCaseForm({
               <TabsTrigger value="team">Equipo & Roadmap</TabsTrigger>
             </TabsList>
 
-            <ScrollArea className="flex-grow mt-4">
-              <div className="pr-6 pl-1 py-1 space-y-6">
-                <TabsContent value="general">
+            <div className="flex-grow mt-4 overflow-y-auto pr-6">
+                <TabsContent value="general" className="space-y-6">
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -204,7 +203,7 @@ export function UseCaseForm({
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="details">
+                <TabsContent value="details" className="space-y-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="objetivo">Objetivo</Label>
@@ -225,7 +224,7 @@ export function UseCaseForm({
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="impact">
+                <TabsContent value="impact" className="space-y-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="impactoEsperado">Impacto Esperado (KPIs)</Label>
@@ -238,7 +237,7 @@ export function UseCaseForm({
                   </div>
                 </TabsContent>
 
-                <TabsContent value="team">
+                <TabsContent value="team" className="space-y-6">
                   <div className="space-y-4">
                     <div>
                       <Label>Equipo Técnico</Label>
@@ -270,11 +269,10 @@ export function UseCaseForm({
                     </div>
                   </div>
                 </TabsContent>
-              </div>
-            </ScrollArea>
+            </div>
           </Tabs>
           
-          <DialogFooter className="pt-4 border-t">
+          <DialogFooter className="pt-4 border-t mt-auto">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancelar
             </Button>
