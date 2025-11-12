@@ -25,7 +25,6 @@ interface MetricsFormProps {
   useCaseId: string;
   initialPeriod?: string;
   initialMetrics?: {
-    general: Metric[];
     financial: Metric[];
     business: Metric[];
     technical: Metric[];
@@ -38,7 +37,6 @@ interface MetricsFormProps {
 type MetricCategory = 'financial' | 'business' | 'technical';
 
 const emptyMetrics = {
-  general: [],
   financial: [],
   business: [],
   technical: [],
@@ -48,7 +46,7 @@ export function MetricsForm({
   entityId,
   useCaseId,
   initialPeriod = '',
-  initialMetrics = emptyMetrics,
+  initialMetrics,
   open,
   onOpenChange,
   onSuccess,
@@ -56,7 +54,11 @@ export function MetricsForm({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
-  const [metrics, setMetrics] = useState(initialMetrics);
+  const [metrics, setMetrics] = useState({
+    technical: initialMetrics?.technical || [],
+    business: initialMetrics?.business || [],
+    financial: initialMetrics?.financial || [],
+  });
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
 
   useEffect(() => {
@@ -67,8 +69,14 @@ export function MetricsForm({
       }
       setIsLoadingMetrics(true);
       try {
-        const periodMetrics = await getMetrics(entityId, useCaseId);
-        setMetrics(periodMetrics || emptyMetrics);
+        const periodsData = await getMetricsPeriods(entityId, useCaseId);
+        const periodData = periodsData.find((p: any) => p.period === period);
+        
+        setMetrics({
+          technical: periodData?.technical || [],
+          business: periodData?.business || [],
+          financial: periodData?.financial || [],
+        });
       } catch (error) {
         console.error('Error loading metrics for period', error);
         setMetrics(emptyMetrics);
@@ -77,20 +85,22 @@ export function MetricsForm({
       }
     }
     loadMetricsForPeriod(selectedPeriod);
-  }, [selectedPeriod, entityId, useCaseId]);
+  }, [selectedPeriod, entityId, useCaseId, initialMetrics]);
 
 
   const addMetric = (category: MetricCategory) => {
+    const currentMetrics = metrics[category] || [];
     setMetrics({
       ...metrics,
-      [category]: [...metrics[category], { label: '', value: '' }],
+      [category]: [...currentMetrics, { label: '', value: '' }],
     });
   };
 
   const removeMetric = (category: MetricCategory, index: number) => {
+    const currentMetrics = metrics[category] || [];
     setMetrics({
       ...metrics,
-      [category]: metrics[category].filter((_, i) => i !== index),
+      [category]: currentMetrics.filter((_, i) => i !== index),
     });
   };
 
@@ -100,7 +110,8 @@ export function MetricsForm({
     field: 'label' | 'value',
     value: string
   ) => {
-    const updated = [...metrics[category]];
+    const currentMetrics = metrics[category] || [];
+    const updated = [...currentMetrics];
     updated[index] = { ...updated[index], [field]: value };
     setMetrics({
       ...metrics,
@@ -124,10 +135,9 @@ export function MetricsForm({
 
     try {
       const metricsToSave = {
-        general: metrics.general.map(m => ({ label: m.label, value: String(m.value) })),
-        financial: metrics.financial.map(m => ({ label: m.label, value: String(m.value) })),
-        business: metrics.business.map(m => ({ label: m.label, value: String(m.value) })),
-        technical: metrics.technical.map(m => ({ label: m.label, value: String(m.value) })),
+        financial: (metrics.financial || []).map(m => ({ label: m.label, value: String(m.value) })),
+        business: (metrics.business || []).map(m => ({ label: m.label, value: String(m.value) })),
+        technical: (metrics.technical || []).map(m => ({ label: m.label, value: String(m.value) })),
       };
 
       const success = await saveMetrics({
@@ -182,13 +192,13 @@ export function MetricsForm({
          <div className="flex justify-center items-center h-24">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
          </div>
-      ) : metrics[category].length === 0 ? (
+      ) : (metrics[category] || []).length === 0 ? (
         <p className="text-sm text-center text-muted-foreground py-4">
           No hay métricas. Haz clic en "Agregar" para crear una.
         </p>
       ) : (
         <div className="space-y-3">
-          {metrics[category].map((metric, index) => (
+          {(metrics[category] || []).map((metric, index) => (
             <div key={index} className="flex gap-2">
               <div className="flex-1">
                 <Input
