@@ -42,12 +42,6 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
                                 {pageTitle}
                             </span>
                         </div>
-                         {/* If there's a button, show logo next to title */}
-                        {rightContent && (
-                            <div className="flex-shrink-0">
-                                <Image src="/logo-aa-02.png" alt="Logo" width={80} height={22} unoptimized />
-                            </div>
-                        )}
                     </div>
 
                     {/* Right Section (Actions or Logo) */}
@@ -56,7 +50,7 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
                              <div className="text-white">
                                 {rightContent}
                              </div>
-                         ) : (
+                         ) : isHomePage && (
                             <div className="flex-shrink-0">
                                 <Image src="/logo-aa-02.png" alt="Logo" width={80} height={22} unoptimized />
                             </div>
