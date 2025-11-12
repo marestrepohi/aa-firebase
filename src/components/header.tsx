@@ -21,23 +21,24 @@ export function Header({ entity, title, rightContent }: HeaderProps) {
         <header className="bg-gradient-to-r from-purple-600 to-blue-600 shadow-md">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="relative flex h-16 items-center justify-between">
-                    {/* Left Section: Back button and Title */}
-                    <div className="flex items-center gap-2">
+                    <div className="absolute left-0 flex items-center">
                         {!isHomePage && (
-                            <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white -ml-2">
+                            <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
                                 <Link href={entity ? "/" : `/${entity?.id}`}>
                                     <ChevronLeft className="h-5 w-5" />
                                     <span className="sr-only">Volver</span>
                                 </Link>
                             </Button>
                         )}
-                        <span className="text-white font-bold text-lg">
+                    </div>
+
+                    <div className="flex-1 flex items-center justify-center">
+                        <span className="text-white font-bold text-lg text-center">
                             {pageTitle}
                         </span>
                     </div>
 
-                    {/* Right Section: Actions or Logo */}
-                    <div className="flex items-center">
+                    <div className="absolute right-0 flex items-center">
                          {rightContent ? (
                              <div className="text-white">
                                 {rightContent}
