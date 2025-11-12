@@ -21,10 +21,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { updateUseCase } from '@/lib/data';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface UseCaseFormProps {
   useCase?: any;
@@ -131,7 +132,7 @@ export function UseCaseForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{useCase ? 'Editar Caso de Uso' : 'Nuevo Caso de Uso'}</DialogTitle>
           <DialogDescription>
@@ -141,125 +142,153 @@ export function UseCaseForm({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4 -mr-4">
-          <form onSubmit={handleSubmit} className="space-y-6 p-1">
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="id">ID *</Label>
-                    <Input id="id" value={formData.id} onChange={handleInputChange} placeholder="ej: proyecto-churn" required disabled={!!useCase} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="name">Nombre *</Label>
-                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="ej: Modelo de Churn" required />
-                </div>
-            </div>
+        <form onSubmit={handleSubmit} className="flex-grow flex flex-col overflow-hidden">
+          <Tabs defaultValue="general" className="flex-grow flex flex-col overflow-hidden">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="details">Detalles</TabsTrigger>
+              <TabsTrigger value="impact">Impacto</TabsTrigger>
+              <TabsTrigger value="team">Equipo & Roadmap</TabsTrigger>
+              <TabsTrigger value="extra">Extra</TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-2">
-                <Label htmlFor="sponsor">Sponsor del Proyecto</Label>
-                <Input id="sponsor" value={formData.sponsor} onChange={handleInputChange} placeholder="Nombres de sponsors..." />
-            </div>
+            <ScrollArea className="flex-grow mt-4">
+              <div className="pr-6 pl-1 py-1 space-y-6">
+                <TabsContent value="general">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="id">ID *</Label>
+                        <Input id="id" value={formData.id} onChange={handleInputChange} placeholder="ej: proyecto-churn" required disabled={!!useCase} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Nombre *</Label>
+                        <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="ej: Modelo de Churn" required />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="sponsor">Sponsor del Proyecto</Label>
+                        <Input id="sponsor" value={formData.sponsor} onChange={handleInputChange} placeholder="Nombres de sponsors..." />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Estado</Label>
+                        <Select value={formData.status} onValueChange={(v) => handleSelectChange('status', v)}>
+                            <SelectTrigger id="status"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="En Estimación">En Estimación</SelectItem>
+                                <SelectItem value="Seguimiento">Seguimiento</SelectItem>
+                                <SelectItem value="En Desarrollo">En Desarrollo</SelectItem>
+                                <SelectItem value="En Producción">En Producción</SelectItem>
+                                <SelectItem value="En Mantenimiento">En Mantenimiento</SelectItem>
+                                <SelectItem value="Cancelado">Cancelado</SelectItem>
+                                <SelectItem value="Pausado">Pausado</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="highLevelStatus">Estado Alto Nivel</Label>
+                        <Select value={formData.highLevelStatus} onValueChange={(v) => handleSelectChange('highLevelStatus', v)}>
+                            <SelectTrigger id="highLevelStatus"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Activo">Activo</SelectItem>
+                                <SelectItem value="Inactivo">Inactivo</SelectItem>
+                                <SelectItem value="Estrategico">Estratégico</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="details">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="objetivo">Objetivo</Label>
+                      <Textarea id="objetivo" value={formData.objetivo} onChange={handleInputChange} placeholder="Objetivo del proyecto..." rows={3} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="solucion">Solución</Label>
+                      <Textarea id="solucion" value={formData.solucion} onChange={handleInputChange} placeholder="Solución propuesta..." rows={3} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dolores">Dolores</Label>
+                      <Textarea id="dolores" value={formData.dolores} onChange={handleInputChange} placeholder="Problemas o dolores que resuelve..." rows={3} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="riesgos">Riesgos</Label>
+                        <Textarea id="riesgos" value={formData.riesgos} onChange={handleInputChange} placeholder="Riesgos identificados..." rows={3} />
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="impact">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="impactoEsperado">Impacto Esperado (KPIs)</Label>
+                        <Textarea id="impactoEsperado" value={formData.impactoEsperado} onChange={handleInputChange} placeholder="KPIs de impacto esperado..." rows={4} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="impactoGenerado">Impacto Generado (KPIs)</Label>
+                        <Textarea id="impactoGenerado" value={formData.impactoGenerado} onChange={handleInputChange} placeholder="KPIs de impacto generado..." rows={4} />
+                    </div>
+                  </div>
+                </TabsContent>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="status">Estado</Label>
-                    <Select value={formData.status} onValueChange={(v) => handleSelectChange('status', v)}>
-                        <SelectTrigger id="status"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="En Estimación">En Estimación</SelectItem>
-                            <SelectItem value="Seguimiento">Seguimiento</SelectItem>
-                            <SelectItem value="En Desarrollo">En Desarrollo</SelectItem>
-                            <SelectItem value="En Producción">En Producción</SelectItem>
-                            <SelectItem value="En Mantenimiento">En Mantenimiento</SelectItem>
-                            <SelectItem value="Cancelado">Cancelado</SelectItem>
-                            <SelectItem value="Pausado">Pausado</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="highLevelStatus">Estado Alto Nivel</Label>
-                    <Select value={formData.highLevelStatus} onValueChange={(v) => handleSelectChange('highLevelStatus', v)}>
-                        <SelectTrigger id="highLevelStatus"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Activo">Activo</SelectItem>
-                            <SelectItem value="Inactivo">Inactivo</SelectItem>
-                            <SelectItem value="Estrategico">Estratégico</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            
-            <div className="space-y-2">
-                <Label htmlFor="objetivo">Objetivo</Label>
-                <Textarea id="objetivo" value={formData.objetivo} onChange={handleInputChange} placeholder="Objetivo del proyecto..." rows={3} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="solucion">Solución</Label>
-                <Textarea id="solucion" value={formData.solucion} onChange={handleInputChange} placeholder="Solución propuesta..." rows={3} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="dolores">Dolores</Label>
-                <Textarea id="dolores" value={formData.dolores} onChange={handleInputChange} placeholder="Problemas o dolores que resuelve..." rows={3} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="riesgos">Riesgos</Label>
-                <Textarea id="riesgos" value={formData.riesgos} onChange={handleInputChange} placeholder="Riesgos identificados..." rows={3} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="impactoEsperado">Impacto Esperado (KPIs)</Label>
-                <Textarea id="impactoEsperado" value={formData.impactoEsperado} onChange={handleInputChange} placeholder="KPIs de impacto esperado..." rows={3} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="impactoGenerado">Impacto Generado (KPIs)</Label>
-                <Textarea id="impactoGenerado" value={formData.impactoGenerado} onChange={handleInputChange} placeholder="KPIs de impacto generado..." rows={3} />
-            </div>
-
-            <div>
-              <Label>Equipo Técnico</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <Input id="ds1" value={formData.ds1} onChange={handleInputChange} placeholder="DS1" />
-                <Input id="ds2" value={formData.ds2} onChange={handleInputChange} placeholder="DS2" />
-                <Input id="ds3" value={formData.ds3} onChange={handleInputChange} placeholder="DS3" />
-                <Input id="ds4" value={formData.ds4} onChange={handleInputChange} placeholder="DS4" />
-                <Input id="de" value={formData.de} onChange={handleInputChange} placeholder="DE" />
-                <Input id="mds" value={formData.mds} onChange={handleInputChange} placeholder="MDS" />
-              </div>
-            </div>
-
-            <div>
-                <Label>Roadmap</Label>
-                <div className="space-y-2 mt-2">
-                    {formData.roadmap.map((phase, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                            <Checkbox 
-                                id={`roadmap-${index}`}
-                                checked={phase.completed}
-                                onCheckedChange={(checked) => handleRoadmapChange(index, !!checked)}
-                            />
-                            <label htmlFor={`roadmap-${index}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Fase {index + 1}: {phase.name}
-                            </label>
+                <TabsContent value="team">
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Equipo Técnico</Label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <Input id="ds1" value={formData.ds1} onChange={handleInputChange} placeholder="DS1" />
+                        <Input id="ds2" value={formData.ds2} onChange={handleInputChange} placeholder="DS2" />
+                        <Input id="ds3" value={formData.ds3} onChange={handleInputChange} placeholder="DS3" />
+                        <Input id="ds4" value={formData.ds4} onChange={handleInputChange} placeholder="DS4" />
+                        <Input id="de" value={formData.de} onChange={handleInputChange} placeholder="DE" />
+                        <Input id="mds" value={formData.mds} onChange={handleInputChange} placeholder="MDS" />
+                      </div>
+                    </div>
+                    <div>
+                        <Label>Roadmap</Label>
+                        <div className="space-y-2 mt-2">
+                            {formData.roadmap.map((phase, index) => (
+                                <div key={index} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={`roadmap-${index}`}
+                                        checked={phase.completed}
+                                        onCheckedChange={(checked) => handleRoadmapChange(index, !!checked)}
+                                    />
+                                    <label htmlFor={`roadmap-${index}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        Fase {index + 1}: {phase.name}
+                                    </label>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
-            </div>
-            
-            <div className="space-y-2">
-                <Label htmlFor="observaciones">Observaciones Generales</Label>
-                <Textarea id="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Observaciones adicionales..." rows={3} />
-            </div>
+                    </div>
+                  </div>
+                </TabsContent>
 
-            <DialogFooter className="mt-6 sticky bottom-0 bg-background py-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {useCase ? 'Actualizar' : 'Crear'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </ScrollArea>
+                <TabsContent value="extra">
+                   <div className="space-y-2">
+                        <Label htmlFor="observaciones">Observaciones Generales</Label>
+                        <Textarea id="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Observaciones adicionales..." rows={10} />
+                    </div>
+                </TabsContent>
+
+              </div>
+            </ScrollArea>
+          </Tabs>
+          
+          <DialogFooter className="pt-4 border-t">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {useCase ? 'Actualizar' : 'Crear'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
