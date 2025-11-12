@@ -67,7 +67,7 @@ export function UseCaseForm({
     riesgos: useCase?.riesgos || '',
     impactoEsperado: useCase?.impactoEsperado || '',
     impactoGenerado: useCase?.impactoGenerado || '',
-    roadmap: useCase?.roadmap || defaultRoadmap,
+    roadmap: useCase?.roadmap && useCase.roadmap.length > 0 ? useCase.roadmap : defaultRoadmap,
     ds1: useCase?.ds1 || '',
     ds2: useCase?.ds2 || '',
     ds3: useCase?.ds3 || '',
@@ -134,22 +134,21 @@ export function UseCaseForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{useCase ? 'Editar Caso de Uso' : 'Nuevo Caso de Uso'}</DialogTitle>
+          <DialogTitle>{useCase ? 'Editar Información General' : 'Nuevo Caso de Uso'}</DialogTitle>
           <DialogDescription>
             {useCase
-              ? 'Actualiza la información del caso de uso'
+              ? 'Actualiza la información general del caso de uso'
               : 'Crea un nuevo caso de uso en el sistema'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-grow flex flex-col overflow-hidden">
           <Tabs defaultValue="general" className="flex-grow flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="details">Detalles</TabsTrigger>
               <TabsTrigger value="impact">Impacto</TabsTrigger>
               <TabsTrigger value="team">Equipo & Roadmap</TabsTrigger>
-              <TabsTrigger value="extra">Extra</TabsTrigger>
             </TabsList>
 
             <ScrollArea className="flex-grow mt-4">
@@ -197,6 +196,10 @@ export function UseCaseForm({
                             </SelectContent>
                         </Select>
                       </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="observaciones">Observaciones Generales</Label>
+                        <Textarea id="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Observaciones adicionales..." rows={5} />
                     </div>
                   </div>
                 </TabsContent>
@@ -267,14 +270,6 @@ export function UseCaseForm({
                     </div>
                   </div>
                 </TabsContent>
-
-                <TabsContent value="extra">
-                   <div className="space-y-2">
-                        <Label htmlFor="observaciones">Observaciones Generales</Label>
-                        <Textarea id="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Observaciones adicionales..." rows={10} />
-                    </div>
-                </TabsContent>
-
               </div>
             </ScrollArea>
           </Tabs>
