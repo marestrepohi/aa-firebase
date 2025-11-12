@@ -23,7 +23,6 @@ function InfoBox({ title, children, className = '' }: { title: string, children:
 
 
 export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase: UseCase }) {
-  const [showMetricsForm, setShowMetricsForm] = useState(false);
   const team = [useCase.ds1, useCase.ds2, useCase.ds3, useCase.ds4, useCase.de, useCase.mds].filter(Boolean).join(' - ');
   const technicalMetricsList = Array.isArray(useCase.metrics?.technical)
     ? useCase.metrics.technical.map(m => `${m.label}: ${m.value}`).join(' | ')
@@ -32,18 +31,12 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
   return (
     <>
       <Tabs defaultValue="information">
-          <div className="flex justify-between items-end">
-              <TabsList>
-                <TabsTrigger value="information">Información General</TabsTrigger>
-                <TabsTrigger value="technical">Métricas Técnicas</TabsTrigger>
-                <TabsTrigger value="business">Métricas de Negocio</TabsTrigger>
-                <TabsTrigger value="financial">Métricas Financieras</TabsTrigger>
-              </TabsList>
-              <Button variant="outline" onClick={() => setShowMetricsForm(true)}>
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Gestionar Métricas por Período
-              </Button>
-          </div>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="information">Información General</TabsTrigger>
+            <TabsTrigger value="technical">Métricas Técnicas</TabsTrigger>
+            <TabsTrigger value="business">Métricas de Negocio</TabsTrigger>
+            <TabsTrigger value="financial">Métricas Financieras</TabsTrigger>
+          </TabsList>
           <div className="mt-6">
               <TabsContent value="information">
                   <Card>
@@ -84,18 +77,6 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
               </TabsContent>
           </div>
       </Tabs>
-
-      {showMetricsForm && (
-        <MetricsForm
-          entityId={useCase.entityId}
-          useCaseId={useCase.id}
-          initialPeriod={useCase.metrics.period}
-          initialMetrics={useCase.metrics}
-          open={showMetricsForm}
-          onOpenChange={setShowMetricsForm}
-          onSuccess={() => window.location.reload()}
-        />
-      )}
     </>
   );
 }

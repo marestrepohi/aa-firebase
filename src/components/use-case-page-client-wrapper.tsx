@@ -7,8 +7,9 @@ import { PageHeader } from '@/components/page-header';
 import { UseCasePageClient } from '@/components/use-case-page-client';
 import { UseCaseForm } from '@/components/use-case-form';
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, BarChart3 } from 'lucide-react';
 import type { Entity, UseCase } from '@/lib/types';
+import { MetricsForm } from './metrics-form';
 
 interface UseCasePageClientWrapperProps {
   entity: Entity;
@@ -17,6 +18,7 @@ interface UseCasePageClientWrapperProps {
 
 export function UseCasePageClientWrapper({ entity, useCase }: UseCasePageClientWrapperProps) {
   const [showEditForm, setShowEditForm] = useState(false);
+  const [showMetricsForm, setShowMetricsForm] = useState(false);
 
   return (
     <>
@@ -37,10 +39,16 @@ export function UseCasePageClientWrapper({ entity, useCase }: UseCasePageClientW
               </div>
           }
           action={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setShowMetricsForm(true)}>
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Gestionar Métricas
+              </Button>
               <Button onClick={() => setShowEditForm(true)}>
                   <Pencil className="-ml-1 mr-2" />
-                  Editar Información General
+                  Editar Información
               </Button>
+            </div>
           }
         />
 
@@ -53,6 +61,18 @@ export function UseCasePageClientWrapper({ entity, useCase }: UseCasePageClientW
           entityId={entity.id}
           open={showEditForm}
           onOpenChange={setShowEditForm}
+          onSuccess={() => window.location.reload()}
+        />
+      )}
+
+      {showMetricsForm && (
+        <MetricsForm
+          entityId={useCase.entityId}
+          useCaseId={useCase.id}
+          initialPeriod={useCase.metrics.period}
+          initialMetrics={useCase.metrics}
+          open={showMetricsForm}
+          onOpenChange={setShowMetricsForm}
           onSuccess={() => window.location.reload()}
         />
       )}
