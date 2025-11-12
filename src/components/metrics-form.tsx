@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { saveMetrics, getMetrics } from '@/lib/data';
+import { saveMetrics, getMetricsPeriods } from '@/lib/data';
 import { Loader2, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,9 +25,9 @@ interface MetricsFormProps {
   useCaseId: string;
   initialPeriod?: string;
   initialMetrics?: {
-    financial: Metric[];
-    business: Metric[];
-    technical: Metric[];
+    financial: Metric[] | Record<string, any>;
+    business: Metric[] | Record<string, any>;
+    technical: Metric[] | Record<string, any>;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,6 +42,17 @@ const emptyMetrics = {
   technical: [],
 };
 
+const ensureArray = (data: any): Metric[] => {
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (typeof data === 'object' && data !== null) {
+      return Object.entries(data).map(([label, value]) => ({ label, value: String(value) }));
+    }
+    return [];
+};
+
+
 export function MetricsForm({
   entityId,
   useCaseId,
@@ -55,16 +66,20 @@ export function MetricsForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
   const [metrics, setMetrics] = useState({
-    technical: initialMetrics?.technical || [],
-    business: initialMetrics?.business || [],
-    financial: initialMetrics?.financial || [],
+    technical: ensureArray(initialMetrics?.technical),
+    business: ensureArray(initialMetrics?.business),
+    financial: ensureArray(initialMetrics?.financial),
   });
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
 
   useEffect(() => {
     async function loadMetricsForPeriod(period: string) {
       if (!period) {
-        setMetrics(initialMetrics || emptyMetrics);
+        setMetrics({
+          technical: ensureArray(initialMetrics?.technical),
+          business: ensureArray(initialMetrics?.business),
+          financial: ensureArray(initialMetrics?.financial),
+        });
         return;
       }
       setIsLoadingMetrics(true);
@@ -73,9 +88,9 @@ export function MetricsForm({
         const periodData = periodsData.find((p: any) => p.period === period);
         
         setMetrics({
-          technical: periodData?.technical || [],
-          business: periodData?.business || [],
-          financial: periodData?.financial || [],
+          technical: ensureArray(periodData?.technical),
+          business: ensureArray(periodData?.business),
+          financial: ensureArray(periodData?.financial),
         });
       } catch (error) {
         console.error('Error loading metrics for period', error);
