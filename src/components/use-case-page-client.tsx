@@ -49,8 +49,15 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                     <td className="py-2.5 pr-4 text-muted-foreground">{kpi.descripcion}</td>
                                     <td className="py-2.5 pr-4">{kpi.valorEsperado}</td>
                                     <td className="py-2.5 pr-4">
-                                        {latestValor ? (
-                                            <span>{latestValor.value} <span className="text-xs text-muted-foreground">({format(new Date(`${latestValor.date}T00:00:00`), 'dd/MM/yyyy')})</span></span>
+                                        {latestValor && latestValor.value ? (
+                                            <span>
+                                                {latestValor.value}{' '}
+                                                {latestValor.date ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        ({format(new Date(`${latestValor.date}T00:00:00`), 'dd/MM/yyyy')})
+                                                    </span>
+                                                ) : null}
+                                            </span>
                                         ) : (
                                             <span className="text-muted-foreground italic">N/A</span>
                                         )}
