@@ -4,13 +4,18 @@ export interface Metric {
   unit?: string;
 }
 
+export interface ValorGenerado {
+  date: string;
+  value: string;
+}
+
 export interface Kpi {
   id: string;
   nombre: string;
   descripcion: string;
   tipoValor: 'moneda' | 'número' | 'porcentaje';
   valorEsperado: string;
-  valorGenerado: string;
+  valoresGenerados?: ValorGenerado[];
 }
 
 export type UseCaseStatus = 

@@ -26,23 +26,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from './ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UseCaseHistory } from './use-case-history';
-import type { UseCase, Kpi } from '@/lib/types';
+import type { UseCase, Kpi, ValorGenerado } from '@/lib/types';
 
-interface UseCaseFormProps {
-  useCase?: UseCase;
-  entityId: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
-  initialHistory?: any[];
-}
-
-const KpiMetricsTable = ({ title, kpis, onKpiChange, onAddKpi, onRemoveKpi }: {
+const KpiMetricsTable = ({ title, kpis, onKpiChange, onAddKpi, onRemoveKpi, onAddValorGenerado, onRemoveValorGenerado, onValorGeneradoChange }: {
     title: string,
     kpis: Kpi[],
-    onKpiChange: (index: number, field: keyof Kpi, value: string) => void,
+    onKpiChange: (kpiIndex: number, field: keyof Kpi, value: string) => void,
     onAddKpi: () => void,
-    onRemoveKpi: (index: number) => void
+    onRemoveKpi: (kpiIndex: number) => void,
+    onAddValorGenerado: (kpiIndex: number) => void,
+    onRemoveValorGenerado: (kpiIndex: number, valorIndex: number) => void,
+    onValorGeneradoChange: (kpiIndex: number, valorIndex: number, field: keyof ValorGenerado, value: string) => void,
 }) => {
     return (
         <div className="space-y-4 rounded-lg border p-4">
@@ -54,28 +48,28 @@ const KpiMetricsTable = ({ title, kpis, onKpiChange, onAddKpi, onRemoveKpi }: {
             </div>
             {kpis.length > 0 && (
                 <div className="space-y-3 -mx-2">
-                    {kpis.map((kpi, index) => (
+                    {kpis.map((kpi, kpiIndex) => (
                         <div key={kpi.id} className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2 p-2 border-b last:border-0">
-                            <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveKpi(index)} className="row-span-3 h-8 w-8 self-center">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveKpi(kpiIndex)} className="row-span-3 h-8 w-8 self-center">
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
 
                             <Input 
                                 placeholder="Nombre del KPI" 
                                 value={kpi.nombre} 
-                                onChange={e => onKpiChange(index, 'nombre', e.target.value)}
+                                onChange={e => onKpiChange(kpiIndex, 'nombre', e.target.value)}
                                 className="font-semibold"
                             />
                              <Textarea
                                 placeholder="Descripción del KPI"
                                 value={kpi.descripcion}
-                                onChange={e => onKpiChange(index, 'descripcion', e.target.value)}
+                                onChange={e => onKpiChange(kpiIndex, 'descripcion', e.target.value)}
                                 className="col-span-full ml-11"
                                 rows={2}
                             />
                             
-                            <div className="col-span-full ml-11 grid grid-cols-3 gap-2">
-                                <Select value={kpi.tipoValor} onValueChange={(v) => onKpiChange(index, 'tipoValor', v)}>
+                            <div className="col-span-full ml-11 grid grid-cols-2 gap-2">
+                                <Select value={kpi.tipoValor} onValueChange={(v) => onKpiChange(kpiIndex, 'tipoValor', v)}>
                                     <SelectTrigger><SelectValue placeholder="Tipo de Valor" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="moneda">Moneda ($)</SelectItem>
@@ -86,13 +80,38 @@ const KpiMetricsTable = ({ title, kpis, onKpiChange, onAddKpi, onRemoveKpi }: {
                                 <Input 
                                     placeholder="Valor Esperado" 
                                     value={kpi.valorEsperado} 
-                                    onChange={e => onKpiChange(index, 'valorEsperado', e.target.value)} 
+                                    onChange={e => onKpiChange(kpiIndex, 'valorEsperado', e.target.value)} 
                                 />
-                                <Input 
-                                    placeholder="Valor Generado" 
-                                    value={kpi.valorGenerado} 
-                                    onChange={e => onKpiChange(index, 'valorGenerado', e.target.value)} 
-                                />
+                            </div>
+
+                            <div className="col-span-full ml-11 space-y-2 pt-2">
+                                <div className="flex justify-between items-center">
+                                    <Label className="text-xs font-semibold">Historial de Valor Generado</Label>
+                                    <Button type="button" size="xs" variant="outline" onClick={() => onAddValorGenerado(kpiIndex)}>
+                                        <Plus className="mr-1 h-3 w-3" /> Añadir
+                                    </Button>
+                                </div>
+                                {kpi.valoresGenerados && kpi.valoresGenerados.length > 0 ? (
+                                    kpi.valoresGenerados.map((valor, valorIndex) => (
+                                        <div key={valorIndex} className="flex gap-2 items-center">
+                                            <Input
+                                                type="date"
+                                                value={valor.date}
+                                                onChange={e => onValorGeneradoChange(kpiIndex, valorIndex, 'date', e.target.value)}
+                                            />
+                                            <Input
+                                                placeholder="Valor"
+                                                value={valor.value}
+                                                onChange={e => onValorGeneradoChange(kpiIndex, valorIndex, 'value', e.target.value)}
+                                            />
+                                            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => onRemoveValorGenerado(kpiIndex, valorIndex)}>
+                                                <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                            </Button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-xs text-center text-muted-foreground py-2">No hay valores generados registrados.</p>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -139,11 +158,11 @@ export function UseCaseForm({
     ds4: useCase?.ds4 || '',
     de: useCase?.de || '',
     mds: useCase?.mds || '',
-    observaciones: '',
-    objetivo: '',
-    solucion: '',
-    dolores: '',
-    riesgos: '',
+    observaciones: useCase?.observaciones || '',
+    objetivo: useCase?.objetivo || '',
+    solucion: useCase?.solucion || '',
+    dolores: useCase?.dolores || '',
+    riesgos: useCase?.riesgos || '',
     kpis: useCase?.kpis || [],
     roadmap: useCase?.roadmap && useCase.roadmap.length > 0 ? useCase.roadmap : defaultRoadmap,
   });
@@ -164,12 +183,12 @@ export function UseCaseForm({
   };
 
   const handleKpiChange = (
-    index: number,
+    kpiIndex: number,
     field: keyof Kpi,
     value: string
   ) => {
     const newKpis = [...formData.kpis];
-    (newKpis[index] as any)[field] = value;
+    (newKpis[kpiIndex] as any)[field] = value;
     setFormData({ ...formData, kpis: newKpis });
   };
   
@@ -180,14 +199,39 @@ export function UseCaseForm({
       descripcion: '', 
       tipoValor: 'moneda', 
       valorEsperado: '', 
-      valorGenerado: '' 
+      valoresGenerados: [],
     };
     setFormData({ ...formData, kpis: [...formData.kpis, newKpi] });
   };
   
-  const handleRemoveKpi = (index: number) => {
-    const newKpis = formData.kpis.filter((_, i) => i !== index);
+  const handleRemoveKpi = (kpiIndex: number) => {
+    const newKpis = formData.kpis.filter((_, i) => i !== kpiIndex);
     setFormData({ ...formData, kpis: newKpis });
+  };
+  
+  const handleAddValorGenerado = (kpiIndex: number) => {
+    const newKpis = [...formData.kpis];
+    const kpi = newKpis[kpiIndex];
+    if (!kpi.valoresGenerados) {
+      kpi.valoresGenerados = [];
+    }
+    const today = new Date().toISOString().split('T')[0];
+    kpi.valoresGenerados.push({ date: today, value: '' });
+    setFormData({ ...formData, kpis: newKpis });
+  };
+
+  const handleRemoveValorGenerado = (kpiIndex: number, valorIndex: number) => {
+    const newKpis = [...formData.kpis];
+    newKpis[kpiIndex].valoresGenerados = newKpis[kpiIndex].valoresGenerados?.filter((_, i) => i !== valorIndex);
+    setFormData({ ...formData, kpis: newKpis });
+  };
+
+  const handleValorGeneradoChange = (kpiIndex: number, valorIndex: number, field: keyof ValorGenerado, value: string) => {
+    const newKpis = [...formData.kpis];
+    if (newKpis[kpiIndex]?.valoresGenerados?.[valorIndex]) {
+        (newKpis[kpiIndex].valoresGenerados![valorIndex] as any)[field] = value;
+        setFormData({ ...formData, kpis: newKpis });
+    }
   };
 
 
@@ -333,6 +377,9 @@ export function UseCaseForm({
                         onKpiChange={handleKpiChange}
                         onAddKpi={handleAddKpi}
                         onRemoveKpi={handleRemoveKpi}
+                        onAddValorGenerado={handleAddValorGenerado}
+                        onRemoveValorGenerado={handleRemoveValorGenerado}
+                        onValorGeneradoChange={handleValorGeneradoChange}
                     />
                 </TabsContent>
 

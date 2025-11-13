@@ -17,34 +17,54 @@ function InfoBox({ title, children, className = '' }: { title: string, children:
   );
 }
 
-const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => (
-    <InfoBox title={title} className="col-span-full">
-        {kpis && kpis.length > 0 ? (
-            <table className="w-full text-sm">
-                <thead>
-                    <tr className="border-b">
-                        <th className="pb-2 text-left font-medium text-muted-foreground">KPI</th>
-                        <th className="pb-2 text-left font-medium text-muted-foreground">Descripción</th>
-                        <th className="pb-2 text-left font-medium text-muted-foreground">Valor Esperado</th>
-                        <th className="pb-2 text-left font-medium text-muted-foreground">Valor Generado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {kpis.map((kpi, index) => (
-                        <tr key={index} className="border-b last:border-0">
-                            <td className="py-2.5 pr-4 font-medium">{kpi.nombre}</td>
-                            <td className="py-2.5 pr-4 text-muted-foreground">{kpi.descripcion}</td>
-                            <td className="py-2.5 pr-4">{kpi.valorEsperado}</td>
-                            <td className="py-2.5 pr-4">{kpi.valorGenerado}</td>
+const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => {
+    const getLatestValorGenerado = (kpi: Kpi) => {
+        if (!kpi.valoresGenerados || kpi.valoresGenerados.length === 0) {
+            return null;
+        }
+        // Assuming dates are in 'YYYY-MM-DD' format, string comparison works for sorting
+        const sorted = [...kpi.valoresGenerados].sort((a, b) => b.date.localeCompare(a.date));
+        return sorted[0];
+    };
+
+    return (
+        <InfoBox title={title} className="col-span-full">
+            {kpis && kpis.length > 0 ? (
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b">
+                            <th className="pb-2 text-left font-medium text-muted-foreground">KPI</th>
+                            <th className="pb-2 text-left font-medium text-muted-foreground">Descripción</th>
+                            <th className="pb-2 text-left font-medium text-muted-foreground">Valor Esperado</th>
+                            <th className="pb-2 text-left font-medium text-muted-foreground">Último Valor Generado</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        ) : (
-            <p className="text-muted-foreground italic">No hay KPIs definidos.</p>
-        )}
-    </InfoBox>
-);
+                    </thead>
+                    <tbody>
+                        {kpis.map((kpi, index) => {
+                            const latestValor = getLatestValorGenerado(kpi);
+                            return (
+                                <tr key={index} className="border-b last:border-0">
+                                    <td className="py-2.5 pr-4 font-medium">{kpi.nombre}</td>
+                                    <td className="py-2.5 pr-4 text-muted-foreground">{kpi.descripcion}</td>
+                                    <td className="py-2.5 pr-4">{kpi.valorEsperado}</td>
+                                    <td className="py-2.5 pr-4">
+                                        {latestValor ? (
+                                            <span>{latestValor.value} <span className="text-xs text-muted-foreground">({format(new Date(latestValor.date), 'dd/MM/yyyy')})</span></span>
+                                        ) : (
+                                            <span className="text-muted-foreground italic">N/A</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            ) : (
+                <p className="text-muted-foreground italic">No hay KPIs definidos.</p>
+            )}
+        </InfoBox>
+    );
+}
 
 
 export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase: UseCase }) {
