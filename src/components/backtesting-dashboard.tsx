@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { AllMetrics } from '@/lib/types';
 
@@ -38,8 +37,6 @@ export function BacktestingDashboard({ allMetrics, descriptions }: BacktestingDa
     return Object.keys(allMetrics || {}).sort();
   }, [allMetrics]);
 
-  const [selectedPeriod, setSelectedPeriod] = useState<string>(periods[periods.length - 1] || '');
-
   const chartData = useMemo<ChartData[]>(() => {
     return periods.map(period => {
       const techMetrics = allMetrics[period]?.technical || {};
@@ -57,9 +54,15 @@ export function BacktestingDashboard({ allMetrics, descriptions }: BacktestingDa
     });
   }, [allMetrics, periods]);
   
-  const selectedMetrics = useMemo(() => {
-    return allMetrics[selectedPeriod]?.technical || {};
-  }, [allMetrics, selectedPeriod]);
+  const allTechnicalMetricNames = useMemo(() => {
+    const metricSet = new Set<string>();
+    periods.forEach(period => {
+      const techMetrics = allMetrics[period]?.technical || {};
+      Object.keys(techMetrics).forEach(key => metricSet.add(key));
+    });
+    return Array.from(metricSet).sort();
+  }, [allMetrics, periods]);
+
 
   if (periods.length === 0) {
     return (
@@ -78,24 +81,9 @@ export function BacktestingDashboard({ allMetrics, descriptions }: BacktestingDa
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <div>
+        <div>
             <CardTitle>Tablero de Seguimiento de Backtesting</CardTitle>
             <CardDescription>Análisis de la evolución del rendimiento del modelo a lo largo del tiempo.</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="period-selector" className="text-sm font-medium text-muted-foreground">
-              Período:
-            </label>
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger id="period-selector" className="w-[180px]">
-                <SelectValue placeholder="Seleccionar..." />
-              </SelectTrigger>
-              <SelectContent>
-                {periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-8">
@@ -125,22 +113,31 @@ export function BacktestingDashboard({ allMetrics, descriptions }: BacktestingDa
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold mb-4">Detalle de Métricas para el Período: {selectedPeriod}</h3>
-          <div className="overflow-x-auto">
+          <h3 className="text-lg font-semibold mb-4">Comparativa de Métricas Técnicas por Período</h3>
+          <div className="overflow-x-auto border rounded-lg">
             <table className="w-full text-sm text-left">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="p-3 font-medium text-muted-foreground">Métrica</th>
-                  <th className="p-3 font-medium text-muted-foreground">Valor</th>
-                  <th className="p-3 font-medium text-muted-foreground">Descripción</th>
+                  <th className="p-3 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 min-w-[200px]">Métrica</th>
+                  {periods.map(period => (
+                    <th key={period} className="p-3 font-medium text-muted-foreground text-center min-w-[120px]">{period}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(selectedMetrics).map(([key, value]) => (
-                  <tr key={key} className="border-b">
-                    <td className="p-3 font-medium capitalize">{key.replace(/_/g, ' ')}</td>
-                    <td className="p-3">{String(value)}</td>
-                    <td className="p-3 text-muted-foreground">{descriptions[key] || 'Sin descripción'}</td>
+                {allTechnicalMetricNames.map((metricName) => (
+                  <tr key={metricName} className="border-b last:border-b-0">
+                    <td className="p-3 font-medium capitalize sticky left-0 bg-background z-10" title={descriptions[metricName] || ''}>
+                      {metricName.replace(/_/g, ' ')}
+                    </td>
+                    {periods.map(period => {
+                      const value = allMetrics[period]?.technical?.[metricName];
+                      return (
+                        <td key={period} className="p-3 text-center">
+                          {value !== undefined ? String(value) : <span className="text-muted-foreground">-</span>}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

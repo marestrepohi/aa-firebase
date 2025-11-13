@@ -61,7 +61,7 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                         {latestValor ? (
                                             <span>
                                                 {latestValor.value}{' '}
-                                                 {isValidDate(latestValor.date) ? (
+                                                {latestValor.date ? (
                                                     <span className="text-xs text-muted-foreground">
                                                         ({latestValor.date})
                                                     </span>
@@ -131,7 +131,7 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <InfoBox title="Estado">{useCase.status}</InfoBox>
                             <InfoBox title="Fecha actualización">
-                                {isValidDate(useCase.lastUpdated) ? useCase.lastUpdated : 'N/A'}
+                                {useCase.lastUpdated || "N/A"}
                             </InfoBox>
                             <InfoBox title="Sponsor" className="col-span-2">{useCase.sponsor}</InfoBox>
                           </div>
