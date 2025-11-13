@@ -43,8 +43,9 @@ export function BacktestingDashboard({ allMetrics, descriptions }: BacktestingDa
       const data: ChartData = { period };
       for (const key in METRIC_KEYS) {
         const metricKey = METRIC_KEYS[key as keyof typeof METRIC_KEYS];
-        if (techMetrics[metricKey] !== undefined) {
-          const value = parseFloat(techMetrics[metricKey]);
+        const metricValue = techMetrics[metricKey] || techMetrics[metricKey.toUpperCase()] || techMetrics[metricKey.replace('_', '-')];
+        if (metricValue !== undefined) {
+          const value = parseFloat(String(metricValue));
           if (!isNaN(value)) {
             data[metricKey as keyof ChartData] = value;
           }
@@ -103,10 +104,10 @@ export function BacktestingDashboard({ allMetrics, descriptions }: BacktestingDa
                   }}
                 />
                 <Legend />
-                <Line type="monotone" dataKey={METRIC_KEYS.PRECISION} name="Precisión" stroke={METRIC_COLORS.precision} strokeWidth={2} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey={METRIC_KEYS.RECALL} name="Recall" stroke={METRIC_COLORS.recall} strokeWidth={2} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey={METRIC_KEYS.AUC} name="AUC" stroke={METRIC_COLORS.auc} strokeWidth={2} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey={METRIC_KEYS.F1_SCORE} name="F1-Score" stroke={METRIC_COLORS.f1_score} strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey={METRIC_KEYS.PRECISION} name="Precisión" stroke={METRIC_COLORS.precision} strokeWidth={2} dot={{ r: 4 }} connectNulls />
+                <Line type="monotone" dataKey={METRIC_KEYS.RECALL} name="Recall" stroke={METRIC_COLORS.recall} strokeWidth={2} dot={{ r: 4 }} connectNulls />
+                <Line type="monotone" dataKey={METRIC_KEYS.AUC} name="AUC" stroke={METRIC_COLORS.auc} strokeWidth={2} dot={{ r: 4 }} connectNulls />
+                <Line type="monotone" dataKey={METRIC_KEYS.F1_SCORE} name="F1-Score" stroke={METRIC_COLORS.f1_score} strokeWidth={2} dot={{ r: 4 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -132,9 +133,10 @@ export function BacktestingDashboard({ allMetrics, descriptions }: BacktestingDa
                     </td>
                     {periods.map(period => {
                       const value = allMetrics[period]?.technical?.[metricName];
+                      const displayValue = (value !== undefined && value !== null) ? String(value) : <span className="text-muted-foreground">-</span>;
                       return (
                         <td key={period} className="p-3 text-center">
-                          {value !== undefined ? String(value) : <span className="text-muted-foreground">-</span>}
+                          {displayValue}
                         </td>
                       );
                     })}

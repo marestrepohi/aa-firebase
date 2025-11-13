@@ -4,8 +4,7 @@ import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricsCard } from '@/components/metrics-card';
-import { BacktestingDashboard } from '@/components/backtesting-dashboard';
-import { CobranzasDashboard } from '@/components/cobranzas-dashboard'; // Import the new dashboard
+import { CobranzasDashboard } from '@/components/cobranzas-dashboard';
 import { DollarSign, Briefcase, Activity, Info } from 'lucide-react';
 import type { Entity, UseCase, Kpi } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,11 +12,9 @@ import { format } from 'date-fns';
 
 function isValidDate(dateString: string | undefined): boolean {
     if (!dateString) return false;
-    // Check if it's a valid date string that JS can parse
-    const date = new Date(dateString);
+    const date = new Date(`${dateString}T00:00:00`);
     return !isNaN(date.getTime());
 }
-
 
 function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
   const content = children || <span className="text-muted-foreground italic">No definido</span>;
@@ -34,7 +31,6 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
         if (!kpi.valoresGenerados || kpi.valoresGenerados.length === 0) {
             return null;
         }
-        // Filter for valid dates before sorting
         const sorted = [...kpi.valoresGenerados]
             .filter(v => isValidDate(v.date))
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -67,10 +63,10 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                             <span>
                                                 {latestValor.value}{' '}
                                                 {isValidDate(latestValor.date) ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ({latestValor.date})
-                                                    </span>
-                                                ) : null}
+                                                     <span className="text-xs text-muted-foreground">
+                                                         ({format(new Date(`${latestValor.date}T00:00:00`), 'dd/MM/yyyy')})
+                                                     </span>
+                                                 ) : null}
                                             </span>
                                         ) : (
                                             <span className="text-muted-foreground italic">N/A</span>
@@ -97,14 +93,32 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
 
   const [selectedPeriod, setSelectedPeriod] = useState<string>(availablePeriods[0] || '');
 
-  const financialMetrics = useMemo(() => {
-    return useCase.metrics?.[selectedPeriod]?.financial || {};
+  const { financialMetrics, businessMetrics, technicalMetrics } = useMemo(() => {
+    const metricsForPeriod = useCase.metrics?.[selectedPeriod] || {};
+    const allTechnical = { ...(metricsForPeriod.technical || {}) };
+    
+    // Separate technical metrics for Cobranzas Dashboard from general business metrics
+    const business: Record<string, any> = { ...(metricsForPeriod.business || {})};
+    const technical: Record<string, any> = {};
+
+    const technicalKeys = ['psi', 'ks', 'roc', 'auc', 'lift', 'roc_auc', 'auc_roc'];
+    
+    Object.keys(allTechnical).forEach(key => {
+        const keyLower = key.toLowerCase();
+        if (technicalKeys.some(tk => keyLower.includes(tk))) {
+            technical[key] = allTechnical[key];
+        } else {
+            business[key] = allTechnical[key];
+        }
+    });
+
+    return {
+        financialMetrics: metricsForPeriod.financial || {},
+        businessMetrics: business,
+        technicalMetrics: technical
+    };
   }, [useCase.metrics, selectedPeriod]);
-  
-  const businessMetrics = useMemo(() => {
-    return useCase.metrics?.[selectedPeriod]?.business || {};
-  }, [useCase.metrics, selectedPeriod]);
-  
+
   const descriptions = useMemo(() => {
     const allDescriptions: Record<string, string> = {};
     if (useCase.metricsConfig) {
@@ -116,7 +130,6 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
   }, [useCase.metricsConfig]);
   
   const isCobranzasUseCase = useCase.id === 'cobranzas-cartera-castigada-bdb';
-
 
   return (
     <>
@@ -156,9 +169,9 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
               </TabsContent>
               <TabsContent value="technical">
                 {isCobranzasUseCase ? (
-                  <CobranzasDashboard allMetrics={useCase.metrics} />
+                  <CobranzasDashboard allMetrics={useCase.metrics} descriptions={descriptions} />
                 ) : (
-                  <BacktestingDashboard allMetrics={useCase.metrics} descriptions={descriptions} />
+                   <MetricsCard title="Métricas Técnicas" metrics={technicalMetrics} descriptions={descriptions} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
                 )}
               </TabsContent>
               <TabsContent value="business" className="space-y-6">
