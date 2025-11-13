@@ -2,7 +2,7 @@
 'use client';
 import type { Metric } from './types';
 import { db } from './firebase'; // Using client-side firebase instance
-import { collection, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, getDoc, query, orderBy } from 'firebase/firestore';
 
 export async function getMetrics(entityId: string, useCaseId: string) {
     const metricsSnapshot = await getDocs(collection(db, 'entities', entityId, 'useCases', useCaseId, 'metrics'));
@@ -39,7 +39,6 @@ export async function saveMetrics(data: {
   useCaseId: string;
   period: string;
   metrics: {
-    general: Metric[];
     financial: Metric[];
     business: Metric[];
     technical: Metric[];
@@ -84,4 +83,49 @@ export async function updateUseCase(data: {
     console.error("Error updating use case on client:", error);
     return false;
   }
+}
+
+
+export async function getUseCaseHistory(entityId: string, useCaseId: string): Promise<any[]> {
+    try {
+        const historyQuery = query(
+            collection(db, 'entities', entityId, 'useCases', useCaseId, 'history'),
+            orderBy('versionedAt', 'desc')
+        );
+        const snapshot = await getDocs(historyQuery);
+        return snapshot.docs.map(doc => ({ versionId: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching use case history:", error);
+        return [];
+    }
+}
+
+
+export async function revertUseCaseVersion(
+  entityId: string, 
+  useCaseId: string, 
+  versionId: string
+): Promise<{success: boolean, error?: string}> {
+    try {
+        // This would typically be a Cloud Function call for security reasons.
+        // For simplicity, we are doing it on the client.
+        // This is NOT secure for a production app.
+        const historyDocRef = doc(db, 'entities', entityId, 'useCases', useCaseId, 'history', versionId);
+        const historyDoc = await getDoc(historyDocRef);
+
+        if (!historyDoc.exists()) {
+            throw new Error("Version not found");
+        }
+
+        const useCaseRef = doc(db, 'entities', entityId, 'useCases', useCaseId);
+        const versionData = historyDoc.data();
+        const { versionedAt, ...revertData } = versionData;
+
+        await setDoc(useCaseRef, revertData, { merge: true });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error reverting use case:", error);
+        return { success: false, error: error.message };
+    }
 }

@@ -23,9 +23,9 @@ import {
 import { updateUseCase } from '@/lib/data';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from './ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UseCaseHistory } from './use-case-history';
 
 interface UseCaseFormProps {
   useCase?: any;
@@ -66,7 +66,6 @@ export function UseCaseForm({
     ds4: useCase?.ds4 || '',
     de: useCase?.de || '',
     mds: useCase?.mds || '',
-    // Campos que se inician vacíos
     observaciones: '',
     objetivo: '',
     solucion: '',
@@ -98,7 +97,6 @@ export function UseCaseForm({
     setIsSubmitting(true);
 
     try {
-      // We only send the fields that are meant to be updated via this form.
       const dataToUpdate = {
         id: formData.id,
         entityId,
@@ -168,11 +166,12 @@ export function UseCaseForm({
 
         <form onSubmit={handleSubmit} className="flex-grow flex flex-col overflow-hidden">
           <Tabs defaultValue="general" className="flex-grow flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="details">Detalles</TabsTrigger>
               <TabsTrigger value="impact">Impacto</TabsTrigger>
               <TabsTrigger value="team">Equipo & Roadmap</TabsTrigger>
+              <TabsTrigger value="versions">Versiones</TabsTrigger>
             </TabsList>
 
             <div className="flex-grow mt-4 overflow-y-auto pr-6">
@@ -277,7 +276,7 @@ export function UseCaseForm({
                     <div>
                         <Label>Roadmap</Label>
                         <div className="space-y-2 mt-2">
-                            {formData.roadmap.map((phase, index) => (
+                            {formData.roadmap.map((phase: any, index: number) => (
                                 <div key={index} className="flex items-center space-x-2">
                                     <Checkbox 
                                         id={`roadmap-${index}`}
@@ -292,6 +291,10 @@ export function UseCaseForm({
                         </div>
                     </div>
                   </div>
+                </TabsContent>
+
+                 <TabsContent value="versions">
+                    <UseCaseHistory entityId={entityId} useCaseId={useCase.id} onRevert={onSuccess} />
                 </TabsContent>
             </div>
           </Tabs>

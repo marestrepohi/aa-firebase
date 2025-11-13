@@ -522,3 +522,39 @@ export const revertUseCaseVersion = functions.https.onRequest((req, res) => {
         }
     });
 });
+
+export const getUseCaseHistory = functions.https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        try {
+            const { entityId, useCaseId } = req.query;
+            if (!entityId || !useCaseId) {
+                res.status(400).json({ success: false, error: 'Entity ID and Use Case ID are required' });
+                return;
+            }
+
+            const historySnapshot = await db
+                .collection('entities')
+                .doc(entityId as string)
+                .collection('useCases')
+                .doc(useCaseId as string)
+                .collection('history')
+                .orderBy('versionedAt', 'desc')
+                .get();
+            
+            const history = historySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    versionId: doc.id,
+                    versionedAt: data.versionedAt.toDate().toISOString(),
+                    // You can add more fields here if needed, like who made the change
+                };
+            });
+
+            res.json({ success: true, history });
+
+        } catch (error) {
+            console.error('Error getting use case history:', error);
+            res.status(500).json({ success: false, error: 'Failed to get use case history' });
+        }
+    });
+});
