@@ -37,7 +37,7 @@ const ImpactMetricsDisplay = ({ title, metrics }: { title: string, metrics?: Imp
                         <tr key={index}>
                             <td className="py-1.5">{metric.nombre}</td>
                             <td className="py-1.5">{metric.valor}</td>
-                            <td className="py-1.5">{metric.fecha ? format(new Date(metric.fecha), 'dd/MM/yyyy') : 'N/A'}</td>
+                            <td className="py-1.5">{metric.fecha}</td>
                         </tr>
                     ))}
                 </tbody>
