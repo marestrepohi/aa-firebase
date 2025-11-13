@@ -225,3 +225,29 @@ function createIdFromName(name: string): string {
     .replace(/[^\w-]+/g, '')
     .replace(/--+/g, '-');
 }
+
+export async function getUseCaseHistory(entityId: string, useCaseId: string): Promise<any[]> {
+    try {
+        const historySnapshot = await adminDb
+            .collection('entities')
+            .doc(entityId as string)
+            .collection('useCases')
+            .doc(useCaseId as string)
+            .collection('history')
+            .orderBy('versionedAt', 'desc')
+            .get();
+        
+        const history = historySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                versionId: doc.id,
+                versionedAt: serializeDate(data.versionedAt),
+            };
+        });
+
+        return history;
+    } catch (error) {
+        console.error('Error getting use case history:', error);
+        return [];
+    }
+}

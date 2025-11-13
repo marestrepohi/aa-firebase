@@ -26,13 +26,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from './ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UseCaseHistory } from './use-case-history';
+import type { UseCase } from '@/lib/types';
 
 interface UseCaseFormProps {
-  useCase?: any;
+  useCase?: UseCase;
   entityId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  initialHistory?: any[];
 }
 
 export function UseCaseForm({
@@ -41,6 +43,7 @@ export function UseCaseForm({
   open,
   onOpenChange,
   onSuccess,
+  initialHistory
 }: UseCaseFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,7 +174,7 @@ export function UseCaseForm({
               <TabsTrigger value="details">Detalles</TabsTrigger>
               <TabsTrigger value="impact">Impacto</TabsTrigger>
               <TabsTrigger value="team">Equipo & Roadmap</TabsTrigger>
-              <TabsTrigger value="versions">Versiones</TabsTrigger>
+              {useCase && <TabsTrigger value="versions">Versiones</TabsTrigger>}
             </TabsList>
 
             <div className="flex-grow mt-4 overflow-y-auto pr-6">
@@ -293,9 +296,14 @@ export function UseCaseForm({
                   </div>
                 </TabsContent>
 
-                 <TabsContent value="versions">
-                    <UseCaseHistory entityId={entityId} useCaseId={useCase.id} onRevert={onSuccess} />
-                </TabsContent>
+                {useCase && <TabsContent value="versions">
+                    <UseCaseHistory 
+                        entityId={entityId} 
+                        useCaseId={useCase.id} 
+                        onRevert={onSuccess}
+                        initialHistory={initialHistory}
+                    />
+                </TabsContent>}
             </div>
           </Tabs>
           

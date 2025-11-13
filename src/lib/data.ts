@@ -1,64 +1,39 @@
 'use client';
+import {
+  getFirestore,
+  doc,
+  collection,
+  setDoc,
+  getDocs,
+  serverTimestamp,
+  runTransaction
+} from 'firebase/firestore';
 import type { Metric } from './types';
+import { db } from './firebase'; // Using client-side initialized firebase
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-
-// ----- NEW: Central API endpoint from environment variables -----
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/augusta-edge-project/us-central1';
-
-// Helper to handle API responses
-async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
-  try {
-    const response = await fetch(`${API_URL}/${endpoint}`, options);
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Request failed with status ' + response.status }));
-      throw new Error(errorData.error || 'API request failed');
-    }
-    const data = await response.json();
-    if (data.success) {
-      return data;
-    } else {
-      throw new Error(data.error || 'API returned an error');
-    }
-  } catch (error: any) {
-    console.error(`Error fetching from ${endpoint}:`, error);
-    // For permission errors specifically, we could try to parse them
-    if (error.message.includes('permission-denied') || error.message.includes('insufficient permissions')) {
-        const path = endpoint.split('?')[0]; // simple path extraction
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: path,
-            operation: options.method === 'POST' || options.method === 'PUT' ? 'write' : 'list',
-            requestResourceData: options.body ? JSON.parse(options.body as string) : {}
-        }));
-    } else {
-        // Emit a generic error for fetch failures
-        errorEmitter.emit('permission-error', new Error(`Failed to fetch from API endpoint: ${endpoint}. Details: ${error.message}`));
-    }
-    // Return a consistent error structure for other failures
-    return { success: false, error: error.message };
-  }
-}
-
-
-export async function getMetrics(entityId: string, useCaseId: string) {
-    const data = await fetchFromAPI(`getUseCase?entityId=${entityId}&useCaseId=${useCaseId}`);
-    if (data.success) {
-        return data.useCase.metrics;
-    }
-    return {
-        general: [],
-        financial: [],
-        business: [],
-        technical: [],
-    };
-}
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export async function getMetricsPeriods(
   entityId: string,
   useCaseId: string
 ): Promise<Array<{ period: string }>> {
-  const data = await fetchFromAPI(`getMetricsPeriods?entityId=${entityId}&useCaseId=${useCaseId}`);
-  return data.success ? data.periods : [];
+  try {
+    const metricsSnapshot = await getDocs(
+      collection(db, 'entities', entityId, 'useCases', useCaseId, 'metrics')
+    );
+    const periods = metricsSnapshot.docs.map((doc) => ({
+      period: doc.id,
+      ...doc.data(),
+    })).sort((a,b) => b.period.localeCompare(a.period));
+    return periods as Array<{ period: string }>;
+  } catch(e: any) {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: `entities/${entityId}/useCases/${useCaseId}/metrics`,
+        operation: 'list',
+    }));
+    return [];
+  }
 }
 
 export async function saveMetrics(data: {
@@ -71,12 +46,32 @@ export async function saveMetrics(data: {
     technical: Metric[];
   };
 }) {
-  const result = await fetchFromAPI('saveMetrics', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  return result.success;
+  const { entityId, useCaseId, period, metrics } = data;
+  const metricsRef = doc(
+    db,
+    'entities',
+    entityId,
+    'useCases',
+    useCaseId,
+    'metrics',
+    period
+  );
+  
+  const saveData = {
+      period,
+      ...metrics,
+      updatedAt: serverTimestamp(),
+  };
+
+  return setDoc(metricsRef, saveData, { merge: true }).then(() => true)
+    .catch((error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: metricsRef.path,
+            operation: 'write',
+            requestResourceData: saveData,
+        }));
+        return false;
+    });
 }
 
 export async function updateEntity(data: {
@@ -85,12 +80,18 @@ export async function updateEntity(data: {
   description?: string;
   logo?: string;
 }) {
-  const result = await fetchFromAPI('updateEntity', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  return result.success;
+  const entityRef = doc(db, 'entities', data.id);
+  const updateData: Record<string, any> = { ...data, updatedAt: serverTimestamp() };
+
+  return setDoc(entityRef, updateData, { merge: true }).then(() => true)
+    .catch((error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: entityRef.path,
+            operation: 'write',
+            requestResourceData: updateData,
+        }));
+        return false;
+    });
 }
 
 export async function updateUseCase(data: {
@@ -98,18 +99,39 @@ export async function updateUseCase(data: {
   id: string;
   [key: string]: any;
 }) {
-    const result = await fetchFromAPI('updateUseCase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-    });
-    return result.success;
-}
+    const { entityId, id, ...useCaseData } = data;
+    const useCaseRef = doc(db, 'entities', entityId, 'useCases', id);
+    const historyRef = collection(useCaseRef, 'history');
+    
+    const timestamp = new Date();
+    const versionId = timestamp.toISOString();
 
+    const updateData = { 
+        ...useCaseData, 
+        updatedAt: serverTimestamp()
+    };
 
-export async function getUseCaseHistory(entityId: string, useCaseId: string): Promise<any[]> {
-    const data = await fetchFromAPI(`getUseCaseHistory?entityId=${entityId}&useCaseId=${useCaseId}`);
-    return data.success ? data.history : [];
+    try {
+        await runTransaction(db, async (transaction) => {
+            const currentDoc = await transaction.get(useCaseRef);
+            if (currentDoc.exists()) {
+                const historyData = {
+                    ...currentDoc.data(),
+                    versionedAt: timestamp,
+                };
+                transaction.set(doc(historyRef, versionId), historyData);
+            }
+            transaction.set(useCaseRef, updateData, { merge: true });
+        });
+        return true;
+    } catch (error: any) {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: useCaseRef.path,
+            operation: 'write',
+            requestResourceData: updateData,
+        }));
+        return false;
+    }
 }
 
 
@@ -118,10 +140,14 @@ export async function revertUseCaseVersion(
   useCaseId: string, 
   versionId: string
 ): Promise<{success: boolean, error?: string}> {
-    const result = await fetchFromAPI('revertUseCaseVersion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entityId, useCaseId, versionId }),
-    });
-    return result;
+  const functions = getFunctions(db.app, 'us-central1');
+  const revertUseCase = httpsCallable(functions, 'revertUseCaseVersion');
+  try {
+    const result = await revertUseCase({ entityId, useCaseId, versionId });
+    const data = result.data as { success: boolean, error?: string };
+    return data;
+  } catch (error: any) {
+    console.error("Error calling revertUseCaseVersion function:", error);
+    return { success: false, error: error.message };
+  }
 }

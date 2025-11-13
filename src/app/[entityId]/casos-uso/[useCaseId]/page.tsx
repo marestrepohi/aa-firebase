@@ -1,14 +1,15 @@
 
 import { notFound } from 'next/navigation';
-import { getEntity, getUseCase } from '@/lib/data.server';
+import { getEntity, getUseCase, getUseCaseHistory } from '@/lib/data.server';
 import { UseCasePageClientWrapper } from '@/components/use-case-page-client-wrapper';
 
 export const dynamic = 'force-dynamic';
 
 export default async function UseCasePage({ params }: { params: { entityId: string; useCaseId: string } }) {
-  const [entity, useCase] = await Promise.all([
+  const [entity, useCase, history] = await Promise.all([
     getEntity(params.entityId),
-    getUseCase(params.entityId, params.useCaseId)
+    getUseCase(params.entityId, params.useCaseId),
+    getUseCaseHistory(params.entityId, params.useCaseId)
   ]);
 
   if (!entity || !useCase || useCase.entityId !== entity.id) {
@@ -16,6 +17,6 @@ export default async function UseCasePage({ params }: { params: { entityId: stri
   }
 
   return (
-    <UseCasePageClientWrapper entity={entity} useCase={useCase} />
+    <UseCasePageClientWrapper entity={entity} useCase={useCase} history={history} />
   );
 }

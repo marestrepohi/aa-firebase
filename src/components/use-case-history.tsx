@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getUseCaseHistory, revertUseCaseVersion } from '@/lib/data';
+import { getUseCaseHistory } from '@/lib/data.server'; // Changed to server action
+import { revertUseCaseVersion } from '@/lib/data'; // Client-side function
 import { format } from 'date-fns';
 import {
   AlertDialog,
@@ -22,16 +23,18 @@ interface UseCaseHistoryProps {
   entityId: string;
   useCaseId: string;
   onRevert?: () => void;
+  initialHistory?: any[]; // For server-side rendering
 }
 
-export function UseCaseHistory({ entityId, useCaseId, onRevert }: UseCaseHistoryProps) {
+export function UseCaseHistory({ entityId, useCaseId, onRevert, initialHistory = [] }: UseCaseHistoryProps) {
   const { toast } = useToast();
-  const [history, setHistory] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [history, setHistory] = useState<any[]>(initialHistory);
+  const [isLoading, setIsLoading] = useState(initialHistory.length === 0);
   const [isReverting, setIsReverting] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadHistory() {
+      if (initialHistory.length > 0) return; // Data already provided
       setIsLoading(true);
       try {
         const historyData = await getUseCaseHistory(entityId, useCaseId);
@@ -47,7 +50,7 @@ export function UseCaseHistory({ entityId, useCaseId, onRevert }: UseCaseHistory
       }
     }
     loadHistory();
-  }, [entityId, useCaseId, toast]);
+  }, [entityId, useCaseId, toast, initialHistory]);
 
   const handleRevert = async (versionId: string) => {
     setIsReverting(versionId);
@@ -96,7 +99,7 @@ export function UseCaseHistory({ entityId, useCaseId, onRevert }: UseCaseHistory
             <li key={version.versionId} className="flex items-center justify-between p-3">
               <div>
                 <p className="font-medium">
-                  Versión del {format(new Date(version.versionId), 'dd/MM/yyyy, HH:mm:ss')}
+                  {version.versionId ? `Versión del ${format(new Date(version.versionId), 'dd/MM/yyyy, HH:mm:ss')}` : "Versión inválida"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Modificado por: (No disponible)
@@ -117,12 +120,12 @@ export function UseCaseHistory({ entityId, useCaseId, onRevert }: UseCaseHistory
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Estás seguro de que quieres revertir?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta acción restaurará el caso de uso a la versión del <span className="font-semibold">{format(new Date(version.versionId), 'dd/MM/yyyy')}</span>. El estado actual se guardará como una nueva versión en el historial.
+                      {version.versionId ? `Esta acción restaurará el caso de uso a la versión del ${format(new Date(version.versionId), 'dd/MM/yyyy')}. El estado actual se guardará como una nueva versión en el historial.` : 'No se puede revertir esta versión.'}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleRevert(version.versionId)}>
+                    <AlertDialogAction onClick={() => handleRevert(version.versionId)} disabled={!version.versionId}>
                       Sí, revertir
                     </AlertDialogAction>
                   </AlertDialogFooter>

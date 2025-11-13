@@ -18,9 +18,10 @@ import { MetricsForm } from './metrics-form';
 interface UseCasePageClientWrapperProps {
   entity: Entity;
   useCase: UseCase;
+  history: any[];
 }
 
-export function UseCasePageClientWrapper({ entity, useCase }: UseCasePageClientWrapperProps) {
+export function UseCasePageClientWrapper({ entity, useCase, history }: UseCasePageClientWrapperProps) {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showMetricsForm, setShowMetricsForm] = useState(false);
 
@@ -64,6 +65,7 @@ export function UseCasePageClientWrapper({ entity, useCase }: UseCasePageClientW
           open={showEditForm}
           onOpenChange={setShowEditForm}
           onSuccess={() => window.location.reload()}
+          initialHistory={history}
         />
       )}
 
