@@ -59,21 +59,22 @@ export function UseCaseForm({
     highLevelStatus: useCase?.highLevelStatus || 'Activo',
     tipoProyecto: useCase?.tipoProyecto || '',
     tipoDesarrollo: useCase?.tipoDesarrollo || '',
-    observaciones: useCase?.observaciones || '',
     sponsor: useCase?.sponsor || '',
-    objetivo: useCase?.objetivo || '',
-    solucion: useCase?.solucion || '',
-    dolores: useCase?.dolores || '',
-    riesgos: useCase?.riesgos || '',
-    impactoEsperado: useCase?.impactoEsperado || '',
-    impactoGenerado: useCase?.impactoGenerado || '',
-    roadmap: useCase?.roadmap && useCase.roadmap.length > 0 ? useCase.roadmap : defaultRoadmap,
     ds1: useCase?.ds1 || '',
     ds2: useCase?.ds2 || '',
     ds3: useCase?.ds3 || '',
     ds4: useCase?.ds4 || '',
     de: useCase?.de || '',
     mds: useCase?.mds || '',
+    // Campos que se inician vacíos
+    observaciones: '',
+    objetivo: '',
+    solucion: '',
+    dolores: '',
+    riesgos: '',
+    impactoEsperado: '',
+    impactoGenerado: '',
+    roadmap: useCase?.roadmap && useCase.roadmap.length > 0 ? useCase.roadmap : defaultRoadmap,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -97,10 +98,33 @@ export function UseCaseForm({
     setIsSubmitting(true);
 
     try {
-      const success = await updateUseCase({
-        ...formData,
+      // We only send the fields that are meant to be updated via this form.
+      const dataToUpdate = {
+        id: formData.id,
         entityId,
-      });
+        name: formData.name,
+        status: formData.status,
+        highLevelStatus: formData.highLevelStatus,
+        tipoProyecto: formData.tipoProyecto,
+        tipoDesarrollo: formData.tipoDesarrollo,
+        sponsor: formData.sponsor,
+        ds1: formData.ds1,
+        ds2: formData.ds2,
+        ds3: formData.ds3,
+        ds4: formData.ds4,
+        de: formData.de,
+        mds: formData.mds,
+        observaciones: formData.observaciones,
+        objetivo: formData.objetivo,
+        solucion: formData.solucion,
+        dolores: formData.dolores,
+        riesgos: formData.riesgos,
+        impactoEsperado: formData.impactoEsperado,
+        impactoGenerado: formData.impactoGenerado,
+        roadmap: formData.roadmap,
+      };
+
+      const success = await updateUseCase(dataToUpdate);
 
       if (success) {
         toast({
