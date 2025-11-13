@@ -17,6 +17,12 @@ service cloud.firestore {
           allow read: if true;
           allow write: if true;
         }
+
+        // Historial de versiones del caso de uso
+        match /history/{versionId} {
+          allow read: if true;
+          allow write: if true;
+        }
       }
     }
     
