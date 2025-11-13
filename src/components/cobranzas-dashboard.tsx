@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LineChart, BarChart, Users, DollarSign, Percent, TrendingUp, History, ScatterChart, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Line, CartesianGrid, Bar } from 'recharts';
+import { Users, DollarSign, Percent, TrendingUp, History } from 'lucide-react';
+import { LineChart, BarChart, ScatterChart, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Line, CartesianGrid, Bar } from 'recharts';
 import type { AllMetrics } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
