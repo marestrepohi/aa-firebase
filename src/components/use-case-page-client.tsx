@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricsCard } from '@/components/metrics-card';
 import { BacktestingDashboard } from '@/components/backtesting-dashboard';
+import { CobranzasDashboard } from '@/components/cobranzas-dashboard'; // Import the new dashboard
 import { DollarSign, Briefcase, Activity, Info } from 'lucide-react';
 import type { Entity, UseCase, Kpi } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,6 +17,7 @@ function isValidDate(dateString: string | undefined): boolean {
     const date = new Date(dateString);
     return !isNaN(date.getTime());
 }
+
 
 function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
   const content = children || <span className="text-muted-foreground italic">No definido</span>;
@@ -64,9 +66,11 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                         {latestValor ? (
                                             <span>
                                                 {latestValor.value}{' '}
-                                                <span className="text-xs text-muted-foreground">
-                                                  ({latestValor.date})
-                                                </span>
+                                                {isValidDate(latestValor.date) ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        ({latestValor.date})
+                                                    </span>
+                                                ) : null}
                                             </span>
                                         ) : (
                                             <span className="text-muted-foreground italic">N/A</span>
@@ -110,6 +114,8 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
     }
     return allDescriptions;
   }, [useCase.metricsConfig]);
+  
+  const isCobranzasUseCase = useCase.id === 'cobranzas-cartera-castigada-bdb';
 
 
   return (
@@ -132,7 +138,7 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <InfoBox title="Estado">{useCase.status}</InfoBox>
                             <InfoBox title="Fecha actualización">
-                                {useCase.lastUpdated ? format(new Date(useCase.lastUpdated), 'dd/MM/yyyy') : "N/A"}
+                                {useCase.lastUpdated && isValidDate(useCase.lastUpdated) ? format(new Date(useCase.lastUpdated), 'dd/MM/yyyy') : "N/A"}
                             </InfoBox>
                             <InfoBox title="Sponsor" className="col-span-2">{useCase.sponsor}</InfoBox>
                           </div>
@@ -149,7 +155,11 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                   </Card>
               </TabsContent>
               <TabsContent value="technical">
+                {isCobranzasUseCase ? (
+                  <CobranzasDashboard allMetrics={useCase.metrics} />
+                ) : (
                   <BacktestingDashboard allMetrics={useCase.metrics} descriptions={descriptions} />
+                )}
               </TabsContent>
               <TabsContent value="business" className="space-y-6">
                 <div className="flex justify-end">
