@@ -3,7 +3,6 @@ import 'server-only';
 import type { Entity, UseCase, SummaryMetrics, Kpi } from './types';
 import { adminDb } from './firebase-admin';
 import * as admin from 'firebase-admin';
-import { format } from 'date-fns';
 
 // Helper to serialize Firestore Timestamps
 const serializeDate = (timestamp: admin.firestore.Timestamp | undefined): string | undefined => {
@@ -13,13 +12,14 @@ const serializeDate = (timestamp: admin.firestore.Timestamp | undefined): string
 const formatDateForDisplay = (dateString: string | undefined): string => {
     if (!dateString) return 'N/A';
     try {
-        // Using T00:00:00Z forces UTC interpretation, which is more consistent
-        const date = new Date(`${dateString}T00:00:00Z`);
-         // Check if the created date is valid
+        const date = new Date(dateString);
         if (isNaN(date.getTime())) {
-            return 'N/A';
+            // Handle cases where dateString might be YYYY-MM by adding a day
+            const dateWithDay = new Date(`${dateString}-02T00:00:00Z`);
+             if (isNaN(dateWithDay.getTime())) return 'N/A';
+             return `${String(dateWithDay.getUTCMonth() + 1).padStart(2, '0')}/${dateWithDay.getUTCFullYear()}`;
         }
-        return format(date, 'dd/MM/yyyy');
+        return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
     } catch {
         return 'N/A';
     }

@@ -19,19 +19,20 @@ function InfoBox({ title, children, className = '' }: { title: string, children:
   );
 }
 
+function isValidDate(dateString: string | undefined): boolean {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+}
+
 const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => {
     const getLatestValorGenerado = (kpi: Kpi) => {
         if (!kpi.valoresGenerados || kpi.valoresGenerados.length === 0) {
             return null;
         }
-        // Dates are already formatted as dd/MM/yyyy on the server
-        // To sort them, we need to convert them back to a comparable format
         const sorted = [...kpi.valoresGenerados].sort((a, b) => {
-            const [dayA, monthA, yearA] = a.date.split('/');
-            const dateA = new Date(`${yearA}-${monthA}-${dayA}`);
-            const [dayB, monthB, yearB] = b.date.split('/');
-            const dateB = new Date(`${yearB}-${monthB}-${dayB}`);
-            return dateB.getTime() - dateA.getTime();
+             if (!isValidDate(a.date) || !isValidDate(b.date)) return 0;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
         });
         return sorted[0];
     };
@@ -60,8 +61,10 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                         {latestValor && latestValor.value ? (
                                             <span>
                                                 {latestValor.value}{' '}
-                                                {latestValor.date && latestValor.date !== 'N/A' ? (
-                                                    <span className="text-xs text-muted-foreground">({latestValor.date})</span>
+                                                {latestValor.date ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        ({latestValor.date})
+                                                    </span>
                                                 ) : null}
                                             </span>
                                         ) : (
@@ -89,11 +92,28 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
 
   const [selectedPeriod, setSelectedPeriod] = useState<string>(availablePeriods[0] || '');
 
-  const metricsForPeriod = useMemo(() => {
-    return useCase.metrics?.[selectedPeriod] || {};
+  const financialMetrics = useMemo(() => {
+    return useCase.metrics?.[selectedPeriod]?.financial || {};
+  }, [useCase.metrics, selectedPeriod]);
+  
+  const businessMetrics = useMemo(() => {
+    return useCase.metrics?.[selectedPeriod]?.business || {};
   }, [useCase.metrics, selectedPeriod]);
 
-  const descriptions = useCase.metricsConfig?.descriptions || {};
+  const technicalMetrics = useMemo(() => {
+    return useCase.metrics?.[selectedPeriod]?.technical || {};
+  }, [useCase.metrics, selectedPeriod]);
+
+  const descriptions = useMemo(() => {
+    const allDescriptions: Record<string, string> = {};
+    if (useCase.metricsConfig) {
+      Object.values(useCase.metricsConfig).forEach(config => {
+        Object.assign(allDescriptions, config.descriptions);
+      });
+    }
+    return allDescriptions;
+  }, [useCase.metricsConfig]);
+
 
   return (
     <>
@@ -148,13 +168,13 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                   </Card>
               </TabsContent>
               <TabsContent value="technical">
-                  <MetricsCard title="Métricas Técnicas" metrics={metricsForPeriod} descriptions={descriptions} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
+                  <MetricsCard title="Métricas Técnicas" metrics={technicalMetrics} descriptions={descriptions} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
               <TabsContent value="business">
-                  <MetricsCard title="Métricas de Negocio" metrics={metricsForPeriod} descriptions={descriptions} icon={<Briefcase className="h-5 w-5 text-muted-foreground" />} />
+                  <MetricsCard title="Métricas de Negocio" metrics={businessMetrics} descriptions={descriptions} icon={<Briefcase className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
               <TabsContent value="financial">
-                  <MetricsCard title="Métricas Financieras" metrics={metricsForPeriod} descriptions={descriptions} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
+                  <MetricsCard title="Métricas Financieras" metrics={financialMetrics} descriptions={descriptions} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
           </div>
       </Tabs>
