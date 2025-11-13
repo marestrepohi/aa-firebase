@@ -13,7 +13,12 @@ const serializeDate = (timestamp: admin.firestore.Timestamp | undefined): string
 const formatDateForDisplay = (dateString: string | undefined): string => {
     if (!dateString) return 'N/A';
     try {
+        // Using T00:00:00Z forces UTC interpretation, which is more consistent
         const date = new Date(`${dateString}T00:00:00Z`);
+         // Check if the created date is valid
+        if (isNaN(date.getTime())) {
+            return 'N/A';
+        }
         return format(date, 'dd/MM/yyyy');
     } catch {
         return 'N/A';
@@ -129,7 +134,7 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
         ...kpi,
         valoresGenerados: (kpi.valoresGenerados || []).map((v: any) => ({
           ...v,
-          date: formatDateForDisplay(v.date)
+          date: formatDateForDisplay(v.date) // Format date on server
         })),
       })),
       roadmap: useCaseData.roadmap || null,
@@ -179,7 +184,7 @@ export async function getAllUseCases(): Promise<UseCase[]> {
         ...kpi,
         valoresGenerados: (kpi.valoresGenerados || []).map((v: any) => ({
           ...v,
-          date: formatDateForDisplay(v.date)
+          date: formatDateForDisplay(v.date) // Format date on server
         })),
       })),
       roadmap: useCaseData.roadmap || null,

@@ -24,15 +24,17 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
         if (!kpi.valoresGenerados || kpi.valoresGenerados.length === 0) {
             return null;
         }
-        const sorted = [...kpi.valoresGenerados].sort((a, b) => b.date.localeCompare(a.date));
+        // Dates are already formatted as dd/MM/yyyy on the server
+        // To sort them, we need to convert them back to a comparable format
+        const sorted = [...kpi.valoresGenerados].sort((a, b) => {
+            const [dayA, monthA, yearA] = a.date.split('/');
+            const dateA = new Date(`${yearA}-${monthA}-${dayA}`);
+            const [dayB, monthB, yearB] = b.date.split('/');
+            const dateB = new Date(`${yearB}-${monthB}-${dayB}`);
+            return dateB.getTime() - dateA.getTime();
+        });
         return sorted[0];
     };
-
-    const isValidDate = (dateString: string | null | undefined): boolean => {
-        if (!dateString) return false;
-        const date = new Date(dateString);
-        return !isNaN(date.getTime());
-    }
 
     return (
         <InfoBox title={title} className="col-span-full">
@@ -58,10 +60,8 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                         {latestValor && latestValor.value ? (
                                             <span>
                                                 {latestValor.value}{' '}
-                                                {isValidDate(latestValor.date) ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ({format(new Date(`${latestValor.date}T00:00:00`), 'dd/MM/yyyy')})
-                                                    </span>
+                                                {latestValor.date && latestValor.date !== 'N/A' ? (
+                                                    <span className="text-xs text-muted-foreground">({latestValor.date})</span>
                                                 ) : null}
                                             </span>
                                         ) : (
