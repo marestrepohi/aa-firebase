@@ -8,6 +8,14 @@ import { BacktestingDashboard } from '@/components/backtesting-dashboard';
 import { DollarSign, Briefcase, Activity, Info } from 'lucide-react';
 import type { Entity, UseCase, Kpi } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+
+function isValidDate(dateString: string | undefined): boolean {
+    if (!dateString) return false;
+    // Check if it's a valid date string that JS can parse
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+}
 
 function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
   const content = children || <span className="text-muted-foreground italic">No definido</span>;
@@ -19,22 +27,17 @@ function InfoBox({ title, children, className = '' }: { title: string, children:
   );
 }
 
-function isValidDate(dateString: string | undefined): boolean {
-    if (!dateString) return false;
-    const date = new Date(dateString);
-    return !isNaN(date.getTime());
-}
-
 const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => {
     const getLatestValorGenerado = (kpi: Kpi) => {
         if (!kpi.valoresGenerados || kpi.valoresGenerados.length === 0) {
             return null;
         }
-        const sorted = [...kpi.valoresGenerados].sort((a, b) => {
-             if (!isValidDate(a.date) || !isValidDate(b.date)) return 0;
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
-        return sorted[0];
+        // Filter for valid dates before sorting
+        const sorted = [...kpi.valoresGenerados]
+            .filter(v => isValidDate(v.date))
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        return sorted.length > 0 ? sorted[0] : null;
     };
 
     return (
@@ -61,11 +64,9 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                         {latestValor ? (
                                             <span>
                                                 {latestValor.value}{' '}
-                                                {latestValor.date ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ({latestValor.date})
-                                                    </span>
-                                                ) : null}
+                                                <span className="text-xs text-muted-foreground">
+                                                  ({latestValor.date})
+                                                </span>
                                             </span>
                                         ) : (
                                             <span className="text-muted-foreground italic">N/A</span>
@@ -131,7 +132,7 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <InfoBox title="Estado">{useCase.status}</InfoBox>
                             <InfoBox title="Fecha actualización">
-                                {useCase.lastUpdated || "N/A"}
+                                {useCase.lastUpdated ? format(new Date(useCase.lastUpdated), 'dd/MM/yyyy') : "N/A"}
                             </InfoBox>
                             <InfoBox title="Sponsor" className="col-span-2">{useCase.sponsor}</InfoBox>
                           </div>
