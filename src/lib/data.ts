@@ -3,8 +3,8 @@ import type { Metric } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-// ----- NEW: Central API endpoint -----
-const API_URL = 'https://us-central1-augusta-edge-project.cloudfunctions.net';
+// ----- NEW: Central API endpoint from environment variables -----
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/augusta-edge-project/us-central1';
 
 // Helper to handle API responses
 async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
@@ -23,13 +23,16 @@ async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
   } catch (error: any) {
     console.error(`Error fetching from ${endpoint}:`, error);
     // For permission errors specifically, we could try to parse them
-    if (error.message.includes('permission-denied')) {
+    if (error.message.includes('permission-denied') || error.message.includes('insufficient permissions')) {
         const path = endpoint.split('?')[0]; // simple path extraction
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: path,
             operation: options.method === 'POST' || options.method === 'PUT' ? 'write' : 'list',
             requestResourceData: options.body ? JSON.parse(options.body as string) : {}
         }));
+    } else {
+        // Emit a generic error for fetch failures
+        errorEmitter.emit('permission-error', new Error(`Failed to fetch from API endpoint: ${endpoint}. Details: ${error.message}`));
     }
     // Return a consistent error structure for other failures
     return { success: false, error: error.message };
