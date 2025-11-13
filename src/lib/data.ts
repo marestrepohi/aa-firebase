@@ -8,11 +8,42 @@ import {
   serverTimestamp,
   runTransaction
 } from 'firebase/firestore';
-import type { Metric } from './types';
+import type { Metric, UseCase } from './types';
 import { db } from './firebase'; // Using client-side initialized firebase
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/augusta-edge-project/us-central1';
+
+async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
+    const defaultOptions: RequestInit = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        ...options,
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/${endpoint}`, defaultOptions);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Request failed with status ' + response.status }));
+            throw new Error(errorData.error || 'API request failed');
+        }
+        return await response.json();
+    } catch (error: any) {
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            console.error('Network error or CORS issue. Ensure the API is running and accessible.');
+            errorEmitter.emit('permission-error', new Error(`Failed to fetch from API endpoint: ${endpoint}. Details: ${error.message}`));
+        } else {
+             errorEmitter.emit('permission-error', new Error(`API Error on ${endpoint}: ${error.message}`));
+        }
+        // Return a consistent error structure for other failures
+        return { success: false, error: error.message };
+    }
+}
+
 
 export async function getMetricsPeriods(
   entityId: string,
@@ -46,32 +77,11 @@ export async function saveMetrics(data: {
     technical: Metric[];
   };
 }) {
-  const { entityId, useCaseId, period, metrics } = data;
-  const metricsRef = doc(
-    db,
-    'entities',
-    entityId,
-    'useCases',
-    useCaseId,
-    'metrics',
-    period
-  );
-  
-  const saveData = {
-      period,
-      ...metrics,
-      updatedAt: serverTimestamp(),
-  };
-
-  return setDoc(metricsRef, saveData, { merge: true }).then(() => true)
-    .catch((error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: metricsRef.path,
-            operation: 'write',
-            requestResourceData: saveData,
-        }));
-        return false;
-    });
+  const result = await fetchFromAPI('saveMetrics', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return result.success;
 }
 
 export async function updateEntity(data: {
@@ -80,58 +90,20 @@ export async function updateEntity(data: {
   description?: string;
   logo?: string;
 }) {
-  const entityRef = doc(db, 'entities', data.id);
-  const updateData: Record<string, any> = { ...data, updatedAt: serverTimestamp() };
-
-  return setDoc(entityRef, updateData, { merge: true }).then(() => true)
-    .catch((error) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: entityRef.path,
-            operation: 'write',
-            requestResourceData: updateData,
-        }));
-        return false;
-    });
+  const result = await fetchFromAPI('updateEntity', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return result.success;
 }
 
-export async function updateUseCase(data: {
-  entityId: string;
-  id: string;
-  [key: string]: any;
-}) {
-    const { entityId, id, ...useCaseData } = data;
-    const useCaseRef = doc(db, 'entities', entityId, 'useCases', id);
-    const historyRef = collection(useCaseRef, 'history');
-    
-    const timestamp = new Date();
-    const versionId = timestamp.toISOString();
 
-    const updateData = { 
-        ...useCaseData, 
-        updatedAt: serverTimestamp()
-    };
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const currentDoc = await transaction.get(useCaseRef);
-            if (currentDoc.exists()) {
-                const historyData = {
-                    ...currentDoc.data(),
-                    versionedAt: timestamp,
-                };
-                transaction.set(doc(historyRef, versionId), historyData);
-            }
-            transaction.set(useCaseRef, updateData, { merge: true });
-        });
-        return true;
-    } catch (error: any) {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: useCaseRef.path,
-            operation: 'write',
-            requestResourceData: updateData,
-        }));
-        return false;
-    }
+export async function updateUseCase(data: Partial<UseCase> & { entityId: string; id: string; }): Promise<boolean> {
+    const result = await fetchFromAPI('updateUseCase', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+    return result.success;
 }
 
 
