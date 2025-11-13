@@ -85,9 +85,12 @@ export interface UseCase {
   riesgos?: string;
   kpis: Kpi[];
   roadmap?: { name: string; completed: boolean }[];
-  metrics: Record<string, Record<MetricCategory, Record<string, any>>>;
+  metrics: AllMetrics;
   metricsConfig?: Record<MetricCategory, MetricsConfigCategory>;
 }
+
+export type AllMetrics = Record<string, Partial<Record<MetricCategory, Record<string, any>>>>;
+
 
 export interface EntityStats {
   active: number;

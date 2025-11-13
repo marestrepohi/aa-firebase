@@ -4,9 +4,9 @@ import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricsCard } from '@/components/metrics-card';
+import { BacktestingDashboard } from '@/components/backtesting-dashboard';
 import { DollarSign, Briefcase, Activity, Info } from 'lucide-react';
 import type { Entity, UseCase, Kpi } from '@/lib/types';
-import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
@@ -58,10 +58,10 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                     <td className="py-2.5 pr-4 text-muted-foreground">{kpi.descripcion}</td>
                                     <td className="py-2.5 pr-4">{kpi.valorEsperado}</td>
                                     <td className="py-2.5 pr-4">
-                                        {latestValor && latestValor.value ? (
+                                        {latestValor ? (
                                             <span>
                                                 {latestValor.value}{' '}
-                                                {latestValor.date ? (
+                                                 {isValidDate(latestValor.date) ? (
                                                     <span className="text-xs text-muted-foreground">
                                                         ({latestValor.date})
                                                     </span>
@@ -99,11 +99,7 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
   const businessMetrics = useMemo(() => {
     return useCase.metrics?.[selectedPeriod]?.business || {};
   }, [useCase.metrics, selectedPeriod]);
-
-  const technicalMetrics = useMemo(() => {
-    return useCase.metrics?.[selectedPeriod]?.technical || {};
-  }, [useCase.metrics, selectedPeriod]);
-
+  
   const descriptions = useMemo(() => {
     const allDescriptions: Record<string, string> = {};
     if (useCase.metricsConfig) {
@@ -118,29 +114,13 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
   return (
     <>
       <Tabs defaultValue="information">
-          <div className="flex justify-between items-center">
-            <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="information">Información General</TabsTrigger>
-              <TabsTrigger value="technical">Métricas Técnicas</TabsTrigger>
-              <TabsTrigger value="business">Métricas de Negocio</TabsTrigger>
-              <TabsTrigger value="financial">Métricas Financieras</TabsTrigger>
-            </TabsList>
-            {availablePeriods.length > 0 && (
-                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">Período:</span>
-                    <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Seleccionar período" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {availablePeriods.map(period => (
-                                <SelectItem key={period} value={period}>{period}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            )}
-          </div>
+          <TabsList className="grid grid-cols-4">
+            <TabsTrigger value="information">Información General</TabsTrigger>
+            <TabsTrigger value="technical">Seguimiento Técnico</TabsTrigger>
+            <TabsTrigger value="business">Métricas de Negocio</TabsTrigger>
+            <TabsTrigger value="financial">Métricas Financieras</TabsTrigger>
+          </TabsList>
+          
           <div className="mt-6">
               <TabsContent value="information">
                   <Card>
@@ -151,7 +131,7 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <InfoBox title="Estado">{useCase.status}</InfoBox>
                             <InfoBox title="Fecha actualización">
-                                {useCase.lastUpdated ? format(new Date(useCase.lastUpdated), 'dd/MM/yyyy') : 'N/A'}
+                                {isValidDate(useCase.lastUpdated) ? useCase.lastUpdated : 'N/A'}
                             </InfoBox>
                             <InfoBox title="Sponsor" className="col-span-2">{useCase.sponsor}</InfoBox>
                           </div>
@@ -168,13 +148,47 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                   </Card>
               </TabsContent>
               <TabsContent value="technical">
-                  <MetricsCard title="Métricas Técnicas" metrics={technicalMetrics} descriptions={descriptions} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
+                  <BacktestingDashboard allMetrics={useCase.metrics} descriptions={descriptions} />
               </TabsContent>
-              <TabsContent value="business">
-                  <MetricsCard title="Métricas de Negocio" metrics={businessMetrics} descriptions={descriptions} icon={<Briefcase className="h-5 w-5 text-muted-foreground" />} />
+              <TabsContent value="business" className="space-y-6">
+                <div className="flex justify-end">
+                    {availablePeriods.length > 0 && (
+                         <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Período:</span>
+                            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Seleccionar período" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availablePeriods.map(period => (
+                                        <SelectItem key={period} value={period}>{period}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                </div>
+                <MetricsCard title="Métricas de Negocio" metrics={businessMetrics} descriptions={descriptions} icon={<Briefcase className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
-              <TabsContent value="financial">
-                  <MetricsCard title="Métricas Financieras" metrics={financialMetrics} descriptions={descriptions} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
+              <TabsContent value="financial" className="space-y-6">
+                <div className="flex justify-end">
+                    {availablePeriods.length > 0 && (
+                         <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Período:</span>
+                            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Seleccionar período" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availablePeriods.map(period => (
+                                        <SelectItem key={period} value={period}>{period}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                </div>
+                <MetricsCard title="Métricas Financieras" metrics={financialMetrics} descriptions={descriptions} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
           </div>
       </Tabs>
