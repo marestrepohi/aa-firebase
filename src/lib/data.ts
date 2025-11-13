@@ -14,36 +14,32 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/augusta-edge-project/us-central1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001/augusta-edge-project/us-central1';
 
 async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
-    const defaultOptions: RequestInit = {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        ...options,
-    };
-
+    const finalEndpoint = `${API_URL}/${endpoint}`;
+    
     try {
-        const response = await fetch(`${API_URL}/${endpoint}`, defaultOptions);
+        const response = await fetch(finalEndpoint, options);
+        
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Request failed with status ' + response.status }));
-            throw new Error(errorData.error || 'API request failed');
+            const errorData = await response.json().catch(() => ({ error: `Request to ${endpoint} failed with status ${response.status}` }));
+            throw new Error(errorData.error || `API request to ${endpoint} failed`);
         }
         return await response.json();
     } catch (error: any) {
-        if (error instanceof TypeError && error.message === 'Failed to fetch') {
-            console.error('Network error or CORS issue. Ensure the API is running and accessible.');
-            errorEmitter.emit('permission-error', new Error(`Failed to fetch from API endpoint: ${endpoint}. Details: ${error.message}`));
-        } else {
-             errorEmitter.emit('permission-error', new Error(`API Error on ${endpoint}: ${error.message}`));
+        let errorMessage = `Failed to fetch from API endpoint: ${endpoint}. Details: ${error.message}`;
+
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+             errorMessage = 'Network error or CORS issue. Please check console and ensure the API is running and accessible.';
         }
-        // Return a consistent error structure for other failures
-        return { success: false, error: error.message };
+        
+        console.error("API Fetch Error:", errorMessage, "Full URL:", finalEndpoint);
+        errorEmitter.emit('permission-error', new Error(errorMessage));
+        
+        return { success: false, error: errorMessage };
     }
 }
-
 
 export async function getMetricsPeriods(
   entityId: string,
@@ -80,6 +76,7 @@ export async function saveMetrics(data: {
   const result = await fetchFromAPI('saveMetrics', {
     method: 'POST',
     body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' },
   });
   return result.success;
 }
@@ -93,6 +90,7 @@ export async function updateEntity(data: {
   const result = await fetchFromAPI('updateEntity', {
     method: 'POST',
     body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' },
   });
   return result.success;
 }
@@ -102,6 +100,7 @@ export async function updateUseCase(data: Partial<UseCase> & { entityId: string;
     const result = await fetchFromAPI('updateUseCase', {
         method: 'POST',
         body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
     });
     return result.success;
 }

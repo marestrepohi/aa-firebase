@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface MetricsCardProps {
   title: string;
-  metrics: Metric[];
+  metrics: Record<string, string | number>;
+  descriptions: Record<string, string>;
   icon: React.ReactNode;
 }
 
-export function MetricsCard({ title, metrics, icon }: MetricsCardProps) {
+export function MetricsCard({ title, metrics, descriptions, icon }: MetricsCardProps) {
+  const metricEntries = Object.entries(metrics || {});
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -15,14 +18,13 @@ export function MetricsCard({ title, metrics, icon }: MetricsCardProps) {
         {icon}
       </CardHeader>
       <CardContent>
-        {metrics.length > 0 ? (
+        {metricEntries.length > 0 ? (
           <div className="space-y-4">
-            {metrics.map((metric) => (
-              <div key={metric.label} className="flex justify-between items-baseline">
-                <p className="text-sm text-muted-foreground">{metric.label}</p>
+            {metricEntries.map(([key, value]) => (
+              <div key={key} className="flex justify-between items-baseline">
+                <p className="text-sm text-muted-foreground" title={descriptions[key] || ''}>{key}</p>
                 <p className="text-lg font-bold">
-                  {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
-                  {metric.unit && <span className="text-sm font-normal text-muted-foreground ml-1">{metric.unit}</span>}
+                  {typeof value === 'number' ? value.toLocaleString() : value}
                 </p>
               </div>
             ))}

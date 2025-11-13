@@ -33,6 +33,13 @@ export type UseCaseStatus =
   | 'Cancelled'
   | 'Task Assigned';
 
+export interface MetricsConfig {
+  separator: string;
+  dateColumn: string;
+  dateFormat: string;
+  descriptions: Record<string, string>;
+}
+
 export interface UseCase {
   id: string;
   entityId: string;
@@ -76,12 +83,8 @@ export interface UseCase {
   riesgos?: string;
   kpis: Kpi[];
   roadmap?: { name: string; completed: boolean }[];
-  metrics: {
-    period?: string;
-    financial: Metric[];
-    business: Metric[];
-    technical: Metric[];
-  };
+  metrics: Record<string, Record<string, any>>;
+  metricsConfig?: MetricsConfig;
 }
 
 export interface EntityStats {

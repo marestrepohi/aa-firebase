@@ -71,10 +71,7 @@ export function UseCasePageClientWrapper({ entity, useCase, history }: UseCasePa
 
       {showMetricsForm && (
         <MetricsForm
-          entityId={useCase.entityId}
-          useCaseId={useCase.id}
-          initialPeriod={useCase.metrics.period}
-          initialMetrics={useCase.metrics}
+          useCase={useCase}
           open={showMetricsForm}
           onOpenChange={setShowMetricsForm}
           onSuccess={() => window.location.reload()}

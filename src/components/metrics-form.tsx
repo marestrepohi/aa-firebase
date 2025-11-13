@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,293 +12,249 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { saveMetrics, getMetricsPeriods } from '@/lib/data';
-import { Loader2, Plus, X } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { updateUseCase } from '@/lib/data';
+import { Loader2, Upload, Settings, ChevronRight, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MetricsPeriodSelector } from './metrics-period-selector';
-import type { Metric } from '@/lib/types';
+import { UseCase } from '@/lib/types';
+import Papa from 'papaparse';
 
 interface MetricsFormProps {
-  entityId: string;
-  useCaseId: string;
-  initialPeriod?: string;
-  initialMetrics?: {
-    financial: Metric[] | Record<string, any>;
-    business: Metric[] | Record<string, any>;
-    technical: Metric[] | Record<string, any>;
-  };
+  useCase: UseCase;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
 }
 
-type MetricCategory = 'financial' | 'business' | 'technical';
+type WizardStep = 'upload' | 'configure' | 'map';
 
-const emptyMetrics = {
-  financial: [],
-  business: [],
-  technical: [],
-};
-
-const ensureArray = (data: any): Metric[] => {
-    if (Array.isArray(data)) {
-      return data;
-    }
-    if (typeof data === 'object' && data !== null) {
-      return Object.entries(data).map(([label, value]) => ({ label, value: String(value) }));
-    }
-    return [];
-};
-
-
-export function MetricsForm({
-  entityId,
-  useCaseId,
-  initialPeriod = '',
-  initialMetrics,
-  open,
-  onOpenChange,
-  onSuccess,
-}: MetricsFormProps) {
+export function MetricsForm({ useCase, open, onOpenChange, onSuccess }: MetricsFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
-  const [metrics, setMetrics] = useState({
-    technical: ensureArray(initialMetrics?.technical),
-    business: ensureArray(initialMetrics?.business),
-    financial: ensureArray(initialMetrics?.financial),
-  });
-  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
+  const [wizardStep, setWizardStep] = useState<WizardStep>('upload');
+  
+  // File and CSV data
+  const [file, setFile] = useState<File | null>(null);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  
+  // Configuration
+  const [separator, setSeparator] = useState(useCase.metricsConfig?.separator || ';');
+  const [dateColumn, setDateColumn] = useState(useCase.metricsConfig?.dateColumn || '');
+  const [dateFormat, setDateFormat] = useState(useCase.metricsConfig?.dateFormat || 'yyyy-MM');
+  
+  // Mapping
+  const [metricDescriptions, setMetricDescriptions] = useState<Record<string, string>>(useCase.metricsConfig?.descriptions || {});
 
-  useEffect(() => {
-    async function loadMetricsForPeriod(period: string) {
-      if (!period) {
-        setMetrics({
-          technical: ensureArray(initialMetrics?.technical),
-          business: ensureArray(initialMetrics?.business),
-          financial: ensureArray(initialMetrics?.financial),
-        });
+  const isConfigSaved = !!useCase.metricsConfig;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFile = e.target.files?.[0];
+    if (uploadedFile) {
+      setFile(uploadedFile);
+      
+      Papa.parse(uploadedFile, {
+        header: true,
+        skipEmptyLines: true,
+        delimiter: separator,
+        complete: (results) => {
+          setCsvData(results.data);
+          const headers = results.meta.fields || [];
+          setCsvHeaders(headers);
+          if (isConfigSaved) {
+            // If config exists, go straight to mapping, but let user adjust if needed
+            setWizardStep('map');
+          } else {
+            setWizardStep('configure');
+          }
+        },
+      });
+    }
+  };
+
+  const handleSaveConfiguration = async () => {
+    if (!dateColumn) {
+        toast({ title: "Error", description: "Por favor selecciona la columna de fecha.", variant: "destructive" });
         return;
-      }
-      setIsLoadingMetrics(true);
-      try {
-        const periodsData = await getMetricsPeriods(entityId, useCaseId);
-        const periodData = periodsData.find((p: any) => p.period === period);
-        
-        setMetrics({
-          technical: ensureArray(periodData?.technical),
-          business: ensureArray(periodData?.business),
-          financial: ensureArray(periodData?.financial),
-        });
-      } catch (error) {
-        console.error('Error loading metrics for period', error);
-        setMetrics(emptyMetrics);
-      } finally {
-        setIsLoadingMetrics(false);
-      }
     }
-    loadMetricsForPeriod(selectedPeriod);
-  }, [selectedPeriod, entityId, useCaseId, initialMetrics]);
-
-
-  const addMetric = (category: MetricCategory) => {
-    const currentMetrics = metrics[category] || [];
-    setMetrics({
-      ...metrics,
-      [category]: [...currentMetrics, { label: '', value: '' }],
-    });
+    setWizardStep('map');
   };
 
-  const removeMetric = (category: MetricCategory, index: number) => {
-    const currentMetrics = metrics[category] || [];
-    setMetrics({
-      ...metrics,
-      [category]: currentMetrics.filter((_, i) => i !== index),
-    });
-  };
-
-  const updateMetric = (
-    category: MetricCategory,
-    index: number,
-    field: 'label' | 'value',
-    value: string
-  ) => {
-    const currentMetrics = metrics[category] || [];
-    const updated = [...currentMetrics];
-    updated[index] = { ...updated[index], [field]: value };
-    setMetrics({
-      ...metrics,
-      [category]: updated,
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedPeriod) {
-      toast({
-        title: 'Error',
-        description: 'Por favor selecciona un período',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handleSubmit = async () => {
     setIsSubmitting(true);
-
+    
+    // Transform CSV data into metrics object
+    const newMetricsData = csvData.reduce((acc, row) => {
+        const period = row[dateColumn];
+        if (period) {
+            if (!acc[period]) {
+                acc[period] = {};
+            }
+            csvHeaders.forEach(header => {
+                if (header !== dateColumn) {
+                    acc[period][header] = row[header];
+                }
+            });
+        }
+        return acc;
+    }, {});
+    
+    const configToSave = {
+        separator,
+        dateColumn,
+        dateFormat,
+        descriptions: metricDescriptions,
+    };
+    
     try {
-      const metricsToSave = {
-        financial: (metrics.financial || []).map(m => ({ label: m.label, value: String(m.value) })),
-        business: (metrics.business || []).map(m => ({ label: m.label, value: String(m.value) })),
-        technical: (metrics.technical || []).map(m => ({ label: m.label, value: String(m.value) })),
-      };
-
-      const success = await saveMetrics({
-        entityId,
-        useCaseId,
-        period: selectedPeriod,
-        metrics: metricsToSave,
-      });
-
-      if (success) {
-        toast({
-          title: 'Éxito',
-          description: `Métricas guardadas para ${selectedPeriod}`,
+        const success = await updateUseCase({
+            entityId: useCase.entityId,
+            id: useCase.id,
+            metrics: { ...useCase.metrics, ...newMetricsData },
+            metricsConfig: configToSave,
         });
-        onOpenChange(false);
-        if (onSuccess) onSuccess();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'No se pudieron guardar las métricas',
-          variant: 'destructive',
-        });
-      }
+
+        if (success) {
+            toast({ title: 'Éxito', description: 'Métricas importadas y guardadas correctamente.' });
+            onSuccess?.();
+            onOpenChange(false);
+        } else {
+            toast({ title: 'Error', description: 'No se pudieron guardar las métricas.', variant: 'destructive' });
+        }
     } catch (error) {
-      console.error('Error saving metrics:', error);
-      toast({
-        title: 'Error',
-        description: 'Ocurrió un error al guardar',
-        variant: 'destructive',
-      });
+        console.error("Error saving metrics:", error);
+        toast({ title: 'Error', description: 'Ocurrió un error inesperado.', variant: 'destructive' });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
   };
+  
+  const resetWizard = () => {
+    setFile(null);
+    setCsvData([]);
+    setCsvHeaders([]);
+    setWizardStep('upload');
+  }
 
-  const renderMetricsSection = (category: MetricCategory, title: string) => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => addMetric(category)}
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          Agregar
-        </Button>
-      </div>
-
-      {isLoadingMetrics ? (
-         <div className="flex justify-center items-center h-24">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-         </div>
-      ) : (metrics[category] || []).length === 0 ? (
-        <p className="text-sm text-center text-muted-foreground py-4">
-          No hay métricas. Haz clic en "Agregar" para crear una.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {(metrics[category] || []).map((metric, index) => (
-            <div key={index} className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  placeholder="Nombre de la métrica"
-                  value={metric.label}
-                  onChange={(e) => updateMetric(category, index, 'label', e.target.value)}
-                />
-              </div>
-              <div className="w-32">
-                <Input
-                  placeholder="Valor"
-                  value={metric.value}
-                  onChange={(e) => updateMetric(category, index, 'value', e.target.value)}
-                />
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => removeMetric(category, index)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+  const renderContent = () => {
+    switch (wizardStep) {
+      case 'upload':
+        return (
+          <div className="text-center space-y-4 py-12">
+            <h3 className="text-lg font-medium">Importar Métricas desde CSV</h3>
+            <p className="text-sm text-muted-foreground">Sube un archivo para añadir o actualizar el historial de métricas.</p>
+            <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-primary transition-colors">
+                <Upload className="mx-auto h-10 w-10 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-600">
+                    Arrastra y suelta un archivo CSV aquí, o haz clic para seleccionarlo.
+                </p>
+                <Input id="csv-upload" type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} accept=".csv" />
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+            {isConfigSaved && <p className="text-xs text-muted-foreground pt-4">Ya existe una configuración guardada. El sistema la usará para procesar el archivo.</p>}
+          </div>
+        );
+      case 'configure':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-medium">Paso 1: Configuración de Datos</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">Ayuda al sistema a entender tu archivo. Esta configuración se guardará para futuras cargas.</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="separator">Separador de Columnas</Label>
+                  <Select value={separator} onValueChange={setSeparator}>
+                    <SelectTrigger id="separator"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value=";">Punto y coma (;)</SelectItem>
+                      <SelectItem value=",">Coma (,)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="date-format">Formato de Fecha</Label>
+                  <Select value={dateFormat} onValueChange={setDateFormat}>
+                    <SelectTrigger id="date-format"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yyyy-MM">Año-Mes (ej: 2024-10)</SelectItem>
+                      <SelectItem value="yyyy-MM-dd">Año-Mes-Día (ej: 2024-10-25)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="date-column">Columna de Fecha/Período</Label>
+                <Select value={dateColumn} onValueChange={setDateColumn}>
+                    <SelectTrigger id="date-column"><SelectValue placeholder="Selecciona una columna..." /></SelectTrigger>
+                    <SelectContent>
+                        {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end">
+                <Button onClick={handleSaveConfiguration}>
+                    Siguiente: Mapear Campos <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+            </div>
+          </div>
+        );
+      case 'map':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-medium">Paso 2: Describe tus Métricas</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">Añade una descripción para cada métrica. Esto dará contexto a tus datos y solo necesitas hacerlo una vez.</p>
+            <div className="max-h-80 overflow-y-auto space-y-3 pr-2">
+                {csvHeaders.filter(h => h !== dateColumn).map(header => (
+                    <div key={header}>
+                        <Label htmlFor={`desc-${header}`} className="font-semibold">{header}</Label>
+                        <Input
+                            id={`desc-${header}`}
+                            placeholder="Añade una breve descripción..."
+                            value={metricDescriptions[header] || ''}
+                            onChange={(e) => setMetricDescriptions({...metricDescriptions, [header]: e.target.value})}
+                        />
+                    </div>
+                ))}
+            </div>
+            <div className="flex justify-end">
+                <Button onClick={handleSubmit} disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Guardar y Finalizar
+                </Button>
+            </div>
+          </div>
+        );
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Editar Métricas</DialogTitle>
-          <DialogDescription>
-            Edita las métricas del caso de uso por período. Los cambios se guardan por período.
-          </DialogDescription>
+          <DialogTitle>Métricas del Caso de Uso</DialogTitle>
+          <DialogDescription>Importa y gestiona las métricas de negocio, técnicas y financieras.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <MetricsPeriodSelector
-            entityId={entityId}
-            useCaseId={useCaseId}
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-          />
+        <div className="min-h-[350px]">
+          {renderContent()}
+        </div>
 
-          <Tabs defaultValue="technical" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="technical">Técnico</TabsTrigger>
-              <TabsTrigger value="business">Negocio</TabsTrigger>
-              <TabsTrigger value="financial">Financiero</TabsTrigger>
-            </TabsList>
-
-            <ScrollArea className="h-[400px] mt-4">
-              <div className="pr-4">
-                <TabsContent value="technical">
-                  {renderMetricsSection('technical', 'Métricas Técnicas')}
-                </TabsContent>
-                <TabsContent value="business">
-                  {renderMetricsSection('business', 'Métricas de Negocio')}
-                </TabsContent>
-                <TabsContent value="financial">
-                  {renderMetricsSection('financial', 'Métricas Financieras')}
-                </TabsContent>
-              </div>
-            </ScrollArea>
-          </Tabs>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !selectedPeriod}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Guardar Métricas
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          {wizardStep !== 'upload' && <Button variant="outline" onClick={resetWizard}>Volver a empezar</Button>}
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancelar</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

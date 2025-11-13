@@ -13,7 +13,6 @@ const serializeDate = (timestamp: admin.firestore.Timestamp | undefined): string
 const formatDateForDisplay = (dateString: string | undefined): string => {
     if (!dateString) return 'N/A';
     try {
-        // The date string is YYYY-MM-DD. We need to parse it as UTC.
         const date = new Date(`${dateString}T00:00:00Z`);
         return format(date, 'dd/MM/yyyy');
     } catch {
@@ -27,7 +26,10 @@ const serializeObject = (obj: any) => {
     for (const key in newObj) {
       if (newObj[key] instanceof admin.firestore.Timestamp) {
         newObj[key] = serializeDate(newObj[key]);
-      } else if (typeof newObj[key] === 'object' && newObj[key] !== null) {
+      } else if (Array.isArray(newObj[key])) {
+        newObj[key] = newObj[key].map(serializeObject);
+      }
+       else if (typeof newObj[key] === 'object' && newObj[key] !== null) {
         newObj[key] = serializeObject(newObj[key]);
       }
     }
@@ -117,21 +119,22 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
 
   const useCases = await Promise.all(useCasesSnapshot.docs.map(async doc => {
     const useCaseData = doc.data();
-    const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
-    
-    let metrics: any = { general: [], financial: [], business: [], technical: [] };
-    if (!metricsSnapshot.empty) {
-      metrics = metricsSnapshot.docs[0].data();
-    }
     
     const useCase = {
       ...useCaseData,
       id: doc.id,
       lastUpdated: serializeDate(useCaseData.updatedAt),
       createdAt: serializeDate(useCaseData.createdAt),
-      metrics: serializeObject(metrics),
+      kpis: (useCaseData.kpis || []).map((kpi: any) => ({
+        ...kpi,
+        valoresGenerados: (kpi.valoresGenerados || []).map((v: any) => ({
+          ...v,
+          date: formatDateForDisplay(v.date)
+        })),
+      })),
       roadmap: useCaseData.roadmap || null,
-      kpis: useCaseData.kpis || [],
+      metrics: serializeObject(useCaseData.metrics),
+      metricsConfig: useCaseData.metricsConfig,
     } as UseCase;
     
     delete (useCase as any).updatedAt;
@@ -166,21 +169,22 @@ export async function getAllUseCases(): Promise<UseCase[]> {
 
   const useCases = await Promise.all(useCasesSnapshot.docs.map(async doc => {
     const useCaseData = doc.data();
-    const metricsSnapshot = await doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get();
-    
-    let metrics: any = { general: [], financial: [], business: [], technical: [] };
-    if (!metricsSnapshot.empty) {
-      metrics = metricsSnapshot.docs[0].data();
-    }
     
     const useCase = {
       ...useCaseData,
       id: doc.id,
       lastUpdated: serializeDate(useCaseData.updatedAt),
       createdAt: serializeDate(useCaseData.createdAt),
-      metrics: serializeObject(metrics),
+      kpis: (useCaseData.kpis || []).map((kpi: any) => ({
+        ...kpi,
+        valoresGenerados: (kpi.valoresGenerados || []).map((v: any) => ({
+          ...v,
+          date: formatDateForDisplay(v.date)
+        })),
+      })),
       roadmap: useCaseData.roadmap || null,
-      kpis: useCaseData.kpis || [],
+      metrics: serializeObject(useCaseData.metrics),
+      metricsConfig: useCaseData.metricsConfig,
     } as UseCase;
     
     delete (useCase as any).updatedAt;

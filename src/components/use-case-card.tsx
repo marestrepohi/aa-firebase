@@ -164,10 +164,7 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
 
     {showMetricsForm && (
       <MetricsForm
-        entityId={useCase.entityId}
-        useCaseId={useCase.id}
-        initialPeriod={useCase.metrics.period}
-        initialMetrics={useCase.metrics}
+        useCase={useCase}
         open={showMetricsForm}
         onOpenChange={setShowMetricsForm}
         onSuccess={() => window.location.reload()}

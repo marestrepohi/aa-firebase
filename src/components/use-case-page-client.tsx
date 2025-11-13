@@ -1,11 +1,13 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricsCard } from '@/components/metrics-card';
 import { DollarSign, Briefcase, Activity, Info } from 'lucide-react';
 import type { Entity, UseCase, Kpi } from '@/lib/types';
 import { format } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
   const content = children || <span className="text-muted-foreground italic">No definido</span>;
@@ -22,7 +24,6 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
         if (!kpi.valoresGenerados || kpi.valoresGenerados.length === 0) {
             return null;
         }
-        // Assuming dates are in 'YYYY-MM-DD' format, string comparison works for sorting
         const sorted = [...kpi.valoresGenerados].sort((a, b) => b.date.localeCompare(a.date));
         return sorted[0];
     };
@@ -66,19 +67,47 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
     );
 }
 
-
 export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase: UseCase }) {
   const team = [useCase.ds1, useCase.ds2, useCase.ds3, useCase.ds4, useCase.de, useCase.mds].filter(Boolean).join(' - ');
   
+  const availablePeriods = useMemo(() => {
+    return Object.keys(useCase.metrics || {}).sort().reverse();
+  }, [useCase.metrics]);
+
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(availablePeriods[0] || '');
+
+  const metricsForPeriod = useMemo(() => {
+    return useCase.metrics?.[selectedPeriod] || {};
+  }, [useCase.metrics, selectedPeriod]);
+
+  const descriptions = useCase.metricsConfig?.descriptions || {};
+
   return (
     <>
       <Tabs defaultValue="information">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="information">Información General</TabsTrigger>
-            <TabsTrigger value="technical">Métricas Técnicas</TabsTrigger>
-            <TabsTrigger value="business">Métricas de Negocio</TabsTrigger>
-            <TabsTrigger value="financial">Métricas Financieras</TabsTrigger>
-          </TabsList>
+          <div className="flex justify-between items-center">
+            <TabsList className="grid grid-cols-4">
+              <TabsTrigger value="information">Información General</TabsTrigger>
+              <TabsTrigger value="technical">Métricas Técnicas</TabsTrigger>
+              <TabsTrigger value="business">Métricas de Negocio</TabsTrigger>
+              <TabsTrigger value="financial">Métricas Financieras</TabsTrigger>
+            </TabsList>
+            {availablePeriods.length > 0 && (
+                 <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Período:</span>
+                    <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Seleccionar período" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {availablePeriods.map(period => (
+                                <SelectItem key={period} value={period}>{period}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+          </div>
           <div className="mt-6">
               <TabsContent value="information">
                   <Card>
@@ -106,13 +135,13 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                   </Card>
               </TabsContent>
               <TabsContent value="technical">
-                  <MetricsCard title="Métricas Técnicas" metrics={useCase.metrics.technical} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
+                  <MetricsCard title="Métricas Técnicas" metrics={metricsForPeriod} descriptions={descriptions} icon={<Activity className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
               <TabsContent value="business">
-                  <MetricsCard title="Métricas de Negocio" metrics={useCase.metrics.business} icon={<Briefcase className="h-5 w-5 text-muted-foreground" />} />
+                  <MetricsCard title="Métricas de Negocio" metrics={metricsForPeriod} descriptions={descriptions} icon={<Briefcase className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
               <TabsContent value="financial">
-                  <MetricsCard title="Métricas Financieras" metrics={useCase.metrics.financial} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
+                  <MetricsCard title="Métricas Financieras" metrics={metricsForPeriod} descriptions={descriptions} icon={<DollarSign className="h-5 w-5 text-muted-foreground" />} />
               </TabsContent>
           </div>
       </Tabs>
