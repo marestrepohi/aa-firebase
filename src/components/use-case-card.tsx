@@ -136,7 +136,6 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
               {externalLinks.map(link => (
                 <Button key={link.name} variant="outline" size="sm" asChild className="h-7 text-xs px-2">
                   <a href={link.url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-3 h-3 mr-1.5" />
                     {link.name}
                   </a>
                 </Button>
