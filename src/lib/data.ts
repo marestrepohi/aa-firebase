@@ -1,57 +1,64 @@
 'use client';
 import type { Metric } from './types';
-import { db } from './firebase'; // Using client-side firebase instance
-import { collection, getDocs, doc, setDoc, getDoc, query, orderBy } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-export async function getMetrics(entityId: string, useCaseId: string) {
-    const metricsCollectionRef = collection(db, 'entities', entityId, 'useCases', useCaseId, 'metrics');
-    try {
-        const metricsSnapshot = await getDocs(metricsCollectionRef);
-        if (metricsSnapshot.empty) {
-            return null;
-        }
-        const metricsData = metricsSnapshot.docs[0].data();
-        return {
-            general: metricsData.general || [],
-            financial: metricsData.financial || [],
-            business: metricsData.business || [],
-            technical: metricsData.technical || [],
-        };
-    } catch (serverError: any) {
-        if (serverError.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: metricsCollectionRef.path,
-                operation: 'list',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-        throw serverError;
+// ----- NEW: Central API endpoint -----
+const API_URL = 'https://us-central1-augusta-edge-project.cloudfunctions.net';
+
+// Helper to handle API responses
+async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
+  try {
+    const response = await fetch(`${API_URL}/${endpoint}`, options);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Request failed with status ' + response.status }));
+      throw new Error(errorData.error || 'API request failed');
     }
+    const data = await response.json();
+    if (data.success) {
+      return data;
+    } else {
+      throw new Error(data.error || 'API returned an error');
+    }
+  } catch (error: any) {
+    console.error(`Error fetching from ${endpoint}:`, error);
+    // For permission errors specifically, we could try to parse them
+    if (error.message.includes('permission-denied')) {
+        const path = endpoint.split('?')[0]; // simple path extraction
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: path,
+            operation: options.method === 'POST' || options.method === 'PUT' ? 'write' : 'list',
+            requestResourceData: options.body ? JSON.parse(options.body as string) : {}
+        }));
+    }
+    // Return a consistent error structure for other failures
+    return { success: false, error: error.message };
+  }
+}
+
+
+export async function getMetrics(entityId: string, useCaseId: string) {
+    const data = await fetchFromAPI(`getUseCase?entityId=${entityId}&useCaseId=${useCaseId}`);
+    if (data.success) {
+        return data.useCase.metrics;
+    }
+    return {
+        general: [],
+        financial: [],
+        business: [],
+        technical: [],
+    };
 }
 
 export async function getMetricsPeriods(
   entityId: string,
   useCaseId: string
 ): Promise<Array<{ period: string }>> {
-  const metricsCollectionRef = collection(db, 'entities', entityId, 'useCases', useCaseId, 'metrics');
-  try {
-    const snapshot = await getDocs(metricsCollectionRef);
-    return snapshot.docs.map(doc => ({ period: doc.id, ...doc.data() }));
-  } catch (serverError: any) {
-    if (serverError.code === 'permission-denied') {
-        const permissionError = new FirestorePermissionError({
-            path: metricsCollectionRef.path,
-            operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }
-    return [];
-  }
+  const data = await fetchFromAPI(`getMetricsPeriods?entityId=${entityId}&useCaseId=${useCaseId}`);
+  return data.success ? data.periods : [];
 }
 
-export function saveMetrics(data: {
+export async function saveMetrics(data: {
   entityId: string;
   useCaseId: string;
   period: string;
@@ -61,78 +68,45 @@ export function saveMetrics(data: {
     technical: Metric[];
   };
 }) {
-  const { entityId, useCaseId, period, metrics } = data;
-  const docRef = doc(db, 'entities', entityId, 'useCases', useCaseId, 'metrics', period);
-  setDoc(docRef, { ...metrics, period }, { merge: true })
-    .catch(async (serverError) => {
-        if (serverError.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'update',
-                requestResourceData: { ...metrics, period },
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-    });
+  const result = await fetchFromAPI('saveMetrics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return result.success;
 }
 
-export function updateEntity(data: {
+export async function updateEntity(data: {
   id: string;
   name?: string;
   description?: string;
   logo?: string;
 }) {
-  const docRef = doc(db, 'entities', data.id);
-  setDoc(docRef, data, { merge: true })
-    .catch(async (serverError) => {
-        if (serverError.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'update',
-                requestResourceData: data,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-    });
+  const result = await fetchFromAPI('updateEntity', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return result.success;
 }
 
-export function updateUseCase(data: {
+export async function updateUseCase(data: {
   entityId: string;
   id: string;
   [key: string]: any;
 }) {
-    const { entityId, id, ...useCaseData } = data;
-    const docRef = doc(db, 'entities', entityId, 'useCases', id);
-    setDoc(docRef, useCaseData, { merge: true })
-      .catch(async (serverError) => {
-          if (serverError.code === 'permission-denied') {
-              const permissionError = new FirestorePermissionError({
-                  path: docRef.path,
-                  operation: 'update',
-                  requestResourceData: useCaseData,
-              });
-              errorEmitter.emit('permission-error', permissionError);
-          }
-      });
+    const result = await fetchFromAPI('updateUseCase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return result.success;
 }
 
 
 export async function getUseCaseHistory(entityId: string, useCaseId: string): Promise<any[]> {
-    const historyCollectionRef = collection(db, 'entities', entityId, 'useCases', useCaseId, 'history');
-    try {
-        const historyQuery = query(historyCollectionRef, orderBy('versionedAt', 'desc'));
-        const snapshot = await getDocs(historyQuery);
-        return snapshot.docs.map(doc => ({ versionId: doc.id, ...doc.data() }));
-    } catch (serverError: any) {
-        if (serverError.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: historyCollectionRef.path,
-                operation: 'list',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-        return [];
-    }
+    const data = await fetchFromAPI(`getUseCaseHistory?entityId=${entityId}&useCaseId=${useCaseId}`);
+    return data.success ? data.history : [];
 }
 
 
@@ -141,29 +115,10 @@ export async function revertUseCaseVersion(
   useCaseId: string, 
   versionId: string
 ): Promise<{success: boolean, error?: string}> {
-    const historyDocRef = doc(db, 'entities', entityId, 'useCases', useCaseId, 'history', versionId);
-    try {
-        const historyDoc = await getDoc(historyDocRef);
-
-        if (!historyDoc.exists()) {
-            throw new Error("Version not found");
-        }
-
-        const useCaseRef = doc(db, 'entities', entityId, 'useCases', useCaseId);
-        const versionData = historyDoc.data();
-        const { versionedAt, ...revertData } = versionData;
-
-        await setDoc(useCaseRef, revertData, { merge: true });
-
-        return { success: true };
-    } catch (serverError: any) {
-        if (serverError.code === 'permission-denied') {
-            const permissionError = new FirestorePermissionError({
-                path: historyDocRef.path,
-                operation: 'get',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        }
-        return { success: false, error: serverError.message };
-    }
+    const result = await fetchFromAPI('revertUseCaseVersion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityId, useCaseId, versionId }),
+    });
+    return result;
 }
