@@ -22,6 +22,14 @@ interface BreakdownData {
     fill: string;
 }
 
+interface CaseStatusTableProps {
+  useCases: UseCase[];
+  currentFilters: {
+    highLevelStatus: string;
+    [key: string]: string;
+  };
+}
+
 function buildDistributionArray(cases: UseCase[], groupBy: GroupableKey): BreakdownData[] {
   const dist = cases.reduce((acc, uc) => {
     const key = uc[groupBy] || 'No definido';
@@ -114,7 +122,7 @@ function BreakdownChart({ cases, groupBy }: { cases: UseCase[], groupBy: Groupab
   );
 }
 
-export function CaseStatusTable({ useCases }: CaseStatusTableProps) {
+export function CaseStatusTable({ useCases, currentFilters }: CaseStatusTableProps) {
   const activos = useCases.filter(
     (uc) => (uc.highLevelStatus || '').toLowerCase().startsWith('activo')
   );
@@ -145,28 +153,35 @@ export function CaseStatusTable({ useCases }: CaseStatusTableProps) {
         </Tabs>
     );
   }
+  
+  const showActivos = currentFilters.highLevelStatus === 'all' || currentFilters.highLevelStatus === 'Activo';
+  const showInactivos = currentFilters.highLevelStatus === 'all' || currentFilters.highLevelStatus === 'Inactivo';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Casos Activos ({activos.length})</CardTitle>
-          <CardDescription>Desglose de casos de uso activos por diferentes categorías.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            {renderTabs(activos)}
-        </CardContent>
-      </Card>
+    <div className={`grid grid-cols-1 ${showActivos && showInactivos ? 'lg:grid-cols-2' : ''} gap-6`}>
+      {showActivos && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Casos Activos ({activos.length})</CardTitle>
+            <CardDescription>Desglose de casos de uso activos por diferentes categorías.</CardDescription>
+          </CardHeader>
+          <CardContent>
+              {renderTabs(activos)}
+          </CardContent>
+        </Card>
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Casos Inactivos ({inactivos.length})</CardTitle>
-          <CardDescription>Desglose de casos de uso inactivos por diferentes categorías.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            {renderTabs(inactivos)}
-        </CardContent>
-      </Card>
+      {showInactivos && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Casos Inactivos ({inactivos.length})</CardTitle>
+            <CardDescription>Desglose de casos de uso inactivos por diferentes categorías.</CardDescription>
+          </CardHeader>
+          <CardContent>
+              {renderTabs(inactivos)}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

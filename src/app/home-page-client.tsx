@@ -157,7 +157,10 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
       </div>
 
       {showStatusTable && (
-        <CaseStatusTable useCases={filteredUseCases} />
+        <CaseStatusTable 
+          useCases={filteredUseCases} 
+          currentFilters={filters} 
+        />
       )}
       
       {showDataScientistTable && (
