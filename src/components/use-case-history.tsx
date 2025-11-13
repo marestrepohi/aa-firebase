@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getUseCaseHistory } from '@/lib/data.server'; // Changed to server action
-import { revertUseCaseVersion } from '@/lib/data'; // Client-side function
+import { revertUseCaseVersion } from '@/lib/data'; // Client-side function for writing
 import { format } from 'date-fns';
 import {
   AlertDialog,
@@ -23,34 +22,14 @@ interface UseCaseHistoryProps {
   entityId: string;
   useCaseId: string;
   onRevert?: () => void;
-  initialHistory?: any[]; // For server-side rendering
+  initialHistory?: any[]; 
 }
 
 export function UseCaseHistory({ entityId, useCaseId, onRevert, initialHistory = [] }: UseCaseHistoryProps) {
   const { toast } = useToast();
-  const [history, setHistory] = useState<any[]>(initialHistory);
-  const [isLoading, setIsLoading] = useState(initialHistory.length === 0);
+  const [history] = useState<any[]>(initialHistory);
+  const [isLoading] = useState(false); // Data is now passed as a prop
   const [isReverting, setIsReverting] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadHistory() {
-      if (initialHistory.length > 0) return; // Data already provided
-      setIsLoading(true);
-      try {
-        const historyData = await getUseCaseHistory(entityId, useCaseId);
-        setHistory(historyData);
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'No se pudo cargar el historial de versiones.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadHistory();
-  }, [entityId, useCaseId, toast, initialHistory]);
 
   const handleRevert = async (versionId: string) => {
     setIsReverting(versionId);
