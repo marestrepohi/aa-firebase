@@ -4,6 +4,13 @@ export interface Metric {
   unit?: string;
 }
 
+export interface ImpactMetric {
+  id: string;
+  nombre: string;
+  valor: string;
+  fecha: string;
+}
+
 export type UseCaseStatus = 
   | 'Entregado - sin uso'
   | 'Deprecado'
@@ -60,8 +67,8 @@ export interface UseCase {
   solucion?: string;
   dolores?: string;
   riesgos?: string;
-  impactoEsperado?: string;
-  impactoGenerado?: string;
+  impactoEsperado?: ImpactMetric[];
+  impactoGenerado?: ImpactMetric[];
   roadmap?: { name: string; completed: boolean }[];
   metrics: {
     period?: string;

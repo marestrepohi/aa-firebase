@@ -21,12 +21,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { updateUseCase } from '@/lib/data';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from './ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UseCaseHistory } from './use-case-history';
-import type { UseCase } from '@/lib/types';
+import type { UseCase, ImpactMetric } from '@/lib/types';
+import { format, parseISO } from 'date-fns';
 
 interface UseCaseFormProps {
   useCase?: UseCase;
@@ -36,6 +37,72 @@ interface UseCaseFormProps {
   onSuccess?: () => void;
   initialHistory?: any[];
 }
+
+const formatDateForInput = (date: string | Date | undefined): string => {
+    if (!date) return '';
+    try {
+        const dateObj = typeof date === 'string' ? parseISO(date) : date;
+        return format(dateObj, 'yyyy-MM-dd');
+    } catch (error) {
+        return '';
+    }
+};
+
+const ImpactMetricsTable = ({ title, metrics, onMetricChange, onAddMetric, onRemoveMetric }: {
+    title: string,
+    metrics: ImpactMetric[],
+    onMetricChange: (index: number, field: keyof ImpactMetric, value: string) => void,
+    onAddMetric: () => void,
+    onRemoveMetric: (index: number) => void
+}) => {
+    return (
+        <div className="space-y-4 rounded-lg border p-4">
+            <div className="flex justify-between items-center">
+                <h3 className="text-base font-semibold">{title}</h3>
+                <Button type="button" size="sm" variant="outline" onClick={onAddMetric}>
+                    <Plus className="mr-2 h-4 w-4" /> Agregar Métrica
+                </Button>
+            </div>
+            {metrics.length > 0 && (
+                <div className="space-y-2">
+                    <div className="grid grid-cols-[1fr,1fr,auto,auto] gap-2 px-2 text-xs font-medium text-muted-foreground">
+                        <span>Nombre de la métrica</span>
+                        <span>Valor</span>
+                        <span>Fecha</span>
+                        <span></span>
+                    </div>
+                    {metrics.map((metric, index) => (
+                        <div key={metric.id} className="grid grid-cols-[1fr,1fr,auto,auto] gap-2 items-center">
+                            <Input 
+                                placeholder="Ej: Ahorro en FTE" 
+                                value={metric.nombre} 
+                                onChange={e => onMetricChange(index, 'nombre', e.target.value)} 
+                            />
+                            <Input 
+                                placeholder="Ej: 50.000 USD" 
+                                value={metric.valor} 
+                                onChange={e => onMetricChange(index, 'valor', e.target.value)} 
+                            />
+                            <Input 
+                                type="date"
+                                value={formatDateForInput(metric.fecha)}
+                                onChange={e => onMetricChange(index, 'fecha', e.target.value)}
+                            />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveMetric(index)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {metrics.length === 0 && (
+                <p className="text-sm text-center text-muted-foreground py-4">
+                    No hay métricas. Haz clic en "Agregar Métrica" para crear una.
+                </p>
+            )}
+        </div>
+    );
+};
 
 export function UseCaseForm({
   useCase,
@@ -74,8 +141,8 @@ export function UseCaseForm({
     solucion: '',
     dolores: '',
     riesgos: '',
-    impactoEsperado: '',
-    impactoGenerado: '',
+    impactoEsperado: useCase?.impactoEsperado || [],
+    impactoGenerado: useCase?.impactoGenerado || [],
     roadmap: useCase?.roadmap && useCase.roadmap.length > 0 ? useCase.roadmap : defaultRoadmap,
   });
 
@@ -92,6 +159,27 @@ export function UseCaseForm({
     const newRoadmap = [...formData.roadmap];
     newRoadmap[index].completed = checked;
     setFormData({ ...formData, roadmap: newRoadmap });
+  };
+
+  const handleImpactMetricChange = (
+    type: 'impactoEsperado' | 'impactoGenerado',
+    index: number,
+    field: keyof ImpactMetric,
+    value: string
+  ) => {
+    const newMetrics = [...formData[type]];
+    (newMetrics[index] as any)[field] = value;
+    setFormData({ ...formData, [type]: newMetrics });
+  };
+  
+  const handleAddImpactMetric = (type: 'impactoEsperado' | 'impactoGenerado') => {
+    const newMetric: ImpactMetric = { id: new Date().toISOString(), nombre: '', valor: '', fecha: new Date().toISOString().split('T')[0] };
+    setFormData({ ...formData, [type]: [...formData[type], newMetric] });
+  };
+  
+  const handleRemoveImpactMetric = (type: 'impactoEsperado' | 'impactoGenerado', index: number) => {
+    const newMetrics = formData[type].filter((_, i) => i !== index);
+    setFormData({ ...formData, [type]: newMetrics });
   };
 
 
@@ -251,16 +339,20 @@ export function UseCaseForm({
                 </TabsContent>
                 
                 <TabsContent value="impact" className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="impactoEsperado">Impacto Esperado (KPIs)</Label>
-                        <Textarea id="impactoEsperado" value={formData.impactoEsperado} onChange={handleInputChange} placeholder="KPIs de impacto esperado..." rows={4} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="impactoGenerado">Impacto Generado (KPIs)</Label>
-                        <Textarea id="impactoGenerado" value={formData.impactoGenerado} onChange={handleInputChange} placeholder="KPIs de impacto generado..." rows={4} />
-                    </div>
-                  </div>
+                   <ImpactMetricsTable
+                        title="Impacto Esperado (KPIs)"
+                        metrics={formData.impactoEsperado}
+                        onMetricChange={(index, field, value) => handleImpactMetricChange('impactoEsperado', index, field, value)}
+                        onAddMetric={() => handleAddImpactMetric('impactoEsperado')}
+                        onRemoveMetric={(index) => handleRemoveImpactMetric('impactoEsperado', index)}
+                    />
+                    <ImpactMetricsTable
+                        title="Impacto Generado (KPIs)"
+                        metrics={formData.impactoGenerado}
+                        onMetricChange={(index, field, value) => handleImpactMetricChange('impactoGenerado', index, field, value)}
+                        onAddMetric={() => handleAddImpactMetric('impactoGenerado')}
+                        onRemoveMetric={(index) => handleRemoveImpactMetric('impactoGenerado', index)}
+                    />
                 </TabsContent>
 
                 <TabsContent value="team" className="space-y-6">

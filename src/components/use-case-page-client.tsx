@@ -7,19 +7,46 @@ import { MetricsCard } from '@/components/metrics-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, Briefcase, Activity, Info, Settings2, BarChart3 } from 'lucide-react';
-import type { Entity, UseCase } from '@/lib/types';
+import type { Entity, UseCase, ImpactMetric } from '@/lib/types';
 import { MetricsForm } from './metrics-form';
 import { format } from 'date-fns';
 
 function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
   const content = children || <span className="text-muted-foreground italic">No definido</span>;
   return (
-    <div className={`border border-gray-200 rounded-md p-3 relative ${className}`}>
-      <h2 className="absolute -top-2.5 left-3 bg-background px-1 text-sm font-semibold text-gray-500">{title}</h2>
-      <div className="text-sm text-gray-700 pt-2">{content}</div>
+    <div className={`border border-gray-200 rounded-lg p-4 relative ${className}`}>
+      <h2 className="absolute -top-2.5 left-3 bg-background px-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</h2>
+      <div className="text-sm text-gray-800 pt-2">{content}</div>
     </div>
   );
 }
+
+const ImpactMetricsDisplay = ({ title, metrics }: { title: string, metrics?: ImpactMetric[] }) => (
+    <InfoBox title={title} className="min-h-[120px]">
+        {metrics && metrics.length > 0 ? (
+            <table className="w-full text-sm">
+                <thead>
+                    <tr className="border-b">
+                        <th className="pb-2 text-left font-medium text-muted-foreground">Métrica</th>
+                        <th className="pb-2 text-left font-medium text-muted-foreground">Valor</th>
+                        <th className="pb-2 text-left font-medium text-muted-foreground">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {metrics.map((metric, index) => (
+                        <tr key={index}>
+                            <td className="py-1.5">{metric.nombre}</td>
+                            <td className="py-1.5">{metric.valor}</td>
+                            <td className="py-1.5">{metric.fecha ? format(new Date(metric.fecha), 'dd/MM/yyyy') : 'N/A'}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        ) : (
+            <p className="text-muted-foreground italic">No hay métricas definidas.</p>
+        )}
+    </InfoBox>
+);
 
 
 export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase: UseCase }) {
@@ -58,9 +85,9 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                             <InfoBox title="Solución" className="min-h-[120px]">{useCase.solucion}</InfoBox>
                             <InfoBox title="Riesgos" className="min-h-[120px]">{useCase.riesgos}</InfoBox>
                           </div>
-                          <div className="grid grid-cols-2 gap-6">
-                             <InfoBox title="Impacto Esperado (KPIs)" className="min-h-[100px]">{useCase.impactoEsperado}</InfoBox>
-                             <InfoBox title="Impacto Generado (KPIs)" className="min-h-[100px]">{useCase.impactoGenerado}</InfoBox>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <ImpactMetricsDisplay title="Impacto Esperado (KPIs)" metrics={useCase.impactoEsperado} />
+                            <ImpactMetricsDisplay title="Impacto Generado (KPIs)" metrics={useCase.impactoGenerado} />
                           </div>
                           <InfoBox title="Observaciones">{useCase.observaciones}</InfoBox>
                       </CardContent>
