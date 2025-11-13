@@ -65,7 +65,6 @@ export interface UseCase {
   roadmap?: { name: string; completed: boolean }[];
   metrics: {
     period?: string;
-    general: Metric[];
     financial: Metric[];
     business: Metric[];
     technical: Metric[];

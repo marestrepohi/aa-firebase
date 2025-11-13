@@ -255,7 +255,6 @@ async function migrateUseCases() {
     
     const metricsData = {
       period: INITIAL_PERIOD,
-      general: [],
       financial: [],
       business: [],
       technical: [],
@@ -289,6 +288,11 @@ async function cleanupOldData() {
       for (const useCaseDoc of useCasesSnapshot.docs) {
         const metricsSnapshot = await useCaseDoc.ref.collection('metrics').get();
         metricsSnapshot.docs.forEach(mDoc => batch.delete(mDoc.ref));
+        
+        // Clean up history subcollection as well
+        const historySnapshot = await useCaseDoc.ref.collection('history').get();
+        historySnapshot.docs.forEach(hDoc => batch.delete(hDoc.ref));
+
         batch.delete(useCaseDoc.ref);
       }
       batch.delete(doc.ref);
