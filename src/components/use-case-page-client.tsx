@@ -28,6 +28,12 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
         return sorted[0];
     };
 
+    const isValidDate = (dateString: string | null | undefined): boolean => {
+        if (!dateString) return false;
+        const date = new Date(dateString);
+        return !isNaN(date.getTime());
+    }
+
     return (
         <InfoBox title={title} className="col-span-full">
             {kpis && kpis.length > 0 ? (
@@ -52,7 +58,7 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
                                         {latestValor && latestValor.value ? (
                                             <span>
                                                 {latestValor.value}{' '}
-                                                {latestValor.date ? (
+                                                {isValidDate(latestValor.date) ? (
                                                     <span className="text-xs text-muted-foreground">
                                                         ({format(new Date(`${latestValor.date}T00:00:00`), 'dd/MM/yyyy')})
                                                     </span>
