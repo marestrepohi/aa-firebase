@@ -26,8 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from './ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UseCaseHistory } from './use-case-history';
-import type { UseCase, ImpactMetric } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
+import type { UseCase, Kpi } from '@/lib/types';
 
 interface UseCaseFormProps {
   useCase?: UseCase;
@@ -38,66 +37,70 @@ interface UseCaseFormProps {
   initialHistory?: any[];
 }
 
-const formatDateForInput = (date: string | Date | undefined): string => {
-    if (!date) return '';
-    try {
-        const dateObj = typeof date === 'string' ? parseISO(date) : date;
-        return format(dateObj, 'yyyy-MM-dd');
-    } catch (error) {
-        return '';
-    }
-};
-
-const ImpactMetricsTable = ({ title, metrics, onMetricChange, onAddMetric, onRemoveMetric }: {
+const KpiMetricsTable = ({ title, kpis, onKpiChange, onAddKpi, onRemoveKpi }: {
     title: string,
-    metrics: ImpactMetric[],
-    onMetricChange: (index: number, field: keyof ImpactMetric, value: string) => void,
-    onAddMetric: () => void,
-    onRemoveMetric: (index: number) => void
+    kpis: Kpi[],
+    onKpiChange: (index: number, field: keyof Kpi, value: string) => void,
+    onAddKpi: () => void,
+    onRemoveKpi: (index: number) => void
 }) => {
     return (
         <div className="space-y-4 rounded-lg border p-4">
             <div className="flex justify-between items-center">
                 <h3 className="text-base font-semibold">{title}</h3>
-                <Button type="button" size="sm" variant="outline" onClick={onAddMetric}>
-                    <Plus className="mr-2 h-4 w-4" /> Agregar Métrica
+                <Button type="button" size="sm" variant="outline" onClick={onAddKpi}>
+                    <Plus className="mr-2 h-4 w-4" /> Agregar KPI
                 </Button>
             </div>
-            {metrics.length > 0 && (
-                <div className="space-y-2">
-                    <div className="grid grid-cols-[1fr,1fr,auto,auto] gap-2 px-2 text-xs font-medium text-muted-foreground">
-                        <span>Nombre de la métrica</span>
-                        <span>Valor</span>
-                        <span>Fecha</span>
-                        <span></span>
-                    </div>
-                    {metrics.map((metric, index) => (
-                        <div key={metric.id} className="grid grid-cols-[1fr,1fr,auto,auto] gap-2 items-center">
-                            <Input 
-                                placeholder="Ej: Ahorro en FTE" 
-                                value={metric.nombre} 
-                                onChange={e => onMetricChange(index, 'nombre', e.target.value)} 
-                            />
-                            <Input 
-                                placeholder="Ej: 50.000 USD" 
-                                value={metric.valor} 
-                                onChange={e => onMetricChange(index, 'valor', e.target.value)} 
-                            />
-                            <Input 
-                                type="date"
-                                value={formatDateForInput(metric.fecha)}
-                                onChange={e => onMetricChange(index, 'fecha', e.target.value)}
-                            />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveMetric(index)}>
+            {kpis.length > 0 && (
+                <div className="space-y-3 -mx-2">
+                    {kpis.map((kpi, index) => (
+                        <div key={kpi.id} className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-2 p-2 border-b last:border-0">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => onRemoveKpi(index)} className="row-span-3 h-8 w-8 self-center">
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
+
+                            <Input 
+                                placeholder="Nombre del KPI" 
+                                value={kpi.nombre} 
+                                onChange={e => onKpiChange(index, 'nombre', e.target.value)}
+                                className="font-semibold"
+                            />
+                             <Textarea
+                                placeholder="Descripción del KPI"
+                                value={kpi.descripcion}
+                                onChange={e => onKpiChange(index, 'descripcion', e.target.value)}
+                                className="col-span-full ml-11"
+                                rows={2}
+                            />
+                            
+                            <div className="col-span-full ml-11 grid grid-cols-3 gap-2">
+                                <Select value={kpi.tipoValor} onValueChange={(v) => onKpiChange(index, 'tipoValor', v)}>
+                                    <SelectTrigger><SelectValue placeholder="Tipo de Valor" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="moneda">Moneda ($)</SelectItem>
+                                        <SelectItem value="porcentaje">Porcentaje (%)</SelectItem>
+                                        <SelectItem value="número">Número</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input 
+                                    placeholder="Valor Esperado" 
+                                    value={kpi.valorEsperado} 
+                                    onChange={e => onKpiChange(index, 'valorEsperado', e.target.value)} 
+                                />
+                                <Input 
+                                    placeholder="Valor Generado" 
+                                    value={kpi.valorGenerado} 
+                                    onChange={e => onKpiChange(index, 'valorGenerado', e.target.value)} 
+                                />
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
-            {metrics.length === 0 && (
+            {kpis.length === 0 && (
                 <p className="text-sm text-center text-muted-foreground py-4">
-                    No hay métricas. Haz clic en "Agregar Métrica" para crear una.
+                    No hay KPIs. Haz clic en "Agregar KPI" para crear uno.
                 </p>
             )}
         </div>
@@ -141,8 +144,7 @@ export function UseCaseForm({
     solucion: '',
     dolores: '',
     riesgos: '',
-    impactoEsperado: useCase?.impactoEsperado || [],
-    impactoGenerado: useCase?.impactoGenerado || [],
+    kpis: useCase?.kpis || [],
     roadmap: useCase?.roadmap && useCase.roadmap.length > 0 ? useCase.roadmap : defaultRoadmap,
   });
 
@@ -161,25 +163,31 @@ export function UseCaseForm({
     setFormData({ ...formData, roadmap: newRoadmap });
   };
 
-  const handleImpactMetricChange = (
-    type: 'impactoEsperado' | 'impactoGenerado',
+  const handleKpiChange = (
     index: number,
-    field: keyof ImpactMetric,
+    field: keyof Kpi,
     value: string
   ) => {
-    const newMetrics = [...formData[type]];
-    (newMetrics[index] as any)[field] = value;
-    setFormData({ ...formData, [type]: newMetrics });
+    const newKpis = [...formData.kpis];
+    (newKpis[index] as any)[field] = value;
+    setFormData({ ...formData, kpis: newKpis });
   };
   
-  const handleAddImpactMetric = (type: 'impactoEsperado' | 'impactoGenerado') => {
-    const newMetric: ImpactMetric = { id: new Date().toISOString(), nombre: '', valor: '', fecha: new Date().toISOString().split('T')[0] };
-    setFormData({ ...formData, [type]: [...formData[type], newMetric] });
+  const handleAddKpi = () => {
+    const newKpi: Kpi = { 
+      id: new Date().toISOString(), 
+      nombre: '', 
+      descripcion: '', 
+      tipoValor: 'moneda', 
+      valorEsperado: '', 
+      valorGenerado: '' 
+    };
+    setFormData({ ...formData, kpis: [...formData.kpis, newKpi] });
   };
   
-  const handleRemoveImpactMetric = (type: 'impactoEsperado' | 'impactoGenerado', index: number) => {
-    const newMetrics = formData[type].filter((_, i) => i !== index);
-    setFormData({ ...formData, [type]: newMetrics });
+  const handleRemoveKpi = (index: number) => {
+    const newKpis = formData.kpis.filter((_, i) => i !== index);
+    setFormData({ ...formData, kpis: newKpis });
   };
 
 
@@ -189,28 +197,8 @@ export function UseCaseForm({
 
     try {
       const dataToUpdate = {
-        id: formData.id,
+        ...formData,
         entityId,
-        name: formData.name,
-        status: formData.status,
-        highLevelStatus: formData.highLevelStatus,
-        tipoProyecto: formData.tipoProyecto,
-        tipoDesarrollo: formData.tipoDesarrollo,
-        sponsor: formData.sponsor,
-        ds1: formData.ds1,
-        ds2: formData.ds2,
-        ds3: formData.ds3,
-        ds4: formData.ds4,
-        de: formData.de,
-        mds: formData.mds,
-        observaciones: formData.observaciones,
-        objetivo: formData.objetivo,
-        solucion: formData.solucion,
-        dolores: formData.dolores,
-        riesgos: formData.riesgos,
-        impactoEsperado: formData.impactoEsperado,
-        impactoGenerado: formData.impactoGenerado,
-        roadmap: formData.roadmap,
       };
 
       const success = await updateUseCase(dataToUpdate);
@@ -260,7 +248,7 @@ export function UseCaseForm({
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="details">Detalles</TabsTrigger>
-              <TabsTrigger value="impact">Impacto</TabsTrigger>
+              <TabsTrigger value="impact">Impacto (KPIs)</TabsTrigger>
               <TabsTrigger value="team">Equipo & Roadmap</TabsTrigger>
               {useCase && <TabsTrigger value="versions">Versiones</TabsTrigger>}
             </TabsList>
@@ -339,19 +327,12 @@ export function UseCaseForm({
                 </TabsContent>
                 
                 <TabsContent value="impact" className="space-y-6">
-                   <ImpactMetricsTable
-                        title="Impacto Esperado (KPIs)"
-                        metrics={formData.impactoEsperado}
-                        onMetricChange={(index, field, value) => handleImpactMetricChange('impactoEsperado', index, field, value)}
-                        onAddMetric={() => handleAddImpactMetric('impactoEsperado')}
-                        onRemoveMetric={(index) => handleRemoveImpactMetric('impactoEsperado', index)}
-                    />
-                    <ImpactMetricsTable
-                        title="Impacto Generado (KPIs)"
-                        metrics={formData.impactoGenerado}
-                        onMetricChange={(index, field, value) => handleImpactMetricChange('impactoGenerado', index, field, value)}
-                        onAddMetric={() => handleAddImpactMetric('impactoGenerado')}
-                        onRemoveMetric={(index) => handleRemoveImpactMetric('impactoGenerado', index)}
+                   <KpiMetricsTable
+                        title="KPIs de Impacto"
+                        kpis={formData.kpis}
+                        onKpiChange={handleKpiChange}
+                        onAddKpi={handleAddKpi}
+                        onRemoveKpi={handleRemoveKpi}
                     />
                 </TabsContent>
 

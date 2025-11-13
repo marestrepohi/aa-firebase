@@ -4,11 +4,13 @@ export interface Metric {
   unit?: string;
 }
 
-export interface ImpactMetric {
+export interface Kpi {
   id: string;
   nombre: string;
-  valor: string;
-  fecha: string;
+  descripcion: string;
+  tipoValor: 'moneda' | 'número' | 'porcentaje';
+  valorEsperado: string;
+  valorGenerado: string;
 }
 
 export type UseCaseStatus = 
@@ -67,8 +69,7 @@ export interface UseCase {
   solucion?: string;
   dolores?: string;
   riesgos?: string;
-  impactoEsperado?: ImpactMetric[];
-  impactoGenerado?: ImpactMetric[];
+  kpis: Kpi[];
   roadmap?: { name: string; completed: boolean }[];
   metrics: {
     period?: string;

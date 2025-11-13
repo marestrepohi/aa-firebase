@@ -1,14 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricsCard } from '@/components/metrics-card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { DollarSign, Briefcase, Activity, Info, Settings2, BarChart3 } from 'lucide-react';
-import type { Entity, UseCase, ImpactMetric } from '@/lib/types';
-import { MetricsForm } from './metrics-form';
+import { DollarSign, Briefcase, Activity, Info } from 'lucide-react';
+import type { Entity, UseCase, Kpi } from '@/lib/types';
 import { format } from 'date-fns';
 
 function InfoBox({ title, children, className = '' }: { title: string, children: React.ReactNode, className?: string }) {
@@ -21,29 +17,31 @@ function InfoBox({ title, children, className = '' }: { title: string, children:
   );
 }
 
-const ImpactMetricsDisplay = ({ title, metrics }: { title: string, metrics?: ImpactMetric[] }) => (
-    <InfoBox title={title} className="min-h-[120px]">
-        {metrics && metrics.length > 0 ? (
+const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => (
+    <InfoBox title={title} className="col-span-full">
+        {kpis && kpis.length > 0 ? (
             <table className="w-full text-sm">
                 <thead>
                     <tr className="border-b">
-                        <th className="pb-2 text-left font-medium text-muted-foreground">Métrica</th>
-                        <th className="pb-2 text-left font-medium text-muted-foreground">Valor</th>
-                        <th className="pb-2 text-left font-medium text-muted-foreground">Fecha</th>
+                        <th className="pb-2 text-left font-medium text-muted-foreground">KPI</th>
+                        <th className="pb-2 text-left font-medium text-muted-foreground">Descripción</th>
+                        <th className="pb-2 text-left font-medium text-muted-foreground">Valor Esperado</th>
+                        <th className="pb-2 text-left font-medium text-muted-foreground">Valor Generado</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {metrics.map((metric, index) => (
-                        <tr key={index}>
-                            <td className="py-1.5">{metric.nombre}</td>
-                            <td className="py-1.5">{metric.valor}</td>
-                            <td className="py-1.5">{metric.fecha}</td>
+                    {kpis.map((kpi, index) => (
+                        <tr key={index} className="border-b last:border-0">
+                            <td className="py-2.5 pr-4 font-medium">{kpi.nombre}</td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">{kpi.descripcion}</td>
+                            <td className="py-2.5 pr-4">{kpi.valorEsperado}</td>
+                            <td className="py-2.5 pr-4">{kpi.valorGenerado}</td>
                         </tr>
                     ))}
                 </tbody>
             </table>
         ) : (
-            <p className="text-muted-foreground italic">No hay métricas definidas.</p>
+            <p className="text-muted-foreground italic">No hay KPIs definidos.</p>
         )}
     </InfoBox>
 );
@@ -51,10 +49,7 @@ const ImpactMetricsDisplay = ({ title, metrics }: { title: string, metrics?: Imp
 
 export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase: UseCase }) {
   const team = [useCase.ds1, useCase.ds2, useCase.ds3, useCase.ds4, useCase.de, useCase.mds].filter(Boolean).join(' - ');
-  const technicalMetricsList = Array.isArray(useCase.metrics?.technical)
-    ? useCase.metrics.technical.map(m => `${m.label}: ${m.value}`).join(' | ')
-    : '';
-
+  
   return (
     <>
       <Tabs defaultValue="information">
@@ -85,10 +80,7 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                             <InfoBox title="Solución" className="min-h-[120px]">{useCase.solucion}</InfoBox>
                             <InfoBox title="Riesgos" className="min-h-[120px]">{useCase.riesgos}</InfoBox>
                           </div>
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <ImpactMetricsDisplay title="Impacto Esperado (KPIs)" metrics={useCase.impactoEsperado} />
-                            <ImpactMetricsDisplay title="Impacto Generado (KPIs)" metrics={useCase.impactoGenerado} />
-                          </div>
+                          <KpiMetricsDisplay title="Impacto (KPIs)" kpis={useCase.kpis} />
                           <InfoBox title="Observaciones">{useCase.observaciones}</InfoBox>
                       </CardContent>
                   </Card>

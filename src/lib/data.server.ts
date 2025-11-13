@@ -1,6 +1,6 @@
 // Data layer - Firebase API only (Server-side)
 import 'server-only';
-import type { Entity, UseCase, SummaryMetrics, ImpactMetric } from './types';
+import type { Entity, UseCase, SummaryMetrics, Kpi } from './types';
 import { adminDb } from './firebase-admin';
 import * as admin from 'firebase-admin';
 import { format } from 'date-fns';
@@ -27,15 +27,7 @@ const serializeObject = (obj: any) => {
     for (const key in newObj) {
       if (newObj[key] instanceof admin.firestore.Timestamp) {
         newObj[key] = serializeDate(newObj[key]);
-      } else if (key === 'impactoEsperado' || key === 'impactoGenerado') {
-          if (Array.isArray(newObj[key])) {
-              newObj[key] = newObj[key].map((metric: ImpactMetric) => ({
-                  ...metric,
-                  fecha: formatDateForDisplay(metric.fecha),
-              }));
-          }
-      }
-      else if (typeof newObj[key] === 'object' && newObj[key] !== null) {
+      } else if (typeof newObj[key] === 'object' && newObj[key] !== null) {
         newObj[key] = serializeObject(newObj[key]);
       }
     }
@@ -139,8 +131,7 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
       createdAt: serializeDate(useCaseData.createdAt),
       metrics: serializeObject(metrics),
       roadmap: useCaseData.roadmap || null,
-      impactoEsperado: (useCaseData.impactoEsperado || []).map((m: ImpactMetric) => ({...m, fecha: formatDateForDisplay(m.fecha)})),
-      impactoGenerado: (useCaseData.impactoGenerado || []).map((m: ImpactMetric) => ({...m, fecha: formatDateForDisplay(m.fecha)})),
+      kpis: useCaseData.kpis || [],
     } as UseCase;
     
     delete (useCase as any).updatedAt;
@@ -189,6 +180,7 @@ export async function getAllUseCases(): Promise<UseCase[]> {
       createdAt: serializeDate(useCaseData.createdAt),
       metrics: serializeObject(metrics),
       roadmap: useCaseData.roadmap || null,
+      kpis: useCaseData.kpis || [],
     } as UseCase;
     
     delete (useCase as any).updatedAt;
