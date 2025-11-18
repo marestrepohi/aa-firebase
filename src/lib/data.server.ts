@@ -10,18 +10,32 @@ const serializeDate = (timestamp: admin.firestore.Timestamp | undefined): string
 }
 
 const formatDateForDisplay = (dateString: string | undefined): string => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return '';
     try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-            // Handle cases where dateString might be YYYY-MM by adding a day
-            const dateWithDay = new Date(`${dateString}-02T00:00:00Z`);
-             if (isNaN(dateWithDay.getTime())) return 'N/A';
-             return `${String(dateWithDay.getUTCMonth() + 1).padStart(2, '0')}/${dateWithDay.getUTCFullYear()}`;
+        // Handle YYYY-MM-DD format correctly regardless of server timezone
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+            const [year, month, day] = parts.map(p => parseInt(p, 10));
+            // Create date in UTC to avoid timezone shifts
+            const date = new Date(Date.UTC(year, month - 1, day));
+             if (isNaN(date.getTime())) return '';
+             return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
         }
+        // Handle YYYY-MM format
+        if (parts.length === 2) {
+             const [year, month] = parts.map(p => parseInt(p, 10));
+             const date = new Date(Date.UTC(year, month - 1, 1));
+             if (isNaN(date.getTime())) return '';
+             return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+        }
+
+        // Fallback for other formats, though might be timezone sensitive
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
         return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+
     } catch {
-        return 'N/A';
+        return '';
     }
 };
 
@@ -124,7 +138,17 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
 
   const useCases = await Promise.all(useCasesSnapshot.docs.map(async doc => {
     const useCaseData = doc.data();
+    const uploadedFilesSnapshot = await doc.ref.collection('uploadedFiles').orderBy('uploadedAt', 'desc').get();
     
+    const uploadedFiles = uploadedFilesSnapshot.docs.map(fileDoc => {
+      const data = fileDoc.data();
+      return {
+        ...data,
+        id: fileDoc.id,
+        uploadedAt: serializeDate(data.uploadedAt),
+      };
+    });
+
     const useCase = {
       ...useCaseData,
       id: doc.id,
@@ -140,9 +164,11 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
       roadmap: useCaseData.roadmap || null,
       metrics: serializeObject(useCaseData.metrics),
       metricsConfig: useCaseData.metricsConfig,
+      uploadedFiles: uploadedFiles,
     } as UseCase;
     
     delete (useCase as any).updatedAt;
+    delete (useCase as any).createdAt;
     
     return useCase;
   }));
@@ -174,7 +200,17 @@ export async function getAllUseCases(): Promise<UseCase[]> {
 
   const useCases = await Promise.all(useCasesSnapshot.docs.map(async doc => {
     const useCaseData = doc.data();
-    
+    const uploadedFilesSnapshot = await doc.ref.collection('uploadedFiles').orderBy('uploadedAt', 'desc').get();
+
+    const uploadedFiles = uploadedFilesSnapshot.docs.map(fileDoc => {
+      const data = fileDoc.data();
+      return {
+        ...data,
+        id: fileDoc.id,
+        uploadedAt: serializeDate(data.uploadedAt),
+      };
+    });
+
     const useCase = {
       ...useCaseData,
       id: doc.id,
@@ -190,9 +226,11 @@ export async function getAllUseCases(): Promise<UseCase[]> {
       roadmap: useCaseData.roadmap || null,
       metrics: serializeObject(useCaseData.metrics),
       metricsConfig: useCaseData.metricsConfig,
+      uploadedFiles: uploadedFiles,
     } as UseCase;
     
     delete (useCase as any).updatedAt;
+    delete (useCase as any).createdAt;
     
     return useCase;
   }));

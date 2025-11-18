@@ -122,3 +122,20 @@ export async function revertUseCaseVersion(
     return { success: false, error: error.message };
   }
 }
+
+export async function deleteUploadedFile(
+  entityId: string, 
+  useCaseId: string, 
+  fileId: string
+): Promise<{success: boolean, error?: string}> {
+  const functions = getFunctions(db.app, 'us-central1');
+  const deleteFile = httpsCallable(functions, 'deleteUploadedFile');
+  try {
+    const result = await deleteFile({ entityId, useCaseId, fileId });
+    const data = result.data as { success: boolean, error?: string };
+    return data;
+  } catch (error: any) {
+    console.error("Error calling deleteUploadedFile function:", error);
+    return { success: false, error: error.message };
+  }
+}

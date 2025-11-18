@@ -23,11 +23,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { updateUseCase } from '@/lib/data';
 import { Loader2, Upload, Settings, ChevronRight, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { UseCase } from '@/lib/types';
+import { UseCase, MetricCategory, UploadedFile } from '@/lib/types';
 import Papa from 'papaparse';
+import { UploadedFilesHistory } from './uploaded-files-history';
 
 type WizardStep = 'upload' | 'configure' | 'map';
-type MetricCategory = 'financial' | 'business' | 'technical';
 
 interface ImporterState {
   step: WizardStep;
@@ -38,6 +38,7 @@ interface ImporterState {
   dateFormat: string;
   separator: string;
   descriptions: Record<string, string>;
+  history: UploadedFile[];
 }
 
 interface MetricsFormProps {
@@ -49,6 +50,7 @@ interface MetricsFormProps {
 
 const getInitialImporterState = (useCase: UseCase, category: MetricCategory): ImporterState => {
     const config = useCase.metricsConfig?.[category];
+    const history = (useCase.uploadedFiles || []).filter(f => f.category === category);
     return {
         step: 'upload',
         file: null,
@@ -58,14 +60,16 @@ const getInitialImporterState = (useCase: UseCase, category: MetricCategory): Im
         dateFormat: config?.dateFormat || 'yyyy-MM',
         separator: config?.separator || ';',
         descriptions: config?.descriptions || {},
+        history: history,
     };
 };
 
-const ImporterTabContent = ({ useCase, category, state, setState }: { 
+const ImporterTabContent = ({ useCase, category, state, setState, onHistoryChange }: { 
     useCase: UseCase,
     category: MetricCategory,
     state: ImporterState,
-    setState: (newState: Partial<ImporterState>) => void
+    setState: (newState: Partial<ImporterState>) => void,
+    onHistoryChange: () => void,
 }) => {
     const isConfigSaved = !!useCase.metricsConfig?.[category];
 
@@ -105,16 +109,24 @@ const ImporterTabContent = ({ useCase, category, state, setState }: {
     switch (state.step) {
       case 'upload':
         return (
-          <div className="text-center space-y-4 py-12">
-            <p className="text-sm text-muted-foreground">Sube un archivo para añadir o actualizar el historial de métricas de esta categoría.</p>
-            <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-primary transition-colors">
-                <Upload className="mx-auto h-10 w-10 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600">
-                    Arrastra y suelta un archivo CSV aquí, o haz clic para seleccionarlo.
-                </p>
-                <Input id={`csv-upload-${category}`} type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} accept=".csv" />
+          <div className="space-y-6 py-6">
+            <div className="text-center space-y-4">
+              <p className="text-sm text-muted-foreground">Sube un archivo para añadir o actualizar el historial de métricas de esta categoría.</p>
+              <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-primary transition-colors">
+                  <Upload className="mx-auto h-10 w-10 text-gray-400" />
+                  <p className="mt-2 text-sm text-gray-600">
+                      Arrastra y suelta un archivo CSV aquí, o haz clic para seleccionarlo.
+                  </p>
+                  <Input id={`csv-upload-${category}`} type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} accept=".csv" />
+              </div>
+              {isConfigSaved && <p className="text-xs text-muted-foreground pt-4">Ya existe una configuración guardada para esta categoría. El sistema la usará para procesar el archivo.</p>}
             </div>
-            {isConfigSaved && <p className="text-xs text-muted-foreground pt-4">Ya existe una configuración guardada para esta categoría. El sistema la usará para procesar el archivo.</p>}
+            <UploadedFilesHistory 
+              files={state.history}
+              entityId={useCase.entityId}
+              useCaseId={useCase.id}
+              onFileDeleted={onHistoryChange}
+            />
           </div>
         );
       case 'configure':
@@ -216,15 +228,33 @@ export function MetricsForm({ useCase, open, onOpenChange, onSuccess }: MetricsF
       }));
   };
   
+  const handleHistoryChange = () => {
+    // This function will just trigger a reload of the component state
+    if (onSuccess) onSuccess();
+  };
+  
   const handleSubmit = async () => {
     setIsSubmitting(true);
     
     const newMetricsData = { ...(useCase.metrics || {}) };
     const newMetricsConfig = { ...(useCase.metricsConfig || {}) };
+    const newUploadedFiles = [] as any[];
 
     for (const cat of Object.keys(importers) as MetricCategory[]) {
       const state = importers[cat];
       if (state.csvData.length === 0) continue;
+
+      // Create new uploaded file record
+      const fileId = `${Date.now()}-${state.file?.name.replace(/[^a-zA-Z0-9.]/g, '-')}`;
+      const uniquePeriods = [...new Set(state.csvData.map(row => row[state.dateColumn]))];
+
+      newUploadedFiles.push({
+        id: fileId,
+        name: state.file!.name,
+        category: cat,
+        rowCount: state.csvData.length,
+        periods: uniquePeriods,
+      });
 
       // Update config
       newMetricsConfig[cat] = {
@@ -246,6 +276,8 @@ export function MetricsForm({ useCase, open, onOpenChange, onSuccess }: MetricsF
                     newMetricsData[period][cat][header] = row[header];
                 }
             });
+            // Add file ID reference to the metric entry
+            newMetricsData[period][cat].fileId = fileId;
         }
       });
     }
@@ -256,6 +288,7 @@ export function MetricsForm({ useCase, open, onOpenChange, onSuccess }: MetricsF
             id: useCase.id,
             metrics: newMetricsData,
             metricsConfig: newMetricsConfig,
+            newUploadedFiles: newUploadedFiles, // Pass new files to backend
         });
 
         if (success) {
@@ -291,13 +324,13 @@ export function MetricsForm({ useCase, open, onOpenChange, onSuccess }: MetricsF
             </TabsList>
             <div className="mt-4 min-h-[400px]">
                 <TabsContent value="financial">
-                    <ImporterTabContent useCase={useCase} category="financial" state={importers.financial} setState={(s) => updateImporterState('financial', s)} />
+                    <ImporterTabContent useCase={useCase} category="financial" state={importers.financial} setState={(s) => updateImporterState('financial', s)} onHistoryChange={handleHistoryChange} />
                 </TabsContent>
                 <TabsContent value="business">
-                    <ImporterTabContent useCase={useCase} category="business" state={importers.business} setState={(s) => updateImporterState('business', s)} />
+                    <ImporterTabContent useCase={useCase} category="business" state={importers.business} setState={(s) => updateImporterState('business', s)} onHistoryChange={handleHistoryChange} />
                 </TabsContent>
                 <TabsContent value="technical">
-                    <ImporterTabContent useCase={useCase} category="technical" state={importers.technical} setState={(s) => updateImporterState('technical', s)} />
+                    <ImporterTabContent useCase={useCase} category="technical" state={importers.technical} setState={(s) => updateImporterState('technical', s)} onHistoryChange={handleHistoryChange} />
                 </TabsContent>
             </div>
         </Tabs>

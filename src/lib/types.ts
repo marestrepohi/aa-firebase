@@ -42,6 +42,15 @@ export interface MetricsConfigCategory {
   descriptions: Record<string, string>;
 }
 
+export interface UploadedFile {
+  id: string;
+  name: string;
+  category: MetricCategory;
+  uploadedAt: string;
+  rowCount: number;
+  periods: string[];
+}
+
 export interface UseCase {
   id: string;
   entityId: string;
@@ -87,6 +96,7 @@ export interface UseCase {
   roadmap?: { name: string; completed: boolean }[];
   metrics: AllMetrics;
   metricsConfig?: Record<MetricCategory, MetricsConfigCategory>;
+  uploadedFiles?: UploadedFile[];
 }
 
 export type AllMetrics = Record<string, Partial<Record<MetricCategory, Record<string, any>>>>;
