@@ -21,11 +21,13 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { updateUseCase } from '@/lib/data';
-import { Loader2, Upload, Settings, ChevronRight, Save } from 'lucide-react';
+import { Loader2, Upload, Settings, ChevronRight, Save, FileText, Table } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UseCase, MetricCategory, UploadedFile } from '@/lib/types';
 import Papa from 'papaparse';
 import { UploadedFilesHistory } from './uploaded-files-history';
+import { Table as UiTable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 
 type WizardStep = 'upload' | 'configure' | 'map';
 
@@ -34,6 +36,7 @@ interface ImporterState {
   file: File | null;
   csvData: any[];
   csvHeaders: string[];
+  csvPreview: any[];
   dateColumn: string;
   dateFormat: string;
   separator: string;
@@ -56,6 +59,7 @@ const getInitialImporterState = (useCase: UseCase, category: MetricCategory): Im
         file: null,
         csvData: [],
         csvHeaders: [],
+        csvPreview: [],
         dateColumn: config?.dateColumn || '',
         dateFormat: config?.dateFormat || 'yyyy-MM',
         separator: config?.separator || ';',
@@ -87,6 +91,7 @@ const ImporterTabContent = ({ useCase, category, state, setState, onHistoryChang
                     setState({ 
                         csvData: results.data, 
                         csvHeaders: headers,
+                        csvPreview: results.data.slice(0, 5),
                         step: isConfigSaved ? 'map' : 'configure'
                     });
                 },
@@ -96,16 +101,22 @@ const ImporterTabContent = ({ useCase, category, state, setState, onHistoryChang
 
     const handleSaveConfiguration = () => {
         if (!state.dateColumn) {
-            alert("Por favor selecciona la columna de fecha.");
+            toast({
+                title: "Configuración Incompleta",
+                description: "Por favor selecciona la columna que contiene la fecha o el período.",
+                variant: "destructive",
+            });
             return;
         }
         setState({ step: 'map' });
     };
 
     const resetWizard = () => {
-        setState({ file: null, csvData: [], csvHeaders: [], step: 'upload' });
+        setState({ file: null, csvData: [], csvHeaders: [], csvPreview: [], step: 'upload' });
     };
     
+    const { toast } = useToast();
+
     switch (state.step) {
       case 'upload':
         return (
@@ -137,39 +148,63 @@ const ImporterTabContent = ({ useCase, category, state, setState, onHistoryChang
               <h3 className="text-lg font-medium">Paso 1: Configuración de Datos</h3>
             </div>
             <p className="text-sm text-muted-foreground">Ayuda al sistema a entender tu archivo. Esta configuración se guardará para futuras cargas.</p>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor={`separator-${category}`}>Separador de Columnas</Label>
-                  <Select value={state.separator} onValueChange={(val) => setState({ separator: val })}>
-                    <SelectTrigger id={`separator-${category}`}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value=";">Punto y coma (;)</SelectItem>
-                      <SelectItem value=",">Coma (,)</SelectItem>
-                    </SelectContent>
-                  </Select>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`separator-${category}`}>Separador de Columnas</Label>
+                    <Select value={state.separator} onValueChange={(val) => setState({ separator: val })}>
+                      <SelectTrigger id={`separator-${category}`}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value=";">Punto y coma (;)</SelectItem>
+                        <SelectItem value=",">Coma (,)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`date-format-${category}`}>Formato de Fecha</Label>
+                    <Select value={state.dateFormat} onValueChange={(val) => setState({ dateFormat: val })}>
+                      <SelectTrigger id={`date-format-${category}`}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yyyy-MM">Año-Mes (ej: 2024-10)</SelectItem>
+                        <SelectItem value="yyyy-MM-dd">Año-Mes-Día (ej: 2024-10-25)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`date-column-${category}`}>Columna de Fecha/Período *</Label>
+                    <Select value={state.dateColumn} onValueChange={(val) => setState({ dateColumn: val })}>
+                        <SelectTrigger id={`date-column-${category}`}><SelectValue placeholder="Selecciona una columna..." /></SelectTrigger>
+                        <SelectContent>
+                            {state.csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor={`date-format-${category}`}>Formato de Fecha</Label>
-                  <Select value={state.dateFormat} onValueChange={(val) => setState({ dateFormat: val })}>
-                    <SelectTrigger id={`date-format-${category}`}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yyyy-MM">Año-Mes (ej: 2024-10)</SelectItem>
-                      <SelectItem value="yyyy-MM-dd">Año-Mes-Día (ej: 2024-10-25)</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="space-y-2">
+                    <Label>Vista Previa del Archivo</Label>
+                    <div className="border rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto max-h-48">
+                        <UiTable className="text-xs">
+                            <TableHeader>
+                                <TableRow>
+                                    {state.csvHeaders.map(h => <TableHead key={h} className="whitespace-nowrap">{h}</TableHead>)}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {state.csvPreview.map((row, i) => (
+                                    <TableRow key={i}>
+                                        {state.csvHeaders.map(h => <TableCell key={h} className="whitespace-nowrap">{row[h]}</TableCell>)}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </UiTable>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <div>
-                <Label htmlFor={`date-column-${category}`}>Columna de Fecha/Período</Label>
-                <Select value={state.dateColumn} onValueChange={(val) => setState({ dateColumn: val })}>
-                    <SelectTrigger id={`date-column-${category}`}><SelectValue placeholder="Selecciona una columna..." /></SelectTrigger>
-                    <SelectContent>
-                        {state.csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-              </div>
             </div>
+
             <div className="flex justify-between items-center">
                 <Button variant="outline" onClick={resetWizard}>Volver</Button>
                 <Button onClick={handleSaveConfiguration}>
