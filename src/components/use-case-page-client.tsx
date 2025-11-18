@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 
 function isValidDate(dateString: string | undefined): boolean {
     if (!dateString) return false;
-    const date = new Date(`${dateString}T00:00:00`);
+    const date = new Date(dateString);
     return !isNaN(date.getTime());
 }
 
@@ -32,7 +32,7 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
             return null;
         }
         const sorted = [...kpi.valoresGenerados]
-            .filter(v => isValidDate(v.date))
+            .filter(v => v.date && isValidDate(v.date))
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
         return sorted.length > 0 ? sorted[0] : null;

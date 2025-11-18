@@ -287,7 +287,6 @@ export const updateUseCase = functions.https.onRequest((req, res) => {
             const timestamp = new Date();
             const versionId = timestamp.toISOString();
 
-            // Create a history record before updating
             await db.runTransaction(async (transaction) => {
                 const currentDoc = await transaction.get(useCaseRef);
                 if (currentDoc.exists) {
@@ -298,20 +297,19 @@ export const updateUseCase = functions.https.onRequest((req, res) => {
                     transaction.set(historyRef.doc(versionId), historyData);
                 }
 
-                // Now update the main document
                 const updateData = { 
                     ...useCaseData, 
                     updatedAt: timestamp 
                 };
+                
                 transaction.set(useCaseRef, updateData, { merge: true });
-
-                // Add new uploaded files if any
-                if (newUploadedFiles && newUploadedFiles.length > 0) {
-                    const uploadedFilesRef = useCaseRef.collection('uploadedFiles');
+                
+                if (newUploadedFiles && Array.isArray(newUploadedFiles)) {
                     for (const file of newUploadedFiles) {
-                        transaction.set(uploadedFilesRef.doc(file.id), {
+                        const fileRef = useCaseRef.collection('uploadedFiles').doc(file.id);
+                        transaction.set(fileRef, {
                             ...file,
-                            uploadedAt: timestamp,
+                            uploadedAt: timestamp
                         });
                     }
                 }
@@ -589,8 +587,8 @@ export const deleteUploadedFile = functions.https.onCall(async (data, context) =
             
             const fileData = fileDoc.data()!;
             const category = fileData.category;
+            const filePeriods = fileData.periods || [];
 
-            // Remove the metrics associated with this fileId
             const currentUseCaseDoc = await transaction.get(useCaseRef);
             const currentUseCaseData = currentUseCaseDoc.data();
             const currentMetrics = currentUseCaseData?.metrics || {};
@@ -598,23 +596,21 @@ export const deleteUploadedFile = functions.https.onCall(async (data, context) =
             const newMetrics = { ...currentMetrics };
             let hasChanges = false;
             
-            for (const period in newMetrics) {
-                if (newMetrics[period][category]?.fileId === fileId) {
+            // Remove metrics associated with the file's periods
+            for (const period of filePeriods) {
+                if (newMetrics[period]?.[category]?.fileId === fileId) {
                     delete newMetrics[period][category];
-                    hasChanges = true;
-                    // If the period becomes empty, remove it
-                    if (Object.keys(newMetrics[period]).length === 0) {
+                    if(Object.keys(newMetrics[period]).length === 0){
                         delete newMetrics[period];
                     }
+                    hasChanges = true;
                 }
             }
             
-            // If metrics were changed, update the use case document
             if (hasChanges) {
                 transaction.update(useCaseRef, { metrics: newMetrics });
             }
 
-            // Finally, delete the file record
             transaction.delete(fileRef);
         });
 

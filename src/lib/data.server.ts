@@ -12,30 +12,17 @@ const serializeDate = (timestamp: admin.firestore.Timestamp | undefined): string
 const formatDateForDisplay = (dateString: string | undefined): string => {
     if (!dateString) return '';
     try {
-        // Handle YYYY-MM-DD format correctly regardless of server timezone
-        const parts = dateString.split('-');
-        if (parts.length === 3) {
-            const [year, month, day] = parts.map(p => parseInt(p, 10));
-            // Create date in UTC to avoid timezone shifts
-            const date = new Date(Date.UTC(year, month - 1, day));
-             if (isNaN(date.getTime())) return '';
-             return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
-        }
-        // Handle YYYY-MM format
-        if (parts.length === 2) {
-             const [year, month] = parts.map(p => parseInt(p, 10));
-             const date = new Date(Date.UTC(year, month - 1, 1));
-             if (isNaN(date.getTime())) return '';
-             return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
-        }
-
-        // Fallback for other formats, though might be timezone sensitive
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '';
-        return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+        if (isNaN(date.getTime())) return dateString; // Return original if invalid
+        
+        // Add a day to counteract timezone issues if the date is just YYYY-MM-DD
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          date.setDate(date.getDate() + 1);
+        }
 
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
     } catch {
-        return '';
+        return dateString; // Return original on error
     }
 };
 
@@ -158,7 +145,7 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
         ...kpi,
         valoresGenerados: (kpi.valoresGenerados || []).map((v: any) => ({
           ...v,
-          date: formatDateForDisplay(v.date) // Format date on server
+          date: v.date // Keep original date string, format on client
         })),
       })),
       roadmap: useCaseData.roadmap || null,
@@ -220,7 +207,7 @@ export async function getAllUseCases(): Promise<UseCase[]> {
         ...kpi,
         valoresGenerados: (kpi.valoresGenerados || []).map((v: any) => ({
           ...v,
-          date: formatDateForDisplay(v.date) // Format date on server
+          date: v.date // Keep original date string, format on client
         })),
       })),
       roadmap: useCaseData.roadmap || null,
