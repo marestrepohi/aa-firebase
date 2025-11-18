@@ -1,4 +1,3 @@
-// This is a new file
 'use client';
 
 import { useState } from 'react';
@@ -74,7 +73,7 @@ export function UploadedFilesHistory({ files, entityId, useCaseId, onFileDeleted
                 <div>
                   <p className="font-medium text-sm">{file.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    Subido el: {format(new Date(file.uploadedAt), 'dd/MM/yyyy, HH:mm')}
+                    {file.uploadedAt ? `Subido el: ${format(new Date(file.uploadedAt), 'dd/MM/yyyy, HH:mm')}` : 'Fecha desconocida'}
                   </p>
                 </div>
               </div>
@@ -98,7 +97,7 @@ export function UploadedFilesHistory({ files, entityId, useCaseId, onFileDeleted
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro de que quieres eliminar este archivo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción es irreversible. Se eliminará el archivo <span className="font-semibold">{fileToDelete?.name}</span> y todas las métricas asociadas a él para los períodos <span className="font-semibold">{fileToDelete?.periods.join(', ')}</span>.
+              Esta acción es irreversible. Se eliminará el archivo <span className="font-semibold">{fileToDelete?.name}</span> y todas las métricas asociadas a él para los períodos <span className="font-semibold">{fileToDelete?.periods?.join(', ')}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

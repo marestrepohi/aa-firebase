@@ -1,14 +1,9 @@
 'use client';
 import {
-  getFirestore,
-  doc,
   collection,
-  setDoc,
   getDocs,
-  serverTimestamp,
-  runTransaction
 } from 'firebase/firestore';
-import type { Metric, UseCase } from './types';
+import type { UseCase } from './types';
 import { db } from './firebase'; // Using client-side initialized firebase
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -67,11 +62,7 @@ export async function saveMetrics(data: {
   entityId: string;
   useCaseId: string;
   period: string;
-  metrics: {
-    financial: Metric[];
-    business: Metric[];
-    technical: Metric[];
-  };
+  metrics: any; // More flexible type
 }) {
   const result = await fetchFromAPI('saveMetrics', {
     method: 'POST',
@@ -129,11 +120,11 @@ export async function deleteUploadedFile(
   fileId: string
 ): Promise<{success: boolean, error?: string}> {
   const functions = getFunctions(db.app, 'us-central1');
-  const deleteFile = httpsCallable(functions, 'deleteUploadedFile');
+  // Make sure the cloud function name matches what's exported in `functions/src/index.ts`
+  const deleteFileCallable = httpsCallable(functions, 'deleteUploadedFile');
   try {
-    const result = await deleteFile({ entityId, useCaseId, fileId });
-    const data = result.data as { success: boolean, error?: string };
-    return data;
+    const result = await deleteFileCallable({ entityId, useCaseId, fileId });
+    return result.data as { success: boolean; error?: string };
   } catch (error: any) {
     console.error("Error calling deleteUploadedFile function:", error);
     return { success: false, error: error.message };

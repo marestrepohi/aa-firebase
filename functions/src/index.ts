@@ -275,7 +275,7 @@ export const updateUseCase = functions.https.onRequest((req, res) => {
         }
 
         try {
-            const { entityId, id, ...useCaseData } = req.body;
+            const { entityId, id, newUploadedFiles, ...useCaseData } = req.body;
             if (!entityId || !id) {
                 res.status(400).json({ success: false, error: 'Entity ID and Use Case ID are required' });
                 return;
@@ -287,7 +287,6 @@ export const updateUseCase = functions.https.onRequest((req, res) => {
             const timestamp = new Date();
             const versionId = timestamp.toISOString();
 
-            // Create a history record before updating
             await db.runTransaction(async (transaction) => {
                 const currentDoc = await transaction.get(useCaseRef);
                 if (currentDoc.exists) {
@@ -298,12 +297,22 @@ export const updateUseCase = functions.https.onRequest((req, res) => {
                     transaction.set(historyRef.doc(versionId), historyData);
                 }
 
-                // Now update the main document
                 const updateData = { 
                     ...useCaseData, 
                     updatedAt: timestamp 
                 };
+                
                 transaction.set(useCaseRef, updateData, { merge: true });
+                
+                if (newUploadedFiles && Array.isArray(newUploadedFiles)) {
+                    for (const file of newUploadedFiles) {
+                        const fileRef = useCaseRef.collection('uploadedFiles').doc(file.id);
+                        transaction.set(fileRef, {
+                            ...file,
+                            uploadedAt: timestamp
+                        });
+                    }
+                }
             });
 
             res.json({ success: true, message: 'Use case updated successfully with versioning' });
@@ -557,4 +566,60 @@ export const getUseCaseHistory = functions.https.onRequest((req, res) => {
             res.status(500).json({ success: false, error: 'Failed to get use case history' });
         }
     });
+});
+
+export const deleteUploadedFile = functions.https.onCall(async (data, context) => {
+    const { entityId, useCaseId, fileId } = data;
+
+    if (!entityId || !useCaseId || !fileId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Entity ID, Use Case ID, and File ID are required.');
+    }
+
+    const useCaseRef = db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId);
+    const fileRef = useCaseRef.collection('uploadedFiles').doc(fileId);
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const fileDoc = await transaction.get(fileRef);
+            if (!fileDoc.exists) {
+                throw new functions.https.HttpsError('not-found', 'Uploaded file not found.');
+            }
+            
+            const fileData = fileDoc.data()!;
+            const category = fileData.category;
+            const filePeriods = fileData.periods || [];
+
+            const currentUseCaseDoc = await transaction.get(useCaseRef);
+            const currentUseCaseData = currentUseCaseDoc.data();
+            const currentMetrics = currentUseCaseData?.metrics || {};
+            
+            const newMetrics = { ...currentMetrics };
+            let hasChanges = false;
+            
+            // Remove metrics associated with the file's periods
+            for (const period of filePeriods) {
+                if (newMetrics[period]?.[category]?.fileId === fileId) {
+                    delete newMetrics[period][category];
+                    if(Object.keys(newMetrics[period]).length === 0){
+                        delete newMetrics[period];
+                    }
+                    hasChanges = true;
+                }
+            }
+            
+            if (hasChanges) {
+                transaction.update(useCaseRef, { metrics: newMetrics });
+            }
+
+            transaction.delete(fileRef);
+        });
+
+        return { success: true, message: 'File and associated metrics deleted successfully.' };
+    } catch (error) {
+        console.error('Error deleting uploaded file:', error);
+        if (error instanceof functions.https.HttpsError) {
+            throw error;
+        }
+        throw new functions.https.HttpsError('internal', 'An unexpected error occurred while deleting the file.');
+    }
 });

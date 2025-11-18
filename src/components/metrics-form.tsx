@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { updateUseCase } from '@/lib/data';
-import { Loader2, Upload, Settings, ChevronRight, Save, FileText, Table } from 'lucide-react';
+import { Loader2, Upload, Settings, ChevronRight, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UseCase, MetricCategory, UploadedFile } from '@/lib/types';
 import Papa from 'papaparse';
@@ -308,11 +308,11 @@ export function MetricsForm({ useCase, open, onOpenChange, onSuccess }: MetricsF
 
             Object.keys(row).forEach(header => {
                 if (header !== state.dateColumn) {
-                    newMetricsData[period][cat][header] = row[header];
+                    newMetricsData[period][cat]![header] = row[header];
                 }
             });
             // Add file ID reference to the metric entry
-            newMetricsData[period][cat].fileId = fileId;
+            newMetricsData[period][cat]!.fileId = fileId;
         }
       });
     }
