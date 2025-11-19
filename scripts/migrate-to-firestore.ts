@@ -173,7 +173,6 @@ async function migrateUseCases() {
   console.log(`Found ${useCases.length} use cases`);
 
   let count = 0;
-  const INITIAL_PERIOD = '2024-Q4';
 
   for (const useCase of useCases) {
     const entityName = useCase['entidad'] || '';
@@ -254,22 +253,9 @@ async function migrateUseCases() {
 
     await useCaseRef.set(useCaseData, { merge: true });
 
-    // Create an empty metrics document for the initial period
-    // Create empty metrics documents for the initial period in all new subcollections
-    const collections = ['technicalMetrics', 'businessMetrics', 'financialMetrics', 'generalInfo'];
-
-    for (const colName of collections) {
-      const metricsRef = useCaseRef.collection(colName).doc(INITIAL_PERIOD);
-      const metricsData = {
-        period: INITIAL_PERIOD,
-        [colName === 'technicalMetrics' ? 'technical' :
-          colName === 'businessMetrics' ? 'business' :
-            colName === 'financialMetrics' ? 'financial' : 'general']: [],
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-      await metricsRef.set(metricsData, { merge: true });
-    }
+    // NOTE: We do NOT create any metrics here.
+    // Metrics are only created when users upload CSV files via the UI.
+    // This ensures that metrics are always tied to actual data uploads with real timestamps.
 
     count++;
     if (count % 10 === 0) {

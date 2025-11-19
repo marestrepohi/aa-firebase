@@ -5,11 +5,13 @@ import { UseCasePageClientWrapper } from '@/components/use-case-page-client-wrap
 
 export const dynamic = 'force-dynamic';
 
-export default async function UseCasePage({ params }: { params: { entityId: string; useCaseId: string } }) {
+export default async function UseCasePage({ params }: { params: Promise<{ entityId: string; useCaseId: string }> }) {
+  const { entityId, useCaseId } = await params;
+
   const [entity, useCase, history] = await Promise.all([
-    getEntity(params.entityId),
-    getUseCase(params.entityId, params.useCaseId),
-    getUseCaseHistory(params.entityId, params.useCaseId)
+    getEntity(entityId),
+    getUseCase(entityId, useCaseId),
+    getUseCaseHistory(entityId, useCaseId)
   ]);
 
   if (!entity || !useCase || useCase.entityId !== entity.id) {

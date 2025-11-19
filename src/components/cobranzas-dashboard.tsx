@@ -63,7 +63,7 @@ export function CobranzasDashboard({ metricsData, history, descriptions, selecte
 
   const { summary, segmentTableData, temporalChartData } = useMemo(() => {
     if (!metricsData || metricsData.length === 0) {
-      return { summary: {}, segmentTableData: [], temporalChartData: [] };
+      return { summary: { totalClientes: 0, tasaExito: 0, saldoTotal: 0, tasaRecuperacion: 0 }, segmentTableData: [], temporalChartData: [] };
     }
 
     // Process current metrics data (metricsData is an array of rows)
@@ -178,7 +178,7 @@ export function CobranzasDashboard({ metricsData, history, descriptions, selecte
   }, [metricsData, history]);
 
 
-  if (periods.length === 0) {
+  if (!metricsData || metricsData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -195,17 +195,6 @@ export function CobranzasDashboard({ metricsData, history, descriptions, selecte
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Dashboard de Cobranzas</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Período:</span>
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Seleccionar período" />
-            </SelectTrigger>
-            <SelectContent>
-              {periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Clientes" value={summary.totalClientes?.toLocaleString() || '0'} icon={<Users className="text-blue-500" />} color="blue" />
