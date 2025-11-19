@@ -14,56 +14,56 @@ admin.initializeApp({
 const db = admin.firestore();
 
 function parseCSV(content: string, delimiter: string = ','): string[][] {
-    if (content.charCodeAt(0) === 0xFEFF) {
-        content = content.slice(1);
-    }
-    const rows: string[][] = [];
-    let currentRow: string[] = [];
-    let currentField = '';
-    let inQuotedField = false;
+  if (content.charCodeAt(0) === 0xFEFF) {
+    content = content.slice(1);
+  }
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let inQuotedField = false;
 
-    for (let i = 0; i < content.length; i++) {
-        const char = content[i];
-        const nextChar = content[i + 1];
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const nextChar = content[i + 1];
 
-        if (char === '"' && nextChar === '"') {
-            currentField += '"';
-            i++;
-            continue;
-        }
-
-        if (char === '"') {
-            inQuotedField = !inQuotedField;
-            continue;
-        }
-
-        if (char === delimiter && !inQuotedField) {
-            currentRow.push(currentField.trim());
-            currentField = '';
-            continue;
-        }
-
-        if ((char === '\n' || char === '\r') && !inQuotedField) {
-            if (char === '\r' && nextChar === '\n') {
-                i++;
-            }
-            if (currentField.length > 0 || currentRow.length > 0) {
-              currentRow.push(currentField.trim());
-              rows.push(currentRow);
-              currentRow = [];
-              currentField = '';
-            }
-            continue;
-        }
-        currentField += char;
+    if (char === '"' && nextChar === '"') {
+      currentField += '"';
+      i++;
+      continue;
     }
 
-    if (currentField.length > 0 || currentRow.length > 0) {
+    if (char === '"') {
+      inQuotedField = !inQuotedField;
+      continue;
+    }
+
+    if (char === delimiter && !inQuotedField) {
+      currentRow.push(currentField.trim());
+      currentField = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotedField) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      if (currentField.length > 0 || currentRow.length > 0) {
         currentRow.push(currentField.trim());
         rows.push(currentRow);
+        currentRow = [];
+        currentField = '';
+      }
+      continue;
     }
+    currentField += char;
+  }
 
-    return rows.filter(row => row.some(field => field.trim() !== ''));
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+    rows.push(currentRow);
+  }
+
+  return rows.filter(row => row.some(field => field.trim() !== ''));
 }
 
 
@@ -87,12 +87,12 @@ function readEntitiesFromCSV(): any[] {
   const csvPath = path.join(process.cwd(), 'public', 'entidades.csv');
   const content = fs.readFileSync(csvPath, 'utf-8');
   const rows = parseCSV(content, ','); // Use comma delimiter
-  
+
   if (rows.length < 2) return [];
-  
+
   const headers = rows.shift()!.map(h => h.trim());
   const entities: any[] = [];
-  
+
   for (const row of rows) {
     const entity: any = {};
     headers.forEach((header, index) => {
@@ -100,7 +100,7 @@ function readEntitiesFromCSV(): any[] {
     });
     entities.push(entity);
   }
-  
+
   return entities;
 }
 
@@ -108,12 +108,12 @@ function readUseCasesFromCSV(): any[] {
   const csvPath = path.join(process.cwd(), 'public', 'casos.csv');
   const content = fs.readFileSync(csvPath, 'utf-8');
   const rows = parseCSV(content, ';'); // Use semicolon delimiter
-  
+
   if (rows.length < 2) return [];
-  
+
   const headers = rows.shift()!.map(h => h.trim());
   const useCases: any[] = [];
-  
+
   for (const row of rows) {
     const useCase: any = {};
     headers.forEach((header, index) => {
@@ -121,7 +121,7 @@ function readUseCasesFromCSV(): any[] {
     });
     useCases.push(useCase);
   }
-  
+
   return useCases;
 }
 
@@ -130,20 +130,20 @@ async function migrateEntities() {
   console.log('📥 Reading entities from CSV...');
   const entities = readEntitiesFromCSV();
   console.log(`Found ${entities.length} entities`);
-  
+
   const batch = db.batch();
   let count = 0;
-  
+
   for (const entity of entities) {
     const entityName = entity['entidad'] || '';
     const entityId = createValidDocId(entityName);
-    
+
     if (!entityId) {
-        console.warn(`⚠️  Skipping entity with no name.`);
-        continue;
+      console.warn(`⚠️  Skipping entity with no name.`);
+      continue;
     }
     const entityRef = db.collection('entities').doc(entityId);
-    
+
     const entityData = {
       id: entityId,
       name: entityName,
@@ -152,16 +152,16 @@ async function migrateEntities() {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
-    
+
     batch.set(entityRef, entityData);
     count++;
-    
+
     if (count % 400 === 0) {
       await batch.commit();
       console.log(`✅ Migrated ${count} entities...`);
     }
   }
-  
+
   await batch.commit();
   console.log(`✅ Successfully migrated ${count} entities`);
   return count;
@@ -171,109 +171,112 @@ async function migrateUseCases() {
   console.log('📥 Reading use cases from CSV...');
   const useCases = readUseCasesFromCSV();
   console.log(`Found ${useCases.length} use cases`);
-  
+
   let count = 0;
   const INITIAL_PERIOD = '2024-Q4';
-  
+
   for (const useCase of useCases) {
     const entityName = useCase['entidad'] || '';
     const projectName = useCase['proyecto'] || '';
-    
+
     const entityId = createValidDocId(entityName);
     const useCaseId = createValidDocId(projectName);
-    
+
     if (!entityId || !useCaseId) {
       console.warn(`⚠️ Skipping use case without entity or project name: ${entityName} / ${projectName}`);
       continue;
     }
-    
+
     const useCaseRef = db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId);
-    
+
     // All data from CSV goes to the main use case document
     const useCaseData = {
-        id: useCaseId,
-        entityId: entityId,
-        name: projectName,
-        etapa: useCase['etapa'] || '',
-        status: useCase['estado'] || 'En Estimación',
-        highLevelStatus: useCase['estadoAltoNivel'] || 'Activo',
-        estadoDesarrolloMante: useCase['estadoDesarrolloMante'] || '',
-        subtarea: useCase['subtarea'] || '',
-        idFinanciera: useCase['idFinanciera'] || '',
-        tipoProyecto: useCase['tipoProyecto'] || 'No definido',
-        suite: useCase['suite'] || '',
-        tipoDesarrollo: useCase['tipoDesarrollo'] || 'No definido',
-        ds1: useCase['ds1'] || '',
-        ds2: useCase['ds2'] || '',
-        ds3: useCase['ds3'] || '',
-        ds4: useCase['ds4'] || '',
-        de: useCase['de'] || '',
-        mds: useCase['mds'] || '',
-        mantenimiento: useCase['mantenimiento'] || '',
-        tallaje: useCase['tallaje'] || '0',
-        horasDs1: useCase['horasDs1'] || '0',
-        horasDs2: useCase['horasDs2'] || '0',
-        horasDs3: useCase['horasDs3'] || '0',
-        horasDs4: useCase['horasDs4'] || '0',
-        totalHorasTallaje: useCase['totalHorasTallaje'] || '0',
-        horasSemanaPorcentaje: useCase['horasSemanaPorcentaje'] || '0',
-        observaciones: useCase['observaciones'] || '',
-        fechaInicio: useCase['fechaInicio'] || '',
-        fechaEntrega: useCase['fechaEntrega'] || '',
-        mantenimientoPost: useCase['mantenimientoPost'] || '',
-        dsEntidad: useCase['dsEntidad'] || '',
-        nivelImpactoFinanciero: useCase['nivelImpactoFinanciero'] || '',
-        unidadImpactoFinanciero: useCase['unidadImpactoFinanciero'] || '',
-        impactoFinanciero: useCase['impactoFinanciero'] || '0',
-        financieroAdl: useCase['financieroAdl'] || '0',
-        financieroEntidad: useCase['financieroEntidad'] || '0',
-        sponsor: useCase['sponsor'] || '',
-        mainContact: useCase['mainContact'] || '',
-        sandbox: useCase['sandbox'] || '',
-        nombreHcCuanto: useCase['nombreHcCuanto'] || '',
-        sharepointLink: useCase['sharepointLink'] || '',
-        sharepointActividades: useCase['sharepointActividades'] || '',
-        jiraLink: useCase['jiraLink'] || '',
-        jiraActividades: useCase['jiraActividades'] || '',
-        confluenceLink: useCase['confluenceLink'] || '',
-        objetivo: useCase['objetivo'] || '', // Maintaining these from previous version if they exist in CSV
-        solucion: useCase['solucion'] || '',
-        dolores: useCase['dolores'] || '',
-        riesgos: useCase['riesgos'] || '',
-        impactoEsperado: useCase['impactoEsperado'] || '',
-        impactoGenerado: useCase['impactoGenerado'] || '',
-        roadmap: [
-            { name: 'Definición y Desarrollo', completed: false },
-            { name: 'Piloto', completed: false },
-            { name: 'Automatización y Operativización', completed: false },
-            { name: 'Seguimiento y Recalibración', completed: false },
-        ],
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-    
-    await useCaseRef.set(useCaseData, { merge: true });
-    
-    // Create an empty metrics document for the initial period
-    const metricsRef = useCaseRef.collection('metrics').doc(INITIAL_PERIOD);
-    
-    const metricsData = {
-      period: INITIAL_PERIOD,
-      financial: [],
-      business: [],
-      technical: [],
+      id: useCaseId,
+      entityId: entityId,
+      name: projectName,
+      etapa: useCase['etapa'] || '',
+      status: useCase['estado'] || 'En Estimación',
+      highLevelStatus: useCase['estadoAltoNivel'] || 'Activo',
+      estadoDesarrolloMante: useCase['estadoDesarrolloMante'] || '',
+      subtarea: useCase['subtarea'] || '',
+      idFinanciera: useCase['idFinanciera'] || '',
+      tipoProyecto: useCase['tipoProyecto'] || 'No definido',
+      suite: useCase['suite'] || '',
+      tipoDesarrollo: useCase['tipoDesarrollo'] || 'No definido',
+      ds1: useCase['ds1'] || '',
+      ds2: useCase['ds2'] || '',
+      ds3: useCase['ds3'] || '',
+      ds4: useCase['ds4'] || '',
+      de: useCase['de'] || '',
+      mds: useCase['mds'] || '',
+      mantenimiento: useCase['mantenimiento'] || '',
+      tallaje: useCase['tallaje'] || '0',
+      horasDs1: useCase['horasDs1'] || '0',
+      horasDs2: useCase['horasDs2'] || '0',
+      horasDs3: useCase['horasDs3'] || '0',
+      horasDs4: useCase['horasDs4'] || '0',
+      totalHorasTallaje: useCase['totalHorasTallaje'] || '0',
+      horasSemanaPorcentaje: useCase['horasSemanaPorcentaje'] || '0',
+      observaciones: useCase['observaciones'] || '',
+      fechaInicio: useCase['fechaInicio'] || '',
+      fechaEntrega: useCase['fechaEntrega'] || '',
+      mantenimientoPost: useCase['mantenimientoPost'] || '',
+      dsEntidad: useCase['dsEntidad'] || '',
+      nivelImpactoFinanciero: useCase['nivelImpactoFinanciero'] || '',
+      unidadImpactoFinanciero: useCase['unidadImpactoFinanciero'] || '',
+      impactoFinanciero: useCase['impactoFinanciero'] || '0',
+      financieroAdl: useCase['financieroAdl'] || '0',
+      financieroEntidad: useCase['financieroEntidad'] || '0',
+      sponsor: useCase['sponsor'] || '',
+      mainContact: useCase['mainContact'] || '',
+      sandbox: useCase['sandbox'] || '',
+      nombreHcCuanto: useCase['nombreHcCuanto'] || '',
+      sharepointLink: useCase['sharepointLink'] || '',
+      sharepointActividades: useCase['sharepointActividades'] || '',
+      jiraLink: useCase['jiraLink'] || '',
+      jiraActividades: useCase['jiraActividades'] || '',
+      confluenceLink: useCase['confluenceLink'] || '',
+      objetivo: useCase['objetivo'] || '', // Maintaining these from previous version if they exist in CSV
+      solucion: useCase['solucion'] || '',
+      dolores: useCase['dolores'] || '',
+      riesgos: useCase['riesgos'] || '',
+      impactoEsperado: useCase['impactoEsperado'] || '',
+      impactoGenerado: useCase['impactoGenerado'] || '',
+      roadmap: [
+        { name: 'Definición y Desarrollo', completed: false },
+        { name: 'Piloto', completed: false },
+        { name: 'Automatización y Operativización', completed: false },
+        { name: 'Seguimiento y Recalibración', completed: false },
+      ],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
-    
-    await metricsRef.set(metricsData, { merge: true });
-    
+
+    await useCaseRef.set(useCaseData, { merge: true });
+
+    // Create an empty metrics document for the initial period
+    // Create empty metrics documents for the initial period in all new subcollections
+    const collections = ['technicalMetrics', 'businessMetrics', 'financialMetrics', 'generalInfo'];
+
+    for (const colName of collections) {
+      const metricsRef = useCaseRef.collection(colName).doc(INITIAL_PERIOD);
+      const metricsData = {
+        period: INITIAL_PERIOD,
+        [colName === 'technicalMetrics' ? 'technical' :
+          colName === 'businessMetrics' ? 'business' :
+            colName === 'financialMetrics' ? 'financial' : 'general']: [],
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      await metricsRef.set(metricsData, { merge: true });
+    }
+
     count++;
     if (count % 10 === 0) {
       console.log(`✅ Migrated ${count} use cases...`);
     }
   }
-  
+
   console.log(`✅ Successfully migrated ${count} use cases with empty metrics`);
   return count;
 }
@@ -285,21 +288,20 @@ async function cleanupOldData() {
   for (const collectionName of collections) {
     const snapshot = await db.collection(collectionName).get();
     if (snapshot.empty) continue;
-    
+
     const batch = db.batch();
     for (const doc of snapshot.docs) {
       const useCasesSnapshot = await doc.ref.collection('useCases').get();
       for (const useCaseDoc of useCasesSnapshot.docs) {
-        const metricsSnapshot = await useCaseDoc.ref.collection('metrics').get();
-        metricsSnapshot.docs.forEach(mDoc => batch.delete(mDoc.ref));
-        
-        // Clean up history subcollection as well
-        const historySnapshot = await useCaseDoc.ref.collection('history').get();
-        historySnapshot.docs.forEach(hDoc => batch.delete(hDoc.ref));
+        const subcollections = ['metrics', 'technicalMetrics', 'businessMetrics', 'financialMetrics', 'generalInfo', 'history', 'uploadedFiles'];
+
+        for (const subcol of subcollections) {
+          const subSnapshot = await useCaseDoc.ref.collection(subcol).get();
+          subSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+        }
 
         batch.delete(useCaseDoc.ref);
       }
-      batch.delete(doc.ref);
     }
     await batch.commit();
     console.log(`✅ Deleted all documents and subcollections in ${collectionName}`);
