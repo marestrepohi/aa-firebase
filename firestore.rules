@@ -14,6 +14,18 @@ service cloud.firestore {
         match /metrics/{period} {
           allow read, write: if true;
         }
+        match /technicalMetrics/{period} {
+          allow read, write: if true;
+        }
+        match /businessMetrics/{period} {
+          allow read, write: if true;
+        }
+        match /financialMetrics/{period} {
+          allow read, write: if true;
+        }
+        match /generalInfo/{period} {
+          allow read, write: if true;
+        }
 
         // Historial de versiones del caso de uso
         match /history/{versionId} {
