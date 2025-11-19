@@ -201,6 +201,17 @@ export const updateUseCase = functions.https.onRequest((req, res) => {
                         }
                     }
                 }
+
+                // Save general info snapshot to metrics/generalInfo
+                // This ensures that edits to general info are tracked as metrics history
+                if (Object.keys(useCaseData).length > 0) {
+                    const generalInfoRef = useCaseRef.collection('generalInfo').doc(versionId);
+                    transaction.set(generalInfoRef, {
+                        ...useCaseData,
+                        period: versionId,
+                        uploadedAt: timestamp
+                    }, { merge: true });
+                }
             });
 
             res.json({ success: true, message: 'Use case updated successfully with versioning' });
@@ -334,20 +345,22 @@ export const deleteUploadedFile = functions.https.onCall(async (data, context) =
                 throw new functions.https.HttpsError('not-found', 'Uploaded file not found.');
             }
 
-            // const fileData = fileDoc.data()!;
-            // const category = fileData.category;
-            // const filePeriods = fileData.periods || [];
+            const fileData = fileDoc.data()!;
+            const category = fileData.category;
 
-            // Note: This deletion logic might need update for new subcollections structure
-            // But for now, we'll keep it simple or assume it handles metrics deletion if needed.
-            // Actually, if we moved to subcollections, we should delete from there too.
-            // But let's stick to the current implementation for now to avoid scope creep in refactor.
-            // Wait, the previous implementation was deleting from 'metrics' field in useCase doc?
-            // No, it was updating 'metrics' field in useCase doc.
-            // But now we are using subcollections.
-            // So this logic is actually outdated if we fully switched to subcollections.
-            // However, `getUseCase` merges everything.
-            // Let's leave it as is for now, but add a TODO.
+            if (category) {
+                let collectionName = '';
+                if (category === 'technical') collectionName = 'technicalMetrics';
+                else if (category === 'business') collectionName = 'businessMetrics';
+                else if (category === 'financial') collectionName = 'financialMetrics';
+
+                if (collectionName) {
+                    const metricsQuery = await useCaseRef.collection(collectionName).where('fileId', '==', fileId).get();
+                    metricsQuery.docs.forEach((doc) => {
+                        transaction.delete(doc.ref);
+                    });
+                }
+            }
 
             transaction.delete(fileRef);
         });

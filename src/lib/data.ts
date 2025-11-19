@@ -36,62 +36,43 @@ async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
   }
 }
 
-export async function getMetricsPeriods(
+export async function getMetricsHistory(
   entityId: string,
-  useCaseId: string
-): Promise<Array<{ period: string }>> {
-  try {
-    const collections = ['metrics', 'technicalMetrics', 'businessMetrics', 'financialMetrics', 'generalInfo'];
-    const periodSet = new Set<string>();
-    const periodDataMap = new Map<string, any>();
-
-    await Promise.all(collections.map(async (colName) => {
-      try {
-        const snapshot = await getDocs(
-          collection(db, 'entities', entityId, 'useCases', useCaseId, colName)
-        );
-        snapshot.docs.forEach(doc => {
-          periodSet.add(doc.id);
-          // Keep the data from the first occurrence, or merge? 
-          // For the selector, we mostly need the period ID. 
-          // But if we want to show data, we might need to merge.
-          // For now, let's just ensure the period exists.
-          if (!periodDataMap.has(doc.id)) {
-            periodDataMap.set(doc.id, { period: doc.id, ...doc.data() });
-          }
-        });
-      } catch (e) {
-        console.warn(`Failed to fetch from ${colName}`, e);
-        // Continue even if one collection fails (e.g. permission error or non-existent)
-      }
-    }));
-
-    const periods = Array.from(periodSet).map(period => periodDataMap.get(period))
-      .sort((a, b) => b.period.localeCompare(a.period));
-
-    return periods as Array<{ period: string }>;
-  } catch (e: any) {
-    errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: `entities/${entityId}/useCases/${useCaseId}/metrics`,
-      operation: 'list',
-    }));
+  useCaseId: string,
+  category?: string
+): Promise<Array<{ id: string; uploadedAt: string;[key: string]: any }>> {
+  const response = await fetch(`${API_URL}/getMetricsHistory?entityId=${entityId}&useCaseId=${useCaseId}&category=${category || ''}`);
+  if (!response.ok) {
+    console.error('Failed to fetch metrics history');
     return [];
   }
+  const data = await response.json();
+  return data.history || [];
 }
 
-export async function saveMetrics(data: {
-  entityId: string;
-  useCaseId: string;
-  period: string;
-  metrics: any;
-  category?: string;
-}) {
-  const result = await fetchFromAPI('saveMetrics', {
+export async function saveMetrics({ entityId, useCaseId, category, metrics }: { entityId: string, useCaseId: string, category?: string, metrics: any }) {
+  const response = await fetch(`${API_URL}/saveMetrics`, {
     method: 'POST',
-    body: JSON.stringify(data),
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ entityId, useCaseId, category, metrics }),
   });
-  return result.success;
+
+  if (!response.ok) {
+    throw new Error('Failed to save metrics');
+  }
+
+  return response.json();
+}
+
+export async function getMetric(entityId: string, useCaseId: string, category: string, metricId: string) {
+  const response = await fetch(`${API_URL}/getMetric?entityId=${entityId}&useCaseId=${useCaseId}&category=${category}&metricId=${metricId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch metric');
+  }
+  const data = await response.json();
+  return data.metric;
 }
 
 export async function updateEntity(data: {

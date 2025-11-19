@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions';
 import { db } from '../firebase';
 import { corsHandler } from '../utils/cors';
 
-// Save metrics for a specific period with versioning
+// Save metrics with timestamp-based ID (no period)
 export const saveMetrics = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
         if (req.method !== 'POST' && req.method !== 'PUT') {
@@ -11,11 +11,11 @@ export const saveMetrics = functions.https.onRequest((req, res) => {
         }
 
         try {
-            const { entityId, useCaseId, period, metrics, category } = req.body;
-            if (!entityId || !useCaseId || !period || !metrics) {
+            const { entityId, useCaseId, metrics, category } = req.body;
+            if (!entityId || !useCaseId || !metrics) {
                 res.status(400).json({
                     success: false,
-                    error: 'Entity ID, Use Case ID, period, and metrics are required'
+                    error: 'Entity ID, Use Case ID, and metrics are required'
                 });
                 return;
             }
@@ -27,27 +27,20 @@ export const saveMetrics = functions.https.onRequest((req, res) => {
             else if (category === 'financial') collectionName = 'financialMetrics';
             else if (category === 'general') collectionName = 'generalInfo';
 
-            const metricsRef = db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection(collectionName).doc(period);
-            const historyRef = metricsRef.collection('history');
-
             const timestamp = new Date();
-            const versionId = timestamp.toISOString();
+            const docId = timestamp.toISOString(); // Use timestamp as Document ID
 
-            await db.runTransaction(async (transaction) => {
-                const currentDoc = await transaction.get(metricsRef);
-                if (currentDoc.exists) {
-                    const historyData = {
-                        ...currentDoc.data(),
-                        versionedAt: timestamp,
-                    };
-                    transaction.set(historyRef.doc(versionId), historyData);
-                }
+            const metricsRef = db.collection('entities').doc(entityId).collection('useCases').doc(useCaseId).collection(collectionName).doc(docId);
 
-                const saveData = { ...metrics, period, updatedAt: timestamp };
-                transaction.set(metricsRef, saveData, { merge: true });
-            });
+            const saveData = {
+                ...metrics,
+                period: docId, // Keep period field as the ID for compatibility if needed, or just use it as display label
+                uploadedAt: timestamp
+            };
 
-            res.json({ success: true, message: 'Metrics saved successfully with versioning' });
+            await metricsRef.set(saveData);
+
+            res.json({ success: true, message: 'Metrics saved successfully', id: docId });
         } catch (error) {
             console.error('Error saving metrics:', error);
             res.status(500).json({ success: false, error: 'Failed to save metrics' });
@@ -55,8 +48,8 @@ export const saveMetrics = functions.https.onRequest((req, res) => {
     });
 });
 
-// Get metrics for all periods of a use case
-export const getMetricsPeriods = functions.https.onRequest((req, res) => {
+// Get metrics history (sorted by date desc)
+export const getMetricsHistory = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
         try {
             const { entityId, useCaseId, category } = req.query;
@@ -81,16 +74,66 @@ export const getMetricsPeriods = functions.https.onRequest((req, res) => {
                 .collection('useCases')
                 .doc(useCaseId as string)
                 .collection(collectionName)
-                .orderBy('period', 'desc')
+                .orderBy('uploadedAt', 'desc') // Sort by upload time
                 .get();
-            const periods = metricsSnapshot.docs.map(doc => ({
-                period: doc.id,
-                ...doc.data(),
-            }));
-            res.json({ success: true, periods });
+
+            const history = metricsSnapshot.docs.map(doc => {
+                const { data, ...rest } = doc.data(); // Exclude 'data' field (raw CSV)
+                return {
+                    id: doc.id,
+                    ...rest,
+                    uploadedAt: rest.uploadedAt?.toDate()?.toISOString()
+                };
+            });
+
+            res.json({ success: true, history });
         } catch (error) {
-            console.error('Error getting metrics periods:', error);
-            res.status(500).json({ success: false, error: 'Failed to get metrics periods' });
+            console.error('Error getting metrics history:', error);
+            res.status(500).json({ success: false, error: 'Failed to get metrics history' });
+        }
+    });
+});
+
+// Get a specific metric by ID
+export const getMetric = functions.https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        try {
+            const { entityId, useCaseId, category, metricId } = req.query;
+
+            if (!entityId || !useCaseId || !category || !metricId) {
+                res.status(400).json({ success: false, error: 'Entity ID, Use Case ID, Category, and Metric ID are required' });
+                return;
+            }
+
+            let collectionName = '';
+            if (category === 'technical') collectionName = 'technicalMetrics';
+            else if (category === 'business') collectionName = 'businessMetrics';
+            else if (category === 'financial') collectionName = 'financialMetrics';
+            else if (category === 'general') collectionName = 'generalInfo';
+            else {
+                res.status(400).json({ success: false, error: 'Invalid category' });
+                return;
+            }
+
+            const doc = await db
+                .collection('entities')
+                .doc(entityId as string)
+                .collection('useCases')
+                .doc(useCaseId as string)
+                .collection(collectionName)
+                .doc(metricId as string)
+                .get();
+
+            if (!doc.exists) {
+                res.status(404).json({ success: false, error: 'Metric not found' });
+                return;
+            }
+
+            res.json({ success: true, metric: { id: doc.id, ...doc.data() } });
+
+        } catch (error) {
+            console.error('Error getting metric:', error);
+            res.status(500).json({ success: false, error: 'Failed to get metric' });
         }
     });
 });
