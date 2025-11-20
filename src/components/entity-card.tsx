@@ -57,12 +57,12 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
 
   return (
     <>
-      <Card className="group relative flex flex-col transition-all duration-200 hover:shadow-lg hover:border-primary h-full">
+      <Card className="group relative flex flex-col card-standard h-full">
         {isEditing && (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 h-8 w-8 z-10"
+            className="absolute top-2 right-2 btn-icon-sm z-10"
             onClick={handleEditClick}
           >
             <Pencil className="h-4 w-4" />
@@ -70,18 +70,18 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
           </Button>
         )}
         <CardContentLink>
-          <CardHeader className="pb-3 border-b w-full">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 pr-8">
-                <CardTitle className="text-xl font-bold">{entity.name}</CardTitle>
+          <CardHeader className="pb-4 border-b w-full">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-lg md:text-xl font-bold truncate">{entity.name}</CardTitle>
               </div>
-              <div className="ml-auto flex-shrink-0 h-16 w-16 flex items-center justify-center">
+              <div className="flex-shrink-0 h-12 w-12 md:h-16 md:w-16 flex items-center justify-center">
                 {hasValidLogo ? (
-                  <Image 
-                    src={entity.logo} 
-                    alt={`${entity.name} logo`} 
-                    width={64} 
-                    height={64} 
+                  <Image
+                    src={entity.logo}
+                    alt={`${entity.name} logo`}
+                    width={64}
+                    height={64}
                     className="object-contain h-full w-full"
                     unoptimized
                     onError={() => setLogoError(true)}
@@ -92,10 +92,12 @@ export function EntityCard({ entity, isEditing }: { entity: Entity; isEditing?: 
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex-grow pt-4 w-full">
-            <div className="grid grid-cols-3 gap-2 text-sm">
+          <CardContent className="flex-grow pt-6 w-full">
+            <div className="flex justify-around items-center gap-2 text-sm">
               <Stat label="Activos" value={entity.stats.active || 0} />
+              <div className="w-px h-12 bg-border" />
               <Stat label="Inactivos" value={entity.stats.inactive || 0} />
+              <div className="w-px h-12 bg-border" />
               <Stat label="Total" value={entity.stats.total || 0} />
             </div>
           </CardContent>

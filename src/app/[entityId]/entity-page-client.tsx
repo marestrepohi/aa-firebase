@@ -55,7 +55,7 @@ export default function EntityPageClient({ entity, initialUseCases, isEditing }:
       return true;
     });
   }, [initialUseCases, filters]);
-  
+
   const stats = useMemo(() => {
     const active = filteredUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
     const inactive = filteredUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
@@ -63,8 +63,8 @@ export default function EntityPageClient({ entity, initialUseCases, isEditing }:
     const uniqueDE = new Set(filteredUseCases.map(uc => uc.de).filter(Boolean));
 
     const totalImpact = filteredUseCases.reduce((sum, uc) => {
-        const impact = parseFloat(String(uc.impactoFinanciero || '0').replace(/[^0-9.-]+/g, ''));
-        return sum + (isNaN(impact) ? 0 : impact);
+      const impact = parseFloat(String(uc.impactoFinanciero || '0').replace(/[^0-9.-]+/g, ''));
+      return sum + (isNaN(impact) ? 0 : impact);
     }, 0);
 
     return {
@@ -75,7 +75,7 @@ export default function EntityPageClient({ entity, initialUseCases, isEditing }:
       dataEngineers: uniqueDE.size,
       totalImpact: totalImpact,
     };
-}, [filteredUseCases]);
+  }, [filteredUseCases]);
 
   return (
     <div className="space-y-4 py-8">
@@ -89,8 +89,8 @@ export default function EntityPageClient({ entity, initialUseCases, isEditing }:
         currentFilters={filters}
       />
       <EntityStatsPanel stats={stats} />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {filteredUseCases.length > 0 ? (
           filteredUseCases.map((useCase) => (
             <UseCaseCard key={useCase.id} useCase={useCase} isEditing={isEditing} />

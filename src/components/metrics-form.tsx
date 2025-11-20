@@ -21,7 +21,9 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { updateUseCase, saveMetrics } from '@/lib/data';
-import { Loader2, Upload, Settings, ChevronRight, Save } from 'lucide-react';
+import { saveDashboardConfig, getDashboardConfig } from '@/lib/dashboard-api';
+import { generateDashboardConfig } from '@/lib/dashboard-suggestions';
+import { Loader2, Upload, Settings, ChevronRight, Save, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UseCase, MetricCategory, UploadedFile } from '@/lib/types';
 import Papa from 'papaparse';
@@ -316,6 +318,33 @@ export function MetricsForm({ useCase, open, onOpenChange, onSuccess }: MetricsF
           metricsConfig: newMetricsConfig,
           newUploadedFiles: newUploadedFiles,
         });
+      }
+
+      // ✨ AUTO-GENERATE DASHBOARD CONFIG
+      // Check if dashboard config exists, if not, create one automatically
+      try {
+        const existingConfig = await getDashboardConfig(useCase.entityId, useCase.id, cat);
+
+        if (!existingConfig && state.csvData.length > 0) {
+          // Generate dashboard config from CSV data
+          const generatedConfig = generateDashboardConfig(
+            useCase.id,
+            useCase.name,
+            state.csvData
+          );
+
+          // Save the generated config
+          await saveDashboardConfig(useCase.entityId, useCase.id, cat, generatedConfig);
+
+          toast({
+            title: "✨ Dashboard Generado",
+            description: `Se creó automáticamente un dashboard para ${cat === 'financial' ? 'Financieras' : cat === 'business' ? 'Negocio' : 'Técnicas'}`,
+            duration: 5000,
+          });
+        }
+      } catch (dashError) {
+        console.error('Error generating dashboard:', dashError);
+        // Don't fail the whole operation if dashboard generation fails
       }
 
       if (failCount === 0) {

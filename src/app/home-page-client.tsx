@@ -72,7 +72,7 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
   const summaryMetrics = useMemo(() => {
     const uniqueEntities = new Set(filteredUseCases.map(uc => uc.entityId));
     const uniqueDataScientists = new Set(filteredUseCases.map(uc => uc.ds1).filter(Boolean));
-    
+
     return {
       totalCases: filteredUseCases.length,
       entities: uniqueEntities.size,
@@ -82,7 +82,7 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
 
   const entitiesWithFilteredStats = useMemo(() => {
     const useCasesByEntity: Record<string, UseCase[]> = {};
-    
+
     filteredUseCases.forEach(uc => {
       if (!useCasesByEntity[uc.entityId]) {
         useCasesByEntity[uc.entityId] = [];
@@ -97,7 +97,7 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
         const active = entityUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
         const inactive = entityUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
         const strategic = entityUseCases.filter(uc => uc.highLevelStatus === 'Estrategico').length;
-        
+
         return {
           ...entity,
           stats: {
@@ -125,28 +125,28 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
           currentFilters={filters}
         />
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <SummaryCard 
-          title="TOTAL DE CASOS" 
-          value={summaryMetrics.totalCases} 
+        <SummaryCard
+          title="TOTAL DE CASOS"
+          value={summaryMetrics.totalCases}
           action={
-            <Button 
-              variant="link" 
+            <Button
+              variant="link"
               className="p-0 h-auto text-blue-600 hover:text-blue-800"
               onClick={() => setShowStatusTable(!showStatusTable)}
             >
               {showStatusTable ? 'Cerrar' : 'Detalle'}
             </Button>
-          } 
+          }
         />
         <SummaryCard title="ENTIDADES" value={summaryMetrics.entities} />
-        <SummaryCard 
-          title="CIENTÍFICOS DE DATOS" 
-          value={summaryMetrics.dataScientists} 
+        <SummaryCard
+          title="CIENTÍFICOS DE DATOS"
+          value={summaryMetrics.dataScientists}
           action={
-            <Button 
-              variant="link" 
+            <Button
+              variant="link"
               className="p-0 h-auto text-blue-600 hover:text-blue-800"
               onClick={() => setShowDataScientistTable(!showDataScientistTable)}
             >
@@ -157,17 +157,17 @@ export default function HomePageClient({ entities, allUseCases, isEditing }: Hom
       </div>
 
       {showStatusTable && (
-        <CaseStatusTable 
-          useCases={filteredUseCases} 
-          currentFilters={filters} 
+        <CaseStatusTable
+          useCases={filteredUseCases}
+          currentFilters={filters}
         />
       )}
-      
+
       {showDataScientistTable && (
         <DataScientistTable useCases={filteredUseCases} />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {entitiesWithFilteredStats.length > 0 ? (
           entitiesWithFilteredStats.map(entity => (
             <EntityCard key={entity.id} entity={entity} isEditing={isEditing} />

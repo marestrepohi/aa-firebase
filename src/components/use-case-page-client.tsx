@@ -4,12 +4,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricsCard } from '@/components/metrics-card';
+import { DynamicDashboard } from '@/components/dashboard/DynamicDashboard';
 import { CobranzasDashboard } from '@/components/cobranzas-dashboard';
-import { DollarSign, Briefcase, Activity, Info } from 'lucide-react';
-import type { Entity, UseCase, Kpi } from '@/lib/types';
+import { DollarSign, Briefcase, Activity, Info, Sparkles } from 'lucide-react';
+import type { Entity, UseCase, Kpi, MetricCategory } from '@/lib/types';
+import type { DashboardConfig } from '@/lib/dashboard-config';
 import { format } from 'date-fns';
 import { MetricsHistorySelector } from '@/components/metrics-history-selector';
+
 import { getMetricsHistory, getMetric } from '@/lib/data';
+import { getDashboardConfig } from '@/lib/dashboard-api';
+import { DashboardBuilder } from '@/components/dashboard/builder/DashboardBuilder';
+import { Button } from '@/components/ui/button';
+import { Settings2 } from 'lucide-react';
 
 function isValidDate(dateString: string | undefined): boolean {
     if (!dateString) return false;
@@ -85,18 +92,30 @@ const KpiMetricsDisplay = ({ title, kpis }: { title: string, kpis?: Kpi[] }) => 
     );
 }
 
-const MetricTabContent = ({ entityId, useCaseId, category, descriptions, initialMetrics, isCobranzas }: {
+const MetricTabContent = ({ entityId, useCaseId, category, descriptions, initialMetrics, isCobranzas, dashboardConfig, loadingDashboard, onConfigUpdate }: {
     entityId: string,
     useCaseId: string,
-    category: string,
+    category: MetricCategory,
     descriptions: Record<string, string>,
     initialMetrics?: any,
-    isCobranzas?: boolean
+    isCobranzas?: boolean,
+    dashboardConfig?: DashboardConfig | null,
+    loadingDashboard?: boolean,
+    onConfigUpdate?: (config: DashboardConfig) => void
 }) => {
     const [history, setHistory] = useState<any[]>([]);
     const [selectedId, setSelectedId] = useState<string>('');
-    const [metricsData, setMetricsData] = useState<any>(initialMetrics || {});
+    const [metricsData, setMetricsData] = useState<any[]>(initialMetrics || []);
     const [loading, setLoading] = useState(false);
+    const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+
+    // Extract available columns from metrics data
+    const availableColumns = useMemo(() => {
+        if (metricsData.length > 0 && Array.isArray(metricsData)) {
+            return Object.keys(metricsData[0]).filter(k => k !== 'id' && k !== 'uploadedAt');
+        }
+        return [];
+    }, [metricsData]);
 
     // Fetch history on mount
     useEffect(() => {
@@ -157,8 +176,48 @@ const MetricTabContent = ({ entityId, useCaseId, category, descriptions, initial
                 />
             </div>
 
-            {loading ? (
+            {loading || loadingDashboard ? (
                 <div className="py-12 text-center text-muted-foreground">Cargando métricas...</div>
+            ) : dashboardConfig ? (
+                // Use DynamicDashboard if config exists
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            Dashboard generado automáticamente
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => setIsBuilderOpen(true)}
+                        >
+                            <Settings2 className="h-4 w-4" />
+                            Editar Dashboard
+                        </Button>
+                    </div>
+
+                    <DynamicDashboard
+                        config={dashboardConfig}
+                        metricsData={Array.isArray(metricsData) ? metricsData : []}
+                        history={history}
+                        selectedHistoryId={selectedId}
+                        onHistoryChange={setSelectedId}
+                    />
+
+                    <DashboardBuilder
+                        open={isBuilderOpen}
+                        onOpenChange={setIsBuilderOpen}
+                        initialConfig={dashboardConfig}
+                        entityId={entityId}
+                        useCaseId={useCaseId}
+                        category={category}
+                        onSave={(newConfig) => {
+                            if (onConfigUpdate) onConfigUpdate(newConfig);
+                        }}
+                        availableColumns={availableColumns}
+                    />
+                </div>
             ) : (
                 isCobranzas ? (
                     <CobranzasDashboard
@@ -182,6 +241,40 @@ const MetricTabContent = ({ entityId, useCaseId, category, descriptions, initial
 };
 
 export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase: UseCase }) {
+    const [selectedHistoryId, setSelectedHistoryId] = useState<string>('');
+    const [dashboardConfigs, setDashboardConfigs] = useState<Record<string, DashboardConfig | null>>({});
+    const [loadingDashboard, setLoadingDashboard] = useState(true);
+
+    // Load dashboard configs for all categories
+    useEffect(() => {
+        async function loadDashboardConfigs() {
+            try {
+                const [financialConfig, businessConfig, technicalConfig] = await Promise.all([
+                    getDashboardConfig(entity.id, useCase.id, 'financial'),
+                    getDashboardConfig(entity.id, useCase.id, 'business'),
+                    getDashboardConfig(entity.id, useCase.id, 'technical')
+                ]);
+
+                setDashboardConfigs({
+                    financial: financialConfig,
+                    business: businessConfig,
+                    technical: technicalConfig
+                });
+            } catch (error) {
+                console.error('Error loading dashboard configs:', error);
+            } finally {
+                setLoadingDashboard(false);
+            }
+        }
+        loadDashboardConfigs();
+    }, [entity.id, useCase.id]);
+    const handleConfigUpdate = (category: string, newConfig: DashboardConfig) => {
+        setDashboardConfigs(prev => ({
+            ...prev,
+            [category]: newConfig
+        }));
+    };
+
     const team = [useCase.ds1, useCase.ds2, useCase.ds3, useCase.ds4, useCase.de, useCase.mds].filter(Boolean).join(' - ');
 
     const descriptions = useMemo(() => {
@@ -245,6 +338,9 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                             category="technical"
                             descriptions={descriptions}
                             isCobranzas={isCobranzasUseCase}
+                            dashboardConfig={dashboardConfigs.technical}
+                            loadingDashboard={loadingDashboard}
+                            onConfigUpdate={(config) => handleConfigUpdate('technical', config)}
                         />
                     </TabsContent>
                     <TabsContent value="business">
@@ -253,6 +349,9 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                             useCaseId={useCase.id}
                             category="business"
                             descriptions={descriptions}
+                            dashboardConfig={dashboardConfigs.business}
+                            loadingDashboard={loadingDashboard}
+                            onConfigUpdate={(config) => handleConfigUpdate('business', config)}
                         />
                     </TabsContent>
                     <TabsContent value="financial">
@@ -261,6 +360,9 @@ export function UseCasePageClient({ entity, useCase }: { entity: Entity; useCase
                             useCaseId={useCase.id}
                             category="financial"
                             descriptions={descriptions}
+                            dashboardConfig={dashboardConfigs.financial}
+                            loadingDashboard={loadingDashboard}
+                            onConfigUpdate={(config) => handleConfigUpdate('financial', config)}
                         />
                     </TabsContent>
                 </div>

@@ -15,7 +15,7 @@
     --secondary: 228 13% 90%; /* Neutral Gray 100 #E0E2E7 */
     --secondary-foreground: 228 12% 12%; /* Neutral Black 800 */
     --muted: 228 13% 90%; /* Neutral Gray 100 */
-    --muted-foreground: 222 12% 57%; /* Neutral Gray 400 #858D9D */
+    --muted-foreground: 222 12% 45%; /* Improved contrast - darker */
     --accent: 228 13% 96%; /* Lighter version of Neutral Gray 100 for hovers */
     --accent-foreground: 259 100% 50%; /* Primary Blue */
     --destructive: 0 84.2% 60.2%; /* #EF4444 */
@@ -43,7 +43,7 @@
     --secondary: 228 12% 20%;
     --secondary-foreground: 0 0% 100%;
     --muted: 228 12% 20%;
-    --muted-foreground: 222 12% 65%;
+    --muted-foreground: 222 12% 70%; /* Improved contrast for dark mode */
     --accent: 228 12% 25%;
     --accent-foreground: 259 100% 60%;
     --destructive: 0 70% 50%;
@@ -61,4 +61,23 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  /* Standardized spacing system */
+  .spacing-xs { @apply p-2; }
+  .spacing-sm { @apply p-4; }
+  .spacing-md { @apply p-6; }
+  .spacing-lg { @apply p-8; }
+  .spacing-xl { @apply p-12; }
+  
+  /* Consistent card styling */
+  .card-standard {
+    @apply transition-all duration-200 hover:shadow-lg hover:border-primary;
+  }
+  
+  /* Standardized button sizes */
+  .btn-icon-sm { @apply h-8 w-8; }
+  .btn-icon-md { @apply h-10 w-10; }
+  .btn-icon-lg { @apply h-12 w-12; }
 }

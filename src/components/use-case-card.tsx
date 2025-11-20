@@ -13,10 +13,10 @@ import { MetricsForm } from "./metrics-form";
 export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditing?: boolean }) {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showMetricsForm, setShowMetricsForm] = useState(false);
-  
+
   const estado = useCase.status || 'No definido';
   const tipo = useCase.tipoProyecto || '';
-  
+
   const teamMembers = [
     { label: 'DS1', value: useCase.ds1 },
     { label: 'DS2', value: useCase.ds2 },
@@ -25,7 +25,7 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
     { label: 'DE', value: useCase.de },
     { label: 'MDS', value: useCase.mds },
   ].filter(member => member.value);
-  
+
   const nivelImpacto = useCase.nivelImpactoFinanciero || '';
   const impactoFinanciero = useCase.impactoFinanciero;
   const impactoUnidad = useCase.unidadImpactoFinanciero;
@@ -35,7 +35,7 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
     { name: 'Jira', url: useCase.jiraLink },
     { name: 'Confluence', url: useCase.confluenceLink },
   ].filter(link => link.url);
-  
+
   const getStatusColor = (status: string): string => {
     const statusLower = status.toLowerCase();
     if (statusLower.includes('entregado') || statusLower.includes('finalizado') || statusLower.includes('producción')) return 'bg-green-100 text-green-800 border-green-200';
@@ -43,7 +43,7 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
     if (statusLower.includes('desarrollo') || statusLower.includes('pilotaje')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
-  
+
   const getImpactColor = (nivel: string): string => {
     const nivelLower = (nivel || '').toLowerCase();
     if (nivelLower === 'l4') return 'bg-green-50';
@@ -53,36 +53,36 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
 
   return (
     <>
-      <Card className="group flex flex-col transition-all duration-300 hover:shadow-lg h-full">
-        <CardHeader className="pb-3">
+      <Card className="group flex flex-col card-standard h-full">
+        <CardHeader className="pb-4">
           <div className="flex items-start justify-between gap-2 mb-2">
             <CardTitle className="text-base font-semibold line-clamp-2 flex-1 pr-4">
-               <Link href={`/${useCase.entityId}/casos-uso/${useCase.id}`} className="hover:underline" prefetch={false}>
+              <Link href={`/${useCase.entityId}/casos-uso/${useCase.id}`} className="hover:underline" prefetch={false}>
                 {useCase.name}
               </Link>
             </CardTitle>
-            <div className={`flex gap-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="flex gap-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="btn-icon-sm"
                 onClick={() => setShowEditForm(true)}
                 title="Editar caso de uso"
               >
-                <Pencil className="h-3 w-3" />
+                <Pencil className="h-3.5 w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="btn-icon-sm"
                 onClick={() => setShowMetricsForm(true)}
                 title="Editar métricas"
               >
-                <BarChart3 className="h-3 w-3" />
+                <BarChart3 className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
-        
+
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline" className={`text-xs font-medium ${getStatusColor(estado as string)}`}>
               ● {estado}
@@ -94,8 +94,8 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
             )}
           </div>
         </CardHeader>
-      
-        <CardContent className="flex-grow flex flex-col space-y-4 pt-4">
+
+        <CardContent className="flex-grow flex flex-col space-y-6 pt-6">
           <div className="space-y-4">
             {teamMembers.length > 0 && (
               <div className="space-y-2">
@@ -115,7 +115,7 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
                 </div>
               </div>
             )}
-            
+
             {impactoFinanciero && impactoFinanciero !== '0' && (
               <div className={`rounded-md p-3 ${getImpactColor(nivelImpacto as string)}`}>
                 <div className="text-xs font-medium text-muted-foreground mb-1">
@@ -141,7 +141,7 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
                 </Button>
               ))}
             </div>
-            <Link 
+            <Link
               href={`/${useCase.entityId}/casos-uso/${useCase.id}`}
               className="flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium"
               prefetch={false}
@@ -152,24 +152,24 @@ export function UseCaseCard({ useCase, isEditing }: { useCase: UseCase, isEditin
         </CardContent>
       </Card>
 
-    {showEditForm && (
-      <UseCaseForm
-        useCase={useCase}
-        entityId={useCase.entityId}
-        open={showEditForm}
-        onOpenChange={setShowEditForm}
-        onSuccess={() => window.location.reload()}
-      />
-    )}
+      {showEditForm && (
+        <UseCaseForm
+          useCase={useCase}
+          entityId={useCase.entityId}
+          open={showEditForm}
+          onOpenChange={setShowEditForm}
+          onSuccess={() => window.location.reload()}
+        />
+      )}
 
-    {showMetricsForm && (
-      <MetricsForm
-        useCase={useCase}
-        open={showMetricsForm}
-        onOpenChange={setShowMetricsForm}
-        onSuccess={() => window.location.reload()}
-      />
-    )}
-  </>
+      {showMetricsForm && (
+        <MetricsForm
+          useCase={useCase}
+          open={showMetricsForm}
+          onOpenChange={setShowMetricsForm}
+          onSuccess={() => window.location.reload()}
+        />
+      )}
+    </>
   );
 }

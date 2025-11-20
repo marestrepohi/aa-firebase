@@ -16,44 +16,51 @@ interface HeaderProps {
 export function Header({ entity, title, rightContent }: HeaderProps) {
     const isHomePage = !entity && !title;
     const pageTitle = title || entity?.name || 'Seguimiento Casos de Uso';
-    
+
     return (
         <header className="bg-gradient-to-r from-purple-600 to-blue-600 shadow-md">
-            <div className="relative h-16 flex items-center justify-center">
-                {/* Centered Title */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg text-center px-16 truncate">
-                        {pageTitle}
-                    </span>
-                </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-14 md:h-16">
+                    {/* Left: Back Button */}
+                    <div className="flex-shrink-0 w-10">
+                        {!isHomePage && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                                className="text-white hover:bg-white/20 hover:text-white btn-icon-md"
+                            >
+                                <Link href={entity && !title ? "/" : `/${entity?.id}`}>
+                                    <ChevronLeft className="h-5 w-5" />
+                                    <span className="sr-only">Volver</span>
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
 
-                {/* Container for side buttons, aligned with content */}
-                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="relative flex items-center justify-between h-full">
-                        {/* Left Button */}
-                        <div className="flex-shrink-0">
-                            {!isHomePage && (
-                                <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/20 hover:text-white">
-                                    <Link href={entity && !title ? "/" : `/${entity?.id}`}>
-                                        <ChevronLeft className="h-5 w-5" />
-                                        <span className="sr-only">Volver</span>
-                                    </Link>
-                                </Button>
-                            )}
-                        </div>
+                    {/* Center: Title */}
+                    <div className="flex-1 flex justify-center px-4">
+                        <h1 className="text-white font-bold text-base md:text-lg text-center truncate max-w-full">
+                            {pageTitle}
+                        </h1>
+                    </div>
 
-                        {/* Right Content */}
-                        <div className="flex-shrink-0">
-                             {rightContent ? (
-                                 <div className="text-white">
-                                    {rightContent}
-                                 </div>
-                             ) : isHomePage && (
-                                <div className="flex-shrink-0">
-                                    <Image src="/logo-aa-02.png" alt="Logo" width={80} height={22} unoptimized />
-                                </div>
-                             )}
-                        </div>
+                    {/* Right: Logo or Custom Content */}
+                    <div className="flex-shrink-0 w-10 flex justify-end">
+                        {rightContent ? (
+                            <div className="text-white">
+                                {rightContent}
+                            </div>
+                        ) : isHomePage && (
+                            <Image
+                                src="/logo-aa-02.png"
+                                alt="Logo"
+                                width={60}
+                                height={16}
+                                className="h-4 w-auto md:h-5"
+                                unoptimized
+                            />
+                        )}
                     </div>
                 </div>
             </div>
