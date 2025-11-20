@@ -34,7 +34,6 @@ export const saveMetrics = functions.https.onRequest((req, res) => {
 
             const saveData = {
                 ...metrics,
-                period: docId, // Keep period field as the ID for compatibility if needed, or just use it as display label
                 uploadedAt: timestamp
             };
 

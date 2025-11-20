@@ -51,19 +51,26 @@ export async function getMetricsHistory(
 }
 
 export async function saveMetrics({ entityId, useCaseId, category, metrics }: { entityId: string, useCaseId: string, category?: string, metrics: any }) {
-  const response = await fetch(`${API_URL}/saveMetrics`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ entityId, useCaseId, category, metrics }),
-  });
+  try {
+    const response = await fetch(`${API_URL}/saveMetrics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ entityId, useCaseId, category, metrics }),
+    });
 
-  if (!response.ok) {
-    throw new Error('Failed to save metrics');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Save metrics failed:', response.status, errorText);
+      throw new Error(`Failed to save metrics: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error in saveMetrics:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
 export async function getMetric(entityId: string, useCaseId: string, category: string, metricId: string) {

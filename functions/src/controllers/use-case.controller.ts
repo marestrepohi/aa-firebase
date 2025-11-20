@@ -20,25 +20,12 @@ export const getUseCases = functions.https.onRequest((req, res) => {
                 .collection('useCases')
                 .get();
 
-            const useCases = await Promise.all(useCasesSnapshot.docs.map(async (doc) => {
-                const useCaseData = doc.data();
-                const metricsSnapshot = await doc.ref
-                    .collection('metrics')
-                    .orderBy('period', 'desc')
-                    .limit(1)
-                    .get();
-
-                let metrics = { period: '', general: [], financial: [], business: [], technical: [] };
-                if (!metricsSnapshot.empty) {
-                    metrics = metricsSnapshot.docs[0].data() as any;
-                }
-
+            const useCases = useCasesSnapshot.docs.map((doc) => {
                 return {
                     id: doc.id,
-                    ...useCaseData,
-                    metrics,
+                    ...doc.data(),
                 };
-            }));
+            });
 
             res.json({ success: true, useCases });
         } catch (error) {
@@ -85,30 +72,26 @@ export const getUseCase = functions.https.onRequest((req, res) => {
                 };
             });
 
-            // Fetch latest metrics from all categories
+            // Fetch latest metrics from all categories (order by uploadedAt)
             const [techSnapshot, busSnapshot, finSnapshot, genSnapshot] = await Promise.all([
-                useCaseDoc.ref.collection('technicalMetrics').orderBy('period', 'desc').limit(1).get(),
-                useCaseDoc.ref.collection('businessMetrics').orderBy('period', 'desc').limit(1).get(),
-                useCaseDoc.ref.collection('financialMetrics').orderBy('period', 'desc').limit(1).get(),
-                useCaseDoc.ref.collection('generalInfo').orderBy('period', 'desc').limit(1).get()
+                useCaseDoc.ref.collection('technicalMetrics').orderBy('uploadedAt', 'desc').limit(1).get(),
+                useCaseDoc.ref.collection('businessMetrics').orderBy('uploadedAt', 'desc').limit(1).get(),
+                useCaseDoc.ref.collection('financialMetrics').orderBy('uploadedAt', 'desc').limit(1).get(),
+                useCaseDoc.ref.collection('generalInfo').orderBy('uploadedAt', 'desc').limit(1).get()
             ]);
 
             let metrics = {
-                period: '',
                 general: [],
                 financial: [],
                 business: [],
                 technical: []
             };
 
-            // Helper to merge metrics
+            // Helper to merge metrics (no period tracking)
             const mergeMetrics = (snapshot: FirebaseFirestore.QuerySnapshot) => {
                 if (!snapshot.empty) {
                     const data = snapshot.docs[0].data();
                     metrics = { ...metrics, ...data };
-                    if (data.period && (!metrics.period || data.period > metrics.period)) {
-                        metrics.period = data.period;
-                    }
                 }
             };
 
@@ -181,34 +164,15 @@ export const updateUseCase = functions.https.onRequest((req, res) => {
                     }
                 }
 
-                // Handle metrics distribution to subcollections
-                if (metrics && typeof metrics === 'object') {
-                    for (const [period, periodMetrics] of Object.entries(metrics)) {
-                        if (typeof periodMetrics === 'object' && periodMetrics !== null) {
-                            for (const [category, data] of Object.entries(periodMetrics as Record<string, any>)) {
-                                let collectionName = '';
-                                if (category === 'technical') collectionName = 'technicalMetrics';
-                                else if (category === 'business') collectionName = 'businessMetrics';
-                                else if (category === 'financial') collectionName = 'financialMetrics';
-                                else if (category === 'general') collectionName = 'generalInfo';
+                // NOTE: Metrics are saved via saveMetrics function only.
+                // This updateUseCase function is ONLY for use case metadata, not metrics.
 
-                                if (collectionName) {
-                                    const metricRef = useCaseRef.collection(collectionName).doc(period);
-
-                                    transaction.set(metricRef, { [category]: data, period, updatedAt: timestamp }, { merge: true });
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Save general info snapshot to metrics/generalInfo
-                // This ensures that edits to general info are tracked as metrics history
+                // Save general info snapshot to generalInfo subcollection
+                // This ensures that edits to general info are tracked as history
                 if (Object.keys(useCaseData).length > 0) {
                     const generalInfoRef = useCaseRef.collection('generalInfo').doc(versionId);
                     transaction.set(generalInfoRef, {
                         ...useCaseData,
-                        period: versionId,
                         uploadedAt: timestamp
                     }, { merge: true });
                 }

@@ -53,23 +53,12 @@ exports.getUseCases = functions.https.onRequest((req, res) => {
                 .doc(entityId)
                 .collection('useCases')
                 .get();
-            const useCases = await Promise.all(useCasesSnapshot.docs.map(async (doc) => {
-                const useCaseData = doc.data();
-                const metricsSnapshot = await doc.ref
-                    .collection('metrics')
-                    .orderBy('period', 'desc')
-                    .limit(1)
-                    .get();
-                let metrics = { period: '', general: [], financial: [], business: [], technical: [] };
-                if (!metricsSnapshot.empty) {
-                    metrics = metricsSnapshot.docs[0].data();
-                }
+            const useCases = useCasesSnapshot.docs.map((doc) => {
                 return {
                     id: doc.id,
-                    ...useCaseData,
-                    metrics,
+                    ...doc.data(),
                 };
-            }));
+            });
             res.json({ success: true, useCases });
         }
         catch (error) {
@@ -109,28 +98,24 @@ exports.getUseCase = functions.https.onRequest((req, res) => {
                     uploadedAt: data.uploadedAt?.toDate()?.toISOString()
                 };
             });
-            // Fetch latest metrics from all categories
+            // Fetch latest metrics from all categories (order by uploadedAt)
             const [techSnapshot, busSnapshot, finSnapshot, genSnapshot] = await Promise.all([
-                useCaseDoc.ref.collection('technicalMetrics').orderBy('period', 'desc').limit(1).get(),
-                useCaseDoc.ref.collection('businessMetrics').orderBy('period', 'desc').limit(1).get(),
-                useCaseDoc.ref.collection('financialMetrics').orderBy('period', 'desc').limit(1).get(),
-                useCaseDoc.ref.collection('generalInfo').orderBy('period', 'desc').limit(1).get()
+                useCaseDoc.ref.collection('technicalMetrics').orderBy('uploadedAt', 'desc').limit(1).get(),
+                useCaseDoc.ref.collection('businessMetrics').orderBy('uploadedAt', 'desc').limit(1).get(),
+                useCaseDoc.ref.collection('financialMetrics').orderBy('uploadedAt', 'desc').limit(1).get(),
+                useCaseDoc.ref.collection('generalInfo').orderBy('uploadedAt', 'desc').limit(1).get()
             ]);
             let metrics = {
-                period: '',
                 general: [],
                 financial: [],
                 business: [],
                 technical: []
             };
-            // Helper to merge metrics
+            // Helper to merge metrics (no period tracking)
             const mergeMetrics = (snapshot) => {
                 if (!snapshot.empty) {
                     const data = snapshot.docs[0].data();
                     metrics = { ...metrics, ...data };
-                    if (data.period && (!metrics.period || data.period > metrics.period)) {
-                        metrics.period = data.period;
-                    }
                 }
             };
             mergeMetrics(techSnapshot);
@@ -192,27 +177,16 @@ exports.updateUseCase = functions.https.onRequest((req, res) => {
                         });
                     }
                 }
-                // Handle metrics distribution to subcollections
-                if (metrics && typeof metrics === 'object') {
-                    for (const [period, periodMetrics] of Object.entries(metrics)) {
-                        if (typeof periodMetrics === 'object' && periodMetrics !== null) {
-                            for (const [category, data] of Object.entries(periodMetrics)) {
-                                let collectionName = '';
-                                if (category === 'technical')
-                                    collectionName = 'technicalMetrics';
-                                else if (category === 'business')
-                                    collectionName = 'businessMetrics';
-                                else if (category === 'financial')
-                                    collectionName = 'financialMetrics';
-                                else if (category === 'general')
-                                    collectionName = 'generalInfo';
-                                if (collectionName) {
-                                    const metricRef = useCaseRef.collection(collectionName).doc(period);
-                                    transaction.set(metricRef, { [category]: data, period, updatedAt: timestamp }, { merge: true });
-                                }
-                            }
-                        }
-                    }
+                // NOTE: Metrics are saved via saveMetrics function only.
+                // This updateUseCase function is ONLY for use case metadata, not metrics.
+                // Save general info snapshot to generalInfo subcollection
+                // This ensures that edits to general info are tracked as history
+                if (Object.keys(useCaseData).length > 0) {
+                    const generalInfoRef = useCaseRef.collection('generalInfo').doc(versionId);
+                    transaction.set(generalInfoRef, {
+                        ...useCaseData,
+                        uploadedAt: timestamp
+                    }, { merge: true });
                 }
             });
             res.json({ success: true, message: 'Use case updated successfully with versioning' });
@@ -330,19 +304,23 @@ exports.deleteUploadedFile = functions.https.onCall(async (data, context) => {
             if (!fileDoc.exists) {
                 throw new functions.https.HttpsError('not-found', 'Uploaded file not found.');
             }
-            // const fileData = fileDoc.data()!;
-            // const category = fileData.category;
-            // const filePeriods = fileData.periods || [];
-            // Note: This deletion logic might need update for new subcollections structure
-            // But for now, we'll keep it simple or assume it handles metrics deletion if needed.
-            // Actually, if we moved to subcollections, we should delete from there too.
-            // But let's stick to the current implementation for now to avoid scope creep in refactor.
-            // Wait, the previous implementation was deleting from 'metrics' field in useCase doc?
-            // No, it was updating 'metrics' field in useCase doc.
-            // But now we are using subcollections.
-            // So this logic is actually outdated if we fully switched to subcollections.
-            // However, `getUseCase` merges everything.
-            // Let's leave it as is for now, but add a TODO.
+            const fileData = fileDoc.data();
+            const category = fileData.category;
+            if (category) {
+                let collectionName = '';
+                if (category === 'technical')
+                    collectionName = 'technicalMetrics';
+                else if (category === 'business')
+                    collectionName = 'businessMetrics';
+                else if (category === 'financial')
+                    collectionName = 'financialMetrics';
+                if (collectionName) {
+                    const metricsQuery = await useCaseRef.collection(collectionName).where('fileId', '==', fileId).get();
+                    metricsQuery.docs.forEach((doc) => {
+                        transaction.delete(doc.ref);
+                    });
+                }
+            }
             transaction.delete(fileRef);
         });
         return { success: true, message: 'File deleted successfully.' };
