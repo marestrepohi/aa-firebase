@@ -161,24 +161,24 @@ export function CobranzasDashboard({ metricsData, history, descriptions, selecte
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <KPICard
           title="Total Clientes"
-          value={summary.totalClientes.toLocaleString()}
+          value={summary?.totalClientes?.toLocaleString() ?? '0'}
           icon={Users}
         />
         <KPICard
           title="Tasa de Éxito"
-          value={`${summary.tasaExito.toFixed(1)}%`}
+          value={`${summary?.tasaExito?.toFixed(1) ?? '0.0'}%`}
           subValue="Promedio por segmento"
           icon={Percent}
         />
         <KPICard
           title="Saldo Total"
-          value={`$${(summary.saldoTotal / 1000000).toFixed(1)}M`}
+          value={`$${(summary?.saldoTotal ? summary.saldoTotal / 1000000 : 0).toFixed(1)}M`}
           subValue="Millones de pesos"
           icon={DollarSign}
         />
         <KPICard
           title="Tasa Recuperación"
-          value={`${summary.tasaRecuperacion.toFixed(1)}%`}
+          value={`${summary?.tasaRecuperacion?.toFixed(1) ?? '0.0'}%`}
           subValue="Últimos 3 meses"
           icon={TrendingUp}
         />

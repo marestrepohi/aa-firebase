@@ -18,5 +18,5 @@ require("./firebase"); // Initialize Firebase Admin
 __exportStar(require("./controllers/entity.controller"), exports);
 __exportStar(require("./controllers/use-case.controller"), exports);
 __exportStar(require("./controllers/metrics.controller"), exports);
-// export { saveMetrics, getMetricsHistory, getMetric } from './controllers/metrics.controller'; // Explicitly named export if needed, but * handles it.
+__exportStar(require("./controllers/dashboard.controller"), exports);
 //# sourceMappingURL=index.js.map

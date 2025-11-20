@@ -19,6 +19,10 @@ export default async function UseCasePage({ params }: { params: Promise<{ entity
   }
 
   return (
-    <UseCasePageClientWrapper entity={entity} useCase={useCase} history={history} />
+    <UseCasePageClientWrapper
+      entity={entity}
+      useCase={useCase}
+      initialHistory={history}
+    />
   );
 }

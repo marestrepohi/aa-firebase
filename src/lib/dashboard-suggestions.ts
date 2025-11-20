@@ -41,12 +41,23 @@ export function analyzeCSVColumns(data: any[]): ColumnInfo[] {
 function detectColumnType(columnName: string, sampleValues: any[]): ColumnType {
     const nameLower = columnName.toLowerCase();
 
+    // Specific Technical/DS Column Overrides
+    if (nameLower.includes('decil') || nameLower.includes('segmento') || nameLower.includes('rango')) {
+        return 'category';
+    }
+    if (nameLower === 'ks' || nameLower === 'roc' || nameLower === 'auc' || nameLower === 'psi' || nameLower === 'gini') {
+        return 'number'; // Usually 0-1 or 0-100, but treated as a score
+    }
+    if (nameLower === 'lift') {
+        return 'number';
+    }
+
     // Check name patterns first
     if (nameLower.includes('fecha') || nameLower.includes('date') || nameLower.includes('time')) {
         return 'date';
     }
 
-    if (nameLower.includes('tasa') || nameLower.includes('rate') || nameLower.includes('%') || nameLower.includes('percent')) {
+    if (nameLower.includes('tasa') || nameLower.includes('rate') || nameLower.includes('%') || nameLower.includes('percent') || nameLower.includes('probabilidad')) {
         return 'percentage';
     }
 
@@ -98,21 +109,45 @@ function detectColumnType(columnName: string, sampleValues: any[]): ColumnType {
 export function suggestKPIs(columns: ColumnInfo[]): KPIConfig[] {
     const suggestions: KPIConfig[] = [];
 
+    // Priority metrics for Technical/DS dashboards
+    const priorityMetrics = ['ks', 'roc', 'auc', 'psi', 'lift', 'tasa_buenos', 'tasa_recuperacion', 'tasa_exito'];
+
     // Find numeric/currency/percentage columns for KPIs
     const metricColumns = columns.filter(c =>
         c.type === 'number' || c.type === 'currency' || c.type === 'percentage'
     );
 
+    // Sort columns: Priority metrics first, then others
+    metricColumns.sort((a, b) => {
+        const aIndex = priorityMetrics.findIndex(p => a.name.toLowerCase().includes(p));
+        const bIndex = priorityMetrics.findIndex(p => b.name.toLowerCase().includes(p));
+
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return 0;
+    });
+
     metricColumns.slice(0, 4).forEach((col, index) => {
         const format: MetricFormat = col.type === 'currency' ? 'currency' :
             col.type === 'percentage' ? 'percentage' : 'number';
+
+        // Special handling for aggregation
+        let aggregation: 'sum' | 'avg' | 'min' | 'max' = 'avg';
+        if (col.type === 'currency' || col.name.toLowerCase().includes('total') || col.name.toLowerCase().includes('clientes')) {
+            aggregation = 'sum';
+        }
+        // KS, ROC, PSI should be max or avg, not sum
+        if (['ks', 'roc', 'auc', 'psi'].some(k => col.name.toLowerCase().includes(k))) {
+            aggregation = 'max'; // Usually want the best or latest score
+        }
 
         suggestions.push({
             id: `kpi-${index + 1}`,
             title: formatColumnName(col.name),
             metricKey: col.name,
             format,
-            aggregation: col.type === 'currency' ? 'sum' : 'avg',
+            aggregation,
             icon: getIconForMetric(col.name, col.type)
         });
     });
@@ -132,50 +167,88 @@ export function suggestVisualizations(columns: ColumnInfo[]): VisualizationConfi
         c.type === 'number' || c.type === 'currency' || c.type === 'percentage'
     );
 
-    // Temporal line chart if we have date + metrics
+    // 1. Decile Analysis (Specific for Technical/Risk)
+    const decilColumn = columns.find(c => c.name.toLowerCase().includes('decil'));
+    const tasaBuenos = columns.find(c => c.name.toLowerCase().includes('tasa_buenos') || c.name.toLowerCase().includes('tasa_respuesta'));
+    const distribucion = columns.find(c => c.name.toLowerCase().includes('distribucion'));
+    const lift = columns.find(c => c.name.toLowerCase().includes('lift'));
+
+    if (decilColumn && tasaBuenos) {
+        suggestions.push({
+            id: 'viz-deciles-performance',
+            type: 'bar',
+            title: 'Performance por Decil',
+            description: 'Tasa de Buenos vs Decil de Probabilidad',
+            dataSource: 'current',
+            xAxis: decilColumn.name,
+            yAxis: [tasaBuenos.name, ...(distribucion ? [distribucion.name] : [])]
+        });
+    }
+
+    if (decilColumn && lift) {
+        suggestions.push({
+            id: 'viz-deciles-lift',
+            type: 'line',
+            title: 'Lift por Decil',
+            description: 'Capacidad predictiva del modelo por decil',
+            dataSource: 'current',
+            xAxis: decilColumn.name,
+            yAxis: [lift.name]
+        });
+    }
+
+    // 2. Temporal line chart if we have date + metrics (Standard)
     if (dateColumn && metricColumns.length > 0) {
+        // Prioritize important metrics for time series
+        const timeSeriesMetrics = metricColumns
+            .filter(c => !c.name.toLowerCase().includes('decil')) // Don't plot decil over time usually
+            .slice(0, 3)
+            .map(c => c.name);
+
         suggestions.push({
             id: 'viz-temporal',
             type: 'line',
             title: 'Evolución Temporal',
-            description: 'Tendencia a lo largo del tiempo',
+            description: 'Tendencia de indicadores clave',
             dataSource: 'history',
             xAxis: dateColumn.name,
-            yAxis: metricColumns.slice(0, 3).map(c => c.name)
+            yAxis: timeSeriesMetrics
         });
     }
 
-    // Bar chart for category + metric
-    if (categoryColumns.length > 0 && metricColumns.length > 0) {
-        const categoryCol = categoryColumns[0];
+    // 3. Bar chart for other categories (e.g., Segmento)
+    const otherCategory = categoryColumns.find(c => !c.name.toLowerCase().includes('decil'));
+    if (otherCategory && metricColumns.length > 0) {
         const metricCol = metricColumns[0];
-
         suggestions.push({
             id: 'viz-category-bar',
             type: 'bar',
-            title: `${formatColumnName(metricCol.name)} por ${formatColumnName(categoryCol.name)}`,
-            description: `Distribución por ${formatColumnName(categoryCol.name)}`,
+            title: `${formatColumnName(metricCol.name)} por ${formatColumnName(otherCategory.name)}`,
+            description: `Distribución por ${formatColumnName(otherCategory.name)}`,
             dataSource: 'current',
-            xAxis: categoryCol.name,
+            xAxis: otherCategory.name,
             yAxis: [metricCol.name]
         });
     }
 
-    // Table with all important columns
+    // 4. Table with all important columns
     const importantColumns = [
+        ...(decilColumn ? [decilColumn] : []),
         ...categoryColumns.slice(0, 1),
         ...metricColumns.slice(0, 5)
     ];
+    // Deduplicate
+    const uniqueCols = Array.from(new Set(importantColumns));
 
-    if (importantColumns.length > 0) {
+    if (uniqueCols.length > 0) {
         suggestions.push({
             id: 'viz-table',
             type: 'table',
             title: 'Desglose Detallado',
             description: 'Vista completa de métricas',
             dataSource: 'current',
-            xAxis: importantColumns[0].name,
-            yAxis: importantColumns.slice(1).map(c => c.name)
+            xAxis: uniqueCols[0].name,
+            yAxis: uniqueCols.slice(1).map(c => c.name)
         });
     }
 
@@ -228,9 +301,10 @@ function getIconForMetric(name: string, type: ColumnType): string {
     if (nameLower.includes('cliente') || nameLower.includes('user')) return 'Users';
     if (nameLower.includes('saldo') || nameLower.includes('amount') || type === 'currency') return 'DollarSign';
     if (nameLower.includes('tasa') || nameLower.includes('rate') || type === 'percentage') return 'Percent';
-    if (nameLower.includes('trend') || nameLower.includes('crecimiento')) return 'TrendingUp';
+    if (nameLower.includes('trend') || nameLower.includes('crecimiento') || nameLower.includes('lift')) return 'TrendingUp';
     if (nameLower.includes('total') || nameLower.includes('sum')) return 'Sigma';
     if (nameLower.includes('tiempo') || nameLower.includes('time')) return 'Clock';
+    if (nameLower.includes('ks') || nameLower.includes('roc') || nameLower.includes('psi')) return 'Activity';
 
     return 'Activity';
 }
