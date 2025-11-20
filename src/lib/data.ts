@@ -9,7 +9,31 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001/augusta-edge-project/us-central1';
+import { app } from './firebase';
+
+// Automatically detect Cloud Functions URL from Firebase config
+// Works in any environment: localhost, Firebase Studio, or production hosting
+const getApiUrl = () => {
+  // If NEXT_PUBLIC_API_URL is explicitly set, use it (for custom deployments)
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // Otherwise, construct URL from Firebase app config
+  const projectId = app.options.projectId;
+  const region = 'us-central1'; // Default region for Cloud Functions
+
+  // Check if running in local emulator
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    // Try to connect to local emulator first
+    return `http://127.0.0.1:5001/${projectId}/${region}`;
+  }
+
+  // Use production Cloud Functions URL
+  return `https://${region}-${projectId}.cloudfunctions.net`;
+};
+
+const API_URL = getApiUrl();
 
 async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
   const finalEndpoint = `${API_URL}/${endpoint}`;

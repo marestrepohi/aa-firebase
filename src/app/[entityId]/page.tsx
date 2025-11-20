@@ -4,9 +4,9 @@ import { EntityPageClientWrapper } from '@/components/entity-page-client-wrapper
 
 export const dynamic = 'force-dynamic';
 
-export default async function EntityPage({ params }: { params: { entityId: string } }) {
-  const { entityId } = params;
-  
+export default async function EntityPage({ params }: { params: Promise<{ entityId: string }> }) {
+  const { entityId } = await params;
+
   const [entity, allUseCases] = await Promise.all([
     getEntity(entityId),
     getUseCases(entityId)
@@ -18,5 +18,5 @@ export default async function EntityPage({ params }: { params: { entityId: strin
 
   return (
     <EntityPageClientWrapper entity={entity} initialUseCases={allUseCases} />
-    );
+  );
 }
