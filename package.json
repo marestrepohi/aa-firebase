@@ -13,7 +13,9 @@
     "create-structure": "node scripts/create-project-structure.js",
     "migrate": "npx tsx scripts/migrate-to-firestore.ts",
     "functions:build": "cd functions && npm run build",
-    "functions:deploy": "npx -y -p firebase-tools firebase deploy --only functions"
+    "functions:build": "cd functions && npm run build",
+    "functions:deploy": "npx -y -p firebase-tools firebase deploy --only functions",
+    "emulators": "npx -y -p firebase-tools firebase emulators:start"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",

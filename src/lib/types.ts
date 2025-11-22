@@ -18,7 +18,7 @@ export interface Kpi {
   valoresGenerados?: ValorGenerado[];
 }
 
-export type UseCaseStatus = 
+export type UseCaseStatus =
   | 'Entregado - sin uso'
   | 'Deprecado'
   | 'Finalizado - con uso'
@@ -113,12 +113,21 @@ export interface EntityStats {
   strategic?: number;
 }
 
+export type TeamRole = 'DS' | 'DE' | 'MDS' | 'Lead' | 'Other';
+
+export interface TeamMember {
+  name: string;
+  email?: string;
+  role: TeamRole;
+}
+
 export interface Entity {
   id: string;
   name: string;
   description: string;
   logo: string;
   stats: EntityStats;
+  team?: TeamMember[];
 }
 
 export interface SummaryMetrics {

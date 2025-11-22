@@ -1,6 +1,5 @@
 'use client';
 
-import { Header } from '@/components/header';
 import HomePageClient from './home-page-client';
 import type { Entity, UseCase } from '@/lib/types';
 
@@ -15,7 +14,6 @@ export default function HomePageClientWrapper({ entities, allUseCases }: HomePag
 
   return (
     <>
-      <Header />
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <HomePageClient
           entities={entities}

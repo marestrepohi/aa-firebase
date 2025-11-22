@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { AppShell } from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
   title: 'Aval IA',
@@ -25,9 +26,9 @@ export default async function RootLayout({
       </head>
       <body className="font-body antialiased bg-slate-50">
         <FirebaseErrorListener />
-        <main className="min-h-screen">
+        <AppShell>
           {children}
-        </main>
+        </AppShell>
         <Toaster />
       </body>
     </html>

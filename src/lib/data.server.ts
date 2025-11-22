@@ -10,43 +10,43 @@ const serializeDate = (timestamp: admin.firestore.Timestamp | undefined): string
 }
 
 const formatDateForDisplay = (dateString: string | undefined): string => {
-    if (!dateString) return '';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString; // Return original if invalid
-        
-        // Add a day to counteract timezone issues if the date is just YYYY-MM-DD
-        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          date.setDate(date.getDate() + 1);
-        }
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // Return original if invalid
 
-        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-    } catch {
-        return dateString; // Return original on error
+    // Add a day to counteract timezone issues if the date is just YYYY-MM-DD
+    if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      date.setDate(date.getDate() + 1);
     }
+
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+  } catch {
+    return dateString; // Return original on error
+  }
 };
 
 const serializeObject = (obj: any) => {
-    if (!obj) return obj;
-    const newObj: any = { ...obj };
-    for (const key in newObj) {
-      if (newObj[key] instanceof admin.firestore.Timestamp) {
-        newObj[key] = serializeDate(newObj[key]);
-      } else if (Array.isArray(newObj[key])) {
-        newObj[key] = newObj[key].map(serializeObject);
-      }
-       else if (typeof newObj[key] === 'object' && newObj[key] !== null) {
-        newObj[key] = serializeObject(newObj[key]);
-      }
+  if (!obj) return obj;
+  const newObj: any = { ...obj };
+  for (const key in newObj) {
+    if (newObj[key] instanceof admin.firestore.Timestamp) {
+      newObj[key] = serializeDate(newObj[key]);
+    } else if (Array.isArray(newObj[key])) {
+      newObj[key] = newObj[key].map(serializeObject);
     }
-    return newObj;
+    else if (typeof newObj[key] === 'object' && newObj[key] !== null) {
+      newObj[key] = serializeObject(newObj[key]);
+    }
+  }
+  return newObj;
 }
 
 // Helper function to calculate entity stats efficiently
 async function calculateEntityStats(allUseCases: admin.firestore.QueryDocumentSnapshot[]): Promise<Record<string, any>> {
   const statsByEntity: Record<string, any> = {};
 
-  const metricsPromises = allUseCases.map(doc => 
+  const metricsPromises = allUseCases.map(doc =>
     doc.ref.collection('metrics').orderBy('period', 'desc').limit(1).get()
   );
   const metricsSnapshots = await Promise.all(metricsPromises);
@@ -107,6 +107,7 @@ async function getEntitiesFromFirestore(): Promise<Entity[]> {
       name: entityData.name,
       description: entityData.description,
       logo: entityData.logo,
+      team: entityData.team || [],
       stats: {
         ...stats,
         alerts: 0, // Placeholder
@@ -126,7 +127,7 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
   const useCases = await Promise.all(useCasesSnapshot.docs.map(async doc => {
     const useCaseData = doc.data();
     const uploadedFilesSnapshot = await doc.ref.collection('uploadedFiles').orderBy('uploadedAt', 'desc').get();
-    
+
     const uploadedFiles = uploadedFilesSnapshot.docs.map(fileDoc => {
       const data = fileDoc.data();
       return {
@@ -153,10 +154,10 @@ async function getUseCasesFromFirestore(entityId: string): Promise<UseCase[]> {
       metricsConfig: useCaseData.metricsConfig,
       uploadedFiles: uploadedFiles,
     } as UseCase;
-    
+
     delete (useCase as any).updatedAt;
     delete (useCase as any).createdAt;
-    
+
     return useCase;
   }));
 
@@ -215,10 +216,10 @@ export async function getAllUseCases(): Promise<UseCase[]> {
       metricsConfig: useCaseData.metricsConfig,
       uploadedFiles: uploadedFiles,
     } as UseCase;
-    
+
     delete (useCase as any).updatedAt;
     delete (useCase as any).createdAt;
-    
+
     return useCase;
   }));
 
@@ -275,27 +276,27 @@ function createIdFromName(name: string): string {
 }
 
 export async function getUseCaseHistory(entityId: string, useCaseId: string): Promise<any[]> {
-    try {
-        const historySnapshot = await adminDb
-            .collection('entities')
-            .doc(entityId as string)
-            .collection('useCases')
-            .doc(useCaseId as string)
-            .collection('history')
-            .orderBy('versionedAt', 'desc')
-            .get();
-        
-        const history = historySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                versionId: doc.id,
-                versionedAt: serializeDate(data.versionedAt),
-            };
-        });
+  try {
+    const historySnapshot = await adminDb
+      .collection('entities')
+      .doc(entityId as string)
+      .collection('useCases')
+      .doc(useCaseId as string)
+      .collection('history')
+      .orderBy('versionedAt', 'desc')
+      .get();
 
-        return history;
-    } catch (error) {
-        console.error('Error getting use case history:', error);
-        return [];
-    }
+    const history = historySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        versionId: doc.id,
+        versionedAt: serializeDate(data.versionedAt),
+      };
+    });
+
+    return history;
+  } catch (error) {
+    console.error('Error getting use case history:', error);
+    return [];
+  }
 }
