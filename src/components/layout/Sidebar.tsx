@@ -28,7 +28,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
 
     const menuItems = [
         {
-            title: 'Dashboard Global',
+            title: 'Casos de Uso',
             href: '/',
             icon: LayoutDashboard
         },

@@ -52,15 +52,33 @@ const COLORS = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1'];
 export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps) {
     const [selectedEntity, setSelectedEntity] = useState<string>('all');
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [selectedProjectType, setSelectedProjectType] = useState<string>('all');
+    const [selectedDevType, setSelectedDevType] = useState<string>('all');
+    const [selectedSuite, setSelectedSuite] = useState<string>('all');
+
+    // Extract unique values for filters
+    const projectTypes = useMemo(() => Array.from(new Set(allUseCases.map(uc => uc.tipoProyecto).filter(Boolean))), [allUseCases]);
+    const devTypes = useMemo(() => Array.from(new Set(allUseCases.map(uc => uc.tipoDesarrollo).filter(Boolean))), [allUseCases]);
+    const suites = useMemo(() => Array.from(new Set(allUseCases.map(uc => uc.suite).filter(Boolean))), [allUseCases]);
 
     // Filter Logic
     const filteredUseCases = useMemo(() => {
         return allUseCases.filter(uc => {
             const matchesEntity = selectedEntity === 'all' || uc.entityId === selectedEntity;
             const matchesStatus = selectedStatus === 'all' || uc.highLevelStatus === selectedStatus;
-            return matchesEntity && matchesStatus;
+            const matchesProjectType = selectedProjectType === 'all' || uc.tipoProyecto === selectedProjectType;
+            const matchesDevType = selectedDevType === 'all' || uc.tipoDesarrollo === selectedDevType;
+            const matchesSuite = selectedSuite === 'all' || uc.suite === selectedSuite;
+
+            const searchLower = searchQuery.toLowerCase();
+            const matchesSearch = searchQuery === '' ||
+                uc.name.toLowerCase().includes(searchLower) ||
+                (uc.objetivo && uc.objetivo.toLowerCase().includes(searchLower));
+
+            return matchesEntity && matchesStatus && matchesProjectType && matchesDevType && matchesSuite && matchesSearch;
         });
-    }, [allUseCases, selectedEntity, selectedStatus]);
+    }, [allUseCases, selectedEntity, selectedStatus, selectedProjectType, selectedDevType, selectedSuite, searchQuery]);
 
     // Calculate Aggregated Metrics (Based on Filtered Data)
     const totalUseCases = filteredUseCases.length;
@@ -134,43 +152,73 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header & Filters */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard Global</h1>
-                    <p className="text-slate-500">
-                        Visión general del portafolio de casos de uso.
-                    </p>
-                </div>
+            <div className="flex flex-col gap-4">
 
-                <div className="flex items-center gap-2">
-                    <div className="w-[200px]">
-                        <Select value={selectedEntity} onValueChange={setSelectedEntity}>
-                            <SelectTrigger>
-                                <Building2 className="w-4 h-4 mr-2 text-slate-500" />
-                                <SelectValue placeholder="Filtrar por Entidad" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todas las Entidades</SelectItem>
-                                {entities.map(e => (
-                                    <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                {/* Filter Bar */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                    {/* Search */}
+                    <div className="relative col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-2">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-500" />
+                        <input
+                            placeholder="Buscar casos..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-8 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
                     </div>
-                    <div className="w-[180px]">
-                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                            <SelectTrigger>
-                                <Filter className="w-4 h-4 mr-2 text-slate-500" />
-                                <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos los Estados</SelectItem>
-                                <SelectItem value="Activo">Activo</SelectItem>
-                                <SelectItem value="Estrategico">Estratégico</SelectItem>
-                                <SelectItem value="Inactivo">Inactivo</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+
+                    {/* Status Filter */}
+                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                        <SelectTrigger>
+                            <Filter className="w-4 h-4 mr-2 text-slate-500" />
+                            <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos los Estados</SelectItem>
+                            <SelectItem value="Activo">Activo</SelectItem>
+                            <SelectItem value="Estrategico">Estratégico</SelectItem>
+                            <SelectItem value="Inactivo">Inactivo</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Project Type Filter */}
+                    <Select value={selectedProjectType} onValueChange={setSelectedProjectType}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Tipo Proyecto" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos Tipos Proyecto</SelectItem>
+                            {projectTypes.map(type => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* Dev Type Filter */}
+                    <Select value={selectedDevType} onValueChange={setSelectedDevType}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Tipo Desarrollo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todos Tipos Des.</SelectItem>
+                            {devTypes.map(type => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* Suite Filter */}
+                    <Select value={selectedSuite} onValueChange={setSelectedSuite}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Suite" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas las Suites</SelectItem>
+                            {suites.map(s => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 

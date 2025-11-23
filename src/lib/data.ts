@@ -90,18 +90,59 @@ export async function getEntities(): Promise<Entity[]> {
       const data = doc.data();
       const stats = statsByEntity[doc.id] || { active: 0, inactive: 0, strategic: 0, total: 0, scientists: 0 };
 
-      // Calculate scientists from team array if available
-      const teamSize = Array.isArray(data.team) ? data.team.length : 0;
+      // Aggregate team members from use cases for this entity
+      const teamMap = new Map<string, TeamMember>();
+
+      // Add existing team members from entity doc if any
+      if (Array.isArray(data.team)) {
+        data.team.forEach((member: TeamMember) => {
+          if (member.email) teamMap.set(member.email, member);
+          else if (member.name) teamMap.set(member.name, member);
+        });
+      }
+
+      // Scan use cases for this entity to find more team members
+      useCasesSnapshot.docs.forEach(ucDoc => {
+        const uc = ucDoc.data();
+        const ucEntityId = uc.entityId || ucDoc.ref.path.split('/')[1];
+
+        if (ucEntityId === doc.id) {
+          // Helper to add member if not exists
+          const addMember = (name: string, role: string) => {
+            if (!name || name === '0' || name.trim() === '') return;
+            // Simple ID generation or use email if available (CSVs usually just have names)
+            // We'll use name as key since we don't have emails in CSV for these fields usually
+            const key = name.trim();
+            if (!teamMap.has(key)) {
+              teamMap.set(key, {
+                name: key,
+                email: '', // No email in CSV for these fields usually
+                role: role as any,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(key)}&background=random`
+              });
+            }
+          };
+
+          addMember(uc.ds1, 'Data Scientist');
+          addMember(uc.ds2, 'Data Scientist');
+          addMember(uc.de, 'Data Engineer');
+          addMember(uc.mds, 'Lead Data Scientist');
+          addMember(uc.po, 'Product Owner');
+          addMember(uc.lead, 'Lead');
+        }
+      });
+
+      const aggregatedTeam = Array.from(teamMap.values());
 
       return {
         id: doc.id,
         name: data.name,
         description: data.description,
         logo: data.logo,
-        team: data.team || [],
+        team: aggregatedTeam,
         stats: {
           ...stats,
-          scientists: teamSize, // Use team array size for scientist count
+          scientists: aggregatedTeam.filter(m => m.role === 'Data Scientist' || m.role === 'Lead Data Scientist').length,
           alerts: 0,
           totalImpact: 0,
           inDevelopment: stats.active
