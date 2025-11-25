@@ -57,19 +57,19 @@ export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
     }, [pathname, isMobile, setIsOpen]);
 
     const SidebarContent = () => (
-        <div className="flex flex-col h-full bg-slate-900 text-white">
+        <div className="flex flex-col h-full bg-white border-r border-slate-200 text-slate-900">
             {/* Logo Area */}
-            <div className="h-16 flex items-center px-6 border-b border-slate-800">
+            <div className="h-16 flex items-center px-6 border-b border-slate-200">
                 <div className="flex items-center gap-3">
                     <div className="relative w-8 h-8">
                         <Image
-                            src="/logo-aa-02.png"
+                            src="/logo-aa-01.png"
                             alt="Logo"
                             fill
-                            className="object-contain brightness-0 invert"
+                            className="object-contain"
                         />
                     </div>
-                    <span className="font-bold text-lg tracking-tight">Aval IA</span>
+                    <span className="font-bold text-lg tracking-tight text-slate-900">Aval IA</span>
                 </div>
             </div>
 
@@ -84,27 +84,27 @@ export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
                             className={cn(
                                 "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
                                 isActive
-                                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/20"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                    ? "bg-primary/10 text-primary font-semibold"
+                                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                             )}
                         >
-                            <item.icon className={cn("h-5 w-5", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
+                            <item.icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-slate-500 group-hover:text-slate-900")} />
                             <span className="font-medium text-sm">{item.title}</span>
-                            {isActive && <ChevronRight className="ml-auto h-4 w-4 opacity-50" />}
+                            {isActive && <ChevronRight className="ml-auto h-4 w-4 text-primary/50" />}
                         </Link>
                     );
                 })}
             </nav>
 
             {/* User Profile / Footer */}
-            <div className="p-4 border-t border-slate-800">
-                <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-slate-800/50">
-                    <div className="h-8 w-8 rounded-full bg-purple-500 flex items-center justify-center text-xs font-bold">
+            <div className="p-4 border-t border-slate-200">
+                <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                         AD
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">Admin User</p>
-                        <p className="text-xs text-slate-400 truncate">admin@aval.ia</p>
+                        <p className="text-sm font-medium truncate text-slate-900">Admin User</p>
+                        <p className="text-xs text-slate-500 truncate">admin@aval.ia</p>
                     </div>
                 </div>
             </div>
@@ -125,7 +125,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
                 {/* Mobile Drawer */}
                 <aside
                     className={cn(
-                        "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 transition-transform duration-300 ease-in-out lg:hidden",
+                        "fixed inset-y-0 left-0 z-50 w-64 bg-white transition-transform duration-300 ease-in-out lg:hidden",
                         isOpen ? "translate-x-0" : "-translate-x-full"
                     )}
                 >
@@ -137,7 +137,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
 
     // Desktop Sidebar
     return (
-        <aside className="hidden lg:flex flex-col w-64 fixed inset-y-0 left-0 z-30 border-r border-slate-200 bg-slate-900">
+        <aside className="hidden lg:flex flex-col w-64 fixed inset-y-0 left-0 z-30 bg-white">
             <SidebarContent />
         </aside>
     );
