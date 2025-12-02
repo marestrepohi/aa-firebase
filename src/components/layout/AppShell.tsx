@@ -11,12 +11,16 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
     // Handle responsive check
     useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 1024);
+            if (window.innerWidth < 1024) {
+                setIsDesktopCollapsed(false);
+            }
         };
 
         checkMobile();
@@ -31,10 +35,12 @@ export function AppShell({ children }: AppShellProps) {
                 isOpen={isSidebarOpen}
                 setIsOpen={setIsSidebarOpen}
                 isMobile={isMobile}
+                isCollapsed={isDesktopCollapsed}
+                toggleCollapse={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
             />
 
             {/* Main Content Wrapper */}
-            <div className="flex-1 flex flex-col min-w-0 lg:pl-64 transition-all duration-300">
+            <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
 
                 {/* Mobile Header Trigger */}
                 <div className="lg:hidden sticky top-0 z-20 bg-white border-b px-4 h-16 flex items-center justify-between">
