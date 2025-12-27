@@ -14,7 +14,11 @@ import {
     ChevronLeft,
     ChevronRight,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    TrendingUp,
+    TrendingDown,
+    RotateCcw,
+    Zap
 } from 'lucide-react';
 import {
     BarChart,
@@ -27,7 +31,8 @@ import {
     PieChart,
     Pie,
     Cell,
-    Legend
+    Legend,
+    LabelList
 } from 'recharts';
 import {
     Select,
@@ -55,6 +60,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 
 interface GlobalDashboardProps {
@@ -115,6 +122,15 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
     const [selectedProjectType, setSelectedProjectType] = useState<string>('all');
     const [selectedDevType, setSelectedDevType] = useState<string>('all');
     const [selectedSuite, setSelectedSuite] = useState<string>('all');
+
+    const handleResetFilters = () => {
+        setSearchQuery('');
+        setSelectedEntity('all');
+        setSelectedStatus('all');
+        setSelectedProjectType('all');
+        setSelectedDevType('all');
+        setSelectedSuite('all');
+    };
 
     // Table specific state
     const [tableSearchQuery, setTableSearchQuery] = useState<string>('');
@@ -215,51 +231,70 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
         : entities.filter(e => e.id === selectedEntity);
 
     const activeCount = filteredUseCases.filter(uc => uc.highLevelStatus === 'Activo').length;
-    const strategicCount = filteredUseCases.filter(uc => uc.highLevelStatus === 'Estrategico').length;
     const inactiveCount = filteredUseCases.filter(uc => uc.highLevelStatus === 'Inactivo').length;
 
-    // Prepare Chart Data: Use Cases by Entity (Top 5 from filtered set)
+    // Prepare Chart Data: Use Cases by Entity (Stacked by Status)
     const casesByEntityData = relevantEntities
         .map(e => {
             const entityCases = filteredUseCases.filter(uc => uc.entityId === e.id);
             return {
                 name: e.name,
-                cases: entityCases.length,
-                active: entityCases.filter(uc => uc.highLevelStatus === 'Activo').length
+                Activo: entityCases.filter(uc => uc.highLevelStatus === 'Activo').length,
+                Inactivo: entityCases.filter(uc => uc.highLevelStatus === 'Inactivo').length,
+                total: entityCases.length
             };
         })
-        .sort((a, b) => b.cases - a.cases)
-        .slice(0, 10);
+        .filter(d => d.total > 0)
+        .sort((a, b) => b.total - a.total);
+
+    const chartHeight = Math.max(250, casesByEntityData.length * 30);
 
     // Prepare Chart Data: Status Distribution
     const statusData = [
         { name: 'Activos', value: activeCount },
-        { name: 'Estratégicos', value: strategicCount },
         { name: 'Inactivos', value: inactiveCount },
     ].filter(d => d.value > 0);
+
+    const STATUS_COLORS = ['#10b981', '#94a3b8']; // Activos (Emerald), Inactivos (Slate)
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Dashboard Global</h2>
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-[#1a1c1e]">Dashboard Global</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleResetFilters}
+                        className="text-slate-500 hover:text-[#8b5cf6] hover:bg-[#8b5cf6]/5 gap-2 transition-all duration-300"
+                    >
+                        <RotateCcw className="h-4 w-4" />
+                        Limpiar Filtros
+                    </Button>
+                </div>
             </div>
-
-            {/* Filters Section */}
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-                <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                    <input
-                        type="text"
+            {/* Filters Section - Compact 3x2 Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+                {/* Row 1 */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                        id="search"
                         placeholder="Buscar por nombre o objetivo..."
-                        className="pl-8 pr-4 py-2 border rounded-md w-full text-sm"
+                        className="pl-10 bg-white border-slate-200 h-10"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
 
                 <Select value={selectedEntity} onValueChange={setSelectedEntity}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filtrar por Entidad" />
+                    <SelectTrigger className="bg-white border-slate-200 h-10">
+                        <div className="flex gap-2 items-center truncate">
+                            <span className="font-semibold text-slate-500 shrink-0">Entidad:</span>
+                            <SelectValue placeholder="Todas" />
+                        </div>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todas las Entidades</SelectItem>
@@ -270,21 +305,26 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
                 </Select>
 
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filtrar por Estado" />
+                    <SelectTrigger className="bg-white border-slate-200 h-10">
+                        <div className="flex gap-2 items-center truncate">
+                            <span className="font-semibold text-slate-500 shrink-0">Estado:</span>
+                            <SelectValue placeholder="Todos" />
+                        </div>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todos los Estados</SelectItem>
                         <SelectItem value="Activo">Activo</SelectItem>
                         <SelectItem value="Inactivo">Inactivo</SelectItem>
-                        <SelectItem value="Estrategico">Estratégico</SelectItem>
-                        {/* Add other statuses as needed */}
                     </SelectContent>
                 </Select>
 
+                {/* Row 2 */}
                 <Select value={selectedProjectType} onValueChange={setSelectedProjectType}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Tipo de Proyecto" />
+                    <SelectTrigger className="bg-white border-slate-200 h-10">
+                        <div className="flex gap-2 items-center truncate">
+                            <span className="font-semibold text-slate-500 shrink-0">Tipo:</span>
+                            <SelectValue placeholder="Todos" />
+                        </div>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
@@ -295,8 +335,11 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
                 </Select>
 
                 <Select value={selectedDevType} onValueChange={setSelectedDevType}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Tipo de Desarrollo" />
+                    <SelectTrigger className="bg-white border-slate-200 h-10">
+                        <div className="flex gap-2 items-center truncate">
+                            <span className="font-semibold text-slate-500 shrink-0">Desarrollo:</span>
+                            <SelectValue placeholder="Todos" />
+                        </div>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
@@ -307,8 +350,11 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
                 </Select>
 
                 <Select value={selectedSuite} onValueChange={setSelectedSuite}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Suite" />
+                    <SelectTrigger className="bg-white border-slate-200 h-10">
+                        <div className="flex gap-2 items-center truncate">
+                            <span className="font-semibold text-slate-500 shrink-0">Suite:</span>
+                            <SelectValue placeholder="Todas" />
+                        </div>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todas</SelectItem>
@@ -356,33 +402,50 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
                         <CardTitle>Volumen de Casos {selectedEntity !== 'all' ? '(Entidad Actual)' : 'por Entidad'}</CardTitle>
                     </CardHeader>
                     <CardContent className="pl-2">
-                        <div className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={casesByEntityData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis
-                                        dataKey="name"
-                                        stroke="#888888"
-                                        fontSize={12}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
-                                    />
-                                    <YAxis
-                                        stroke="#888888"
-                                        fontSize={12}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickFormatter={(value) => `${value}`}
-                                    />
-                                    <Tooltip
-                                        cursor={{ fill: 'transparent' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                    />
-                                    <Bar dataKey="cases" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Total Casos" />
-                                    <Bar dataKey="active" fill="#10b981" radius={[4, 4, 0, 0]} name="Casos Activos" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <div className="overflow-y-auto overflow-x-hidden pr-4" style={{ maxHeight: '260px' }}>
+                            <div style={{ height: `${chartHeight}px`, width: '100%' }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={casesByEntityData}
+                                        layout="vertical"
+                                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                                        <XAxis
+                                            type="number"
+                                            hide={true}
+                                            domain={[0, 'dataMax + 2']}
+                                        />
+                                        <YAxis
+                                            dataKey="name"
+                                            type="category"
+                                            stroke="#64748B"
+                                            fontSize={11}
+                                            fontWeight={500}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            width={140}
+                                            tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(226, 232, 240, 0.4)' }}
+                                            contentStyle={{
+                                                borderRadius: '12px',
+                                                border: 'none',
+                                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                                padding: '12px'
+                                            }}
+                                        />
+                                        <Legend verticalAlign="bottom" align="center" height={36} />
+                                        <Bar dataKey="Activo" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]}>
+                                            <LabelList dataKey="Activo" position="center" fill="#fff" fontSize={10} fontWeight="bold" formatter={(v: number) => v > 0 ? v : ''} />
+                                        </Bar>
+                                        <Bar dataKey="Inactivo" stackId="a" fill="#94a3b8" radius={[0, 4, 4, 0]}>
+                                            <LabelList dataKey="Inactivo" position="center" fill="#fff" fontSize={10} fontWeight="bold" formatter={(v: number) => v > 0 ? v : ''} />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     </CardContent>
                 </Card >
@@ -404,13 +467,24 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
                                         outerRadius={80}
                                         paddingAngle={5}
                                         dataKey="value"
+                                        label={({ value, percent }) => `${value} (${(percent * 100).toFixed(1)}%)`}
+                                        labelLine={false}
                                     >
                                         {statusData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip />
-                                    <Legend verticalAlign="bottom" height={36} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(value: number) => [
+                                            `${value} (${((value / (activeCount + inactiveCount)) * 100).toFixed(1)}%)`,
+                                            'Casos'
+                                        ]}
+                                    />
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        align="center"
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
