@@ -1,54 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getEntities } from '@/lib/data';
-import { Entity, TeamRole } from '@/lib/types';
-import { Loader2, User, Building2, Briefcase } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from 'next/link';
-
-interface Scientist {
-    name: string;
-    role: TeamRole;
-    entities: { id: string; name: string }[];
-}
+import { TeamMember } from '@/lib/types';
+import { Loader2, Users } from 'lucide-react';
+import { TeamTableEditor } from '@/components/team/TeamTableEditor';
+import { useToast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function TeamPage() {
-    const [scientists, setScientists] = useState<Scientist[]>([]);
+    const [team, setTeam] = useState<TeamMember[]>([]);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         const loadTeam = async () => {
             try {
-                const entities = await getEntities();
-                const scientistMap = new Map<string, { role: TeamRole; entities: { id: string; name: string }[] }>();
-
-                entities.forEach(entity => {
-                    if (entity.team && Array.isArray(entity.team)) {
-                        entity.team.forEach(member => {
-                            // Handle both legacy string[] and new TeamMember[]
-                            const name = typeof member === 'string' ? member : member.name;
-                            const role = typeof member === 'string' ? 'DS' : member.role;
-
-                            const current = scientistMap.get(name) || { role, entities: [] };
-                            current.entities.push({ id: entity.id, name: entity.name });
-                            // Update role if it was default but now has specific
-                            if (current.role === 'DS' && role !== 'DS') {
-                                current.role = role;
-                            }
-                            scientistMap.set(name, current);
-                        });
-                    }
-                });
-
-                const scientistList: Scientist[] = Array.from(scientistMap.entries()).map(([name, data]) => ({
-                    name,
-                    role: data.role,
-                    entities: data.entities
-                })).sort((a, b) => a.name.localeCompare(b.name));
-
-                setScientists(scientistList);
+                const response = await fetch('/api/team');
+                if (response.ok) {
+                    const data = await response.json();
+                    setTeam(data);
+                } else {
+                    console.error('Failed to fetch team');
+                }
             } catch (error) {
                 console.error("Failed to load team", error);
             } finally {
@@ -59,12 +33,49 @@ export default function TeamPage() {
         loadTeam();
     }, []);
 
+    const handleSaveTeam = async (newTeam: TeamMember[]) => {
+        setSaving(true);
+        // Optimistic update
+        setTeam(newTeam);
+
+        try {
+            const response = await fetch('/api/team', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ team: newTeam }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save changes');
+            }
+            toast({
+                title: "Éxito",
+                description: "Cambios guardados correctamente",
+            });
+        } catch (error) {
+            console.error('Error saving team:', error);
+            toast({
+                title: "Error",
+                description: "Error al guardar los cambios",
+                variant: "destructive",
+            });
+            // Revert on error? For now, we keep optimistic state but warn user.
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Directorio de Equipo</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                    <Users className="h-8 w-8 text-purple-600" />
+                    Directorio de Equipo
+                </h1>
                 <p className="text-slate-500">
-                    Vista global de todos los científicos y miembros de equipo asignados a las entidades.
+                    Gestiona los miembros del equipo, sus roles y nombres. Estos cambios se guardan globalmente.
                 </p>
             </div>
 
@@ -72,51 +83,14 @@ export default function TeamPage() {
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
                 </div>
-            ) : scientists.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg border border-dashed">
-                    <User className="mx-auto h-12 w-12 text-slate-300" />
-                    <h3 className="mt-2 text-sm font-semibold text-slate-900">No hay miembros de equipo</h3>
-                    <p className="mt-1 text-sm text-slate-500">Asigna científicos a las entidades para verlos aquí.</p>
-                </div>
             ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {scientists.map((scientist) => (
-                        <Card key={scientist.name} className="hover:shadow-md transition-shadow">
-                            <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                                    <User className="h-5 w-5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <CardTitle className="text-base font-medium truncate" title={scientist.name}>
-                                        {scientist.name}
-                                    </CardTitle>
-                                    <div className="flex items-center gap-1 mt-1">
-                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 gap-1">
-                                            <Briefcase className="h-3 w-3" />
-                                            {scientist.role}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2 mt-2">
-                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Asignado a:</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {scientist.entities.map(entity => (
-                                            <Link key={entity.id} href={`/${entity.id}`}>
-                                                <Badge variant="outline" className="hover:bg-slate-100 cursor-pointer gap-1">
-                                                    <Building2 className="h-3 w-3" />
-                                                    {entity.name}
-                                                </Badge>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                <TeamTableEditor
+                    team={team}
+                    onSave={handleSaveTeam}
+                    saving={saving}
+                />
             )}
+            <Toaster />
         </div>
     );
 }

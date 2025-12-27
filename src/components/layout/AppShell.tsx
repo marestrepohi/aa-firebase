@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface AppShellProps {
     children: React.ReactNode;
@@ -14,7 +15,6 @@ export function AppShell({ children }: AppShellProps) {
     const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
-    // Handle responsive check
     useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth < 1024);
@@ -29,7 +29,7 @@ export function AppShell({ children }: AppShellProps) {
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-50 flex">
+        <div className="min-h-screen bg-background flex">
             {/* Sidebar */}
             <Sidebar
                 isOpen={isSidebarOpen}
@@ -40,27 +40,26 @@ export function AppShell({ children }: AppShellProps) {
             />
 
             {/* Main Content Wrapper */}
-            <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
+            <div className={cn(
+                "flex-1 flex flex-col min-w-0 transition-all duration-200",
+                isDesktopCollapsed ? 'lg:pl-16' : 'lg:pl-56'
+            )}>
 
-                {/* Mobile Header Trigger */}
-                <div className="lg:hidden sticky top-0 z-20 bg-white border-b px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setIsSidebarOpen(true)}
-                        >
-                            <Menu className="h-6 w-6 text-slate-700" />
-                        </Button>
-                        <span className="font-bold text-lg text-slate-800">Aval IA</span>
-                    </div>
+                {/* Mobile Header */}
+                <div className="lg:hidden sticky top-0 z-20 bg-white border-b border-border h-12 flex items-center px-4">
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setIsSidebarOpen(true)}
+                    >
+                        <Menu className="h-5 w-5" />
+                    </Button>
+                    <span className="ml-3 font-semibold text-sm">Analítica Avanzada</span>
                 </div>
 
                 {/* Page Content */}
-                <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
-                    <div className="max-w-7xl mx-auto w-full">
-                        {children}
-                    </div>
+                <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">
+                    {children}
                 </main>
             </div>
         </div>

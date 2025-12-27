@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe System - Interactive & Polished</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { DEFAULT: '#5303FF', hover: '#4202CC', light: '#F0EBFF' },
+                        neutral: { black: '#1A1C21', gray400: '#858D9D', gray100: '#E0E2E7', white: '#FFFFFF' },
+                        state: { success: '#22C55E', warning: '#F59E0B', error: '#EF4444' }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(26, 28, 33, 0.05)',
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+                        'scale-in': 'scaleIn 0.2s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #F9FAFB; }
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #E0E2E7; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #858D9D; }
+        
+        /* Clase para animar elementos en secuencia */
+        .stagger-1 { animation-delay: 100ms; }
+        .stagger-2 { animation-delay: 200ms; }
+        .stagger-3 { animation-delay: 300ms; }
+    </style>
+</head>
+<body class="text-neutral-black p-6 lg:p-12 min-h-screen flex flex-col items-center">
+
+    <!-- Toast Notification Container (Fixed) -->
+    <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-3">
+        <!-- Los toasts se inyectarán aquí con JS -->
+    </div>
+
+    <div class="max-w-6xl w-full">
+        
+        <!-- Header con Animación -->
+        <div class="mb-12 opacity-0 animate-fade-in-up">
+            <h1 class="text-4xl font-bold tracking-tight mb-2 flex items-center gap-2">
+                Vibe System <span class="bg-brand text-white text-xs px-2 py-1 rounded-md uppercase tracking-wider">v2.0</span>
+            </h1>
+            <p class="text-neutral-gray400 text-lg">Interactive, Accessible & Motion-enhanced.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- COLUMNA 1: FORMULARIO INTERACTIVO -->
+            <div class="lg:col-span-1 opacity-0 animate-fade-in-up stagger-1">
+                <div class="bg-white p-6 rounded-2xl shadow-soft border border-neutral-gray100 h-full relative overflow-hidden group">
+                    <!-- Decoración de fondo sutil -->
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700"></div>
+
+                    <h3 class="font-semibold text-lg mb-6 relative z-10">User Settings</h3>
+
+                    <form onsubmit="event.preventDefault(); showToast();" class="space-y-5 relative z-10">
+                        <!-- Input con Floating Label vibe -->
+                        <div class="group">
+                            <label class="block text-xs font-medium text-neutral-gray400 mb-1.5 group-focus-within:text-brand transition-colors">Full Name</label>
+                            <div class="relative">
+                                <i class="ph ph-user absolute left-3 top-3 text-neutral-gray400 group-focus-within:text-brand transition-colors"></i>
+                                <input type="text" placeholder="John Doe" class="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-neutral-gray100 rounded-lg text-sm focus:bg-white focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all outline-none" required>
+                            </div>
+                        </div>
+
+                        <!-- Dropdown Interactivo -->
+                        <div class="group relative">
+                            <label class="block text-xs font-medium text-neutral-gray400 mb-1.5">Role</label>
+                            <button type="button" id="dropdown-btn" class="w-full px-3 py-2.5 bg-white border border-neutral-gray100 rounded-lg text-sm flex justify-between items-center hover:border-brand/50 transition-colors focus:ring-4 focus:ring-brand/10 outline-none">
+                                <span id="selected-option">Select Role...</span>
+                                <i class="ph ph-caret-down text-neutral-gray400 transition-transform duration-300" id="dropdown-icon"></i>
+                            </button>
+                            
+                            <!-- Dropdown Menu (Glassmorphism) -->
+                            <div id="dropdown-menu" class="hidden absolute top-full left-0 right-0 mt-2 bg-white/90 backdrop-blur-md border border-neutral-gray100 rounded-xl shadow-glass z-20 overflow-hidden animate-scale-in origin-top">
+                                <div class="p-1">
+                                    <div class="px-3 py-2 text-sm hover:bg-brand/5 hover:text-brand rounded-lg cursor-pointer transition-colors" onclick="selectOption('Admin')">Admin</div>
+                                    <div class="px-3 py-2 text-sm hover:bg-brand/5 hover:text-brand rounded-lg cursor-pointer transition-colors" onclick="selectOption('Editor')">Editor</div>
+                                    <div class="px-3 py-2 text-sm hover:bg-brand/5 hover:text-brand rounded-lg cursor-pointer transition-colors" onclick="selectOption('Viewer')">Viewer</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Toggle Switch -->
+                        <div class="flex items-center justify-between py-2">
+                            <span class="text-sm font-medium text-neutral-black">Notifications</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
+                            </label>
+                        </div>
+
+                        <!-- Botón con Micro-interacción -->
+                        <button type="submit" class="w-full py-2.5 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand-hover active:scale-95 transition-all shadow-lg shadow-brand/25 flex justify-center items-center gap-2">
+                            <i class="ph ph-floppy-disk"></i> Save Changes
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- COLUMNA 2: DATA DISPLAY (Cards & Stats) -->
+            <div class="lg:col-span-2 space-y-6 opacity-0 animate-fade-in-up stagger-2">
+                
+                <!-- Stat Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <!-- Card 1 -->
+                    <div class="bg-white p-5 rounded-2xl border border-neutral-gray100 shadow-sm hover:shadow-md transition-shadow cursor-default">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-brand/10 rounded-lg text-brand"><i class="ph ph-users text-xl"></i></div>
+                            <span class="text-xs font-medium text-state-success bg-state-success/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <i class="ph ph-trend-up"></i> 12%
+                            </span>
+                        </div>
+                        <h4 class="text-2xl font-bold text-neutral-black">1,240</h4>
+                        <p class="text-xs text-neutral-gray400">Total Users</p>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="bg-white p-5 rounded-2xl border border-neutral-gray100 shadow-sm hover:shadow-md transition-shadow cursor-default">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-purple-100 rounded-lg text-purple-600"><i class="ph ph-currency-dollar text-xl"></i></div>
+                            <span class="text-xs font-medium text-state-success bg-state-success/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <i class="ph ph-trend-up"></i> 8%
+                            </span>
+                        </div>
+                        <h4 class="text-2xl font-bold text-neutral-black">$42.5k</h4>
+                        <p class="text-xs text-neutral-gray400">Revenue</p>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="bg-white p-5 rounded-2xl border border-neutral-gray100 shadow-sm hover:shadow-md transition-shadow cursor-default">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="p-2 bg-orange-100 rounded-lg text-orange-600"><i class="ph ph-warning text-xl"></i></div>
+                            <span class="text-xs font-medium text-state-error bg-state-error/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <i class="ph ph-trend-down"></i> 2%
+                            </span>
+                        </div>
+                        <h4 class="text-2xl font-bold text-neutral-black">18</h4>
+                        <p class="text-xs text-neutral-gray400">Pending Issues</p>
+                    </div>
+                </div>
+
+                <!-- Complex List Component -->
+                <div class="bg-white rounded-2xl border border-neutral-gray100 shadow-soft overflow-hidden">
+                    <div class="px-6 py-4 border-b border-neutral-gray100 flex justify-between items-center">
+                        <h3 class="font-semibold">Recent Activity</h3>
+                        <button class="text-xs text-brand font-medium hover:underline">View All</button>
+                    </div>
+                    <div class="divide-y divide-neutral-gray100">
+                        <!-- Item 1 -->
+                        <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">JD</div>
+                                <div>
+                                    <p class="text-sm font-medium text-neutral-black group-hover:text-brand transition-colors">John Doe updated profile</p>
+                                    <p class="text-xs text-neutral-gray400">2 mins ago</p>
+                                </div>
+                            </div>
+                            <i class="ph ph-caret-right text-neutral-gray400 group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                        <!-- Item 2 -->
+                        <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-xs font-bold text-brand">AS</div>
+                                <div>
+                                    <p class="text-sm font-medium text-neutral-black group-hover:text-brand transition-colors">Alice Smith uploaded a file</p>
+                                    <p class="text-xs text-neutral-gray400">1 hour ago</p>
+                                </div>
+                            </div>
+                            <i class="ph ph-caret-right text-neutral-gray400 group-hover:translate-x-1 transition-transform"></i>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- Logic for Custom Dropdown ---
+        const dropdownBtn = document.getElementById('dropdown-btn');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const dropdownIcon = document.getElementById('dropdown-icon');
+        const selectedOptionText = document.getElementById('selected-option');
+        let isOpen = false;
+
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isOpen = !isOpen;
+            toggleDropdown();
+        });
+
+        function toggleDropdown() {
+            if (isOpen) {
+                dropdownMenu.classList.remove('hidden');
+                dropdownIcon.style.transform = 'rotate(180deg)';
+                dropdownBtn.classList.add('border-brand');
+            } else {
+                dropdownMenu.classList.add('hidden');
+                dropdownIcon.style.transform = 'rotate(0deg)';
+                dropdownBtn.classList.remove('border-brand');
+            }
+        }
+
+        function selectOption(option) {
+            selectedOptionText.textContent = option;
+            selectedOptionText.classList.add('text-neutral-black');
+            selectedOptionText.classList.remove('text-neutral-gray400');
+            isOpen = false;
+            toggleDropdown();
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                isOpen = false;
+                toggleDropdown();
+            }
+        });
+
+        // --- Logic for Toast Notifications ---
+        function showToast() {
+            const container = document.getElementById('toast-container');
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'bg-white border-l-4 border-state-success p-4 rounded-lg shadow-xl flex items-center gap-3 min-w-[300px] animate-scale-in';
+            toast.innerHTML = `
+                <div class="bg-state-success/10 p-1.5 rounded-full text-state-success">
+                    <i class="ph ph-check-circle text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-neutral-black">Success</h4>
+                    <p class="text-xs text-neutral-gray400">Changes saved successfully.</p>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

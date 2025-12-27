@@ -78,7 +78,8 @@ export default function EntityPageClient({ entity, initialUseCases, isEditing }:
   }, [filteredUseCases]);
 
   return (
-    <div className="space-y-4 py-8">
+    <div className="space-y-6 mt-4">
+      {/* Filters - Compact design */}
       <EntityFilters
         onFilterChange={setFilters}
         estadoAltoNivelOptions={filterOptions.estadosAltoNivel}
@@ -88,16 +89,38 @@ export default function EntityPageClient({ entity, initialUseCases, isEditing }:
         suiteOptions={filterOptions.suites}
         currentFilters={filters}
       />
+
+      {/* Stats Panel */}
       <EntityStatsPanel stats={stats} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+      {/* Use Case Grid with staggered animations */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
         {filteredUseCases.length > 0 ? (
-          filteredUseCases.map((useCase) => (
-            <UseCaseCard key={useCase.id} useCase={useCase} isEditing={isEditing} />
+          filteredUseCases.map((useCase, index) => (
+            <div
+              key={useCase.id}
+              className="animate-fade-in-up opacity-0"
+              style={{
+                animationDelay: `${Math.min(index * 30, 300)}ms`,
+                animationFillMode: 'forwards'
+              }}
+            >
+              <UseCaseCard useCase={useCase} isEditing={isEditing} />
+            </div>
           ))
         ) : (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            No se encontraron casos de uso con los filtros seleccionados
+          <div className="col-span-full text-center py-16">
+            <div className="max-w-md mx-auto">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
+                <span className="text-2xl">🔍</span>
+              </div>
+              <p className="text-muted-foreground font-medium">
+                No se encontraron casos de uso
+              </p>
+              <p className="text-sm text-muted-foreground/70 mt-1">
+                Intenta ajustar los filtros seleccionados
+              </p>
+            </div>
           </div>
         )}
       </div>

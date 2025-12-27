@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Header } from '@/components/header';
+import { PageTitle } from '@/components/page-title';
 import EntityPageClient from '@/app/[entityId]/entity-page-client';
 import { EntityForm } from '@/components/entity-form';
 import { Button } from '@/components/ui/button';
@@ -9,42 +9,55 @@ import { Pencil, Check } from 'lucide-react';
 import type { Entity, UseCase } from '@/lib/types';
 
 interface EntityPageClientWrapperProps {
-  entity: Entity;
-  initialUseCases: UseCase[];
+    entity: Entity;
+    initialUseCases: UseCase[];
 }
 
 export function EntityPageClientWrapper({ entity, initialUseCases }: EntityPageClientWrapperProps) {
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
-  return (
-    <>
-      <Header 
-        entity={entity}
-        rightContent={
-          <Button variant="ghost" size="icon" onClick={() => setIsEditing(!isEditing)}>
-            {isEditing ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Pencil className="h-4 w-4" />
+    return (
+        <>
+            <PageTitle
+                title={entity.name}
+                subtitle={entity.description}
+                breadcrumbs={[
+                    { label: 'Inicio', href: '/' },
+                    { label: entity.name }
+                ]}
+                rightContent={
+                    <Button
+                        variant={isEditing ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIsEditing(!isEditing)}
+                        className="gap-2"
+                    >
+                        {isEditing ? (
+                            <>
+                                <Check className="h-4 w-4" />
+                                Listo
+                            </>
+                        ) : (
+                            <>
+                                <Pencil className="h-4 w-4" />
+                                Editar
+                            </>
+                        )}
+                    </Button>
+                }
+            />
+
+            <EntityPageClient entity={entity} initialUseCases={initialUseCases} isEditing={isEditing} />
+
+            {showEditForm && (
+                <EntityForm
+                    entity={entity}
+                    open={showEditForm}
+                    onOpenChange={setShowEditForm}
+                    onSuccess={() => window.location.reload()}
+                />
             )}
-            <span className="sr-only">{isEditing ? 'Finalizar Edición' : 'Editar Casos de Uso'}</span>
-          </Button>
-        }
-      />
-      
-      <div className="mx-auto px-4 sm:px-6 lg:px-8">
-        <EntityPageClient entity={entity} initialUseCases={initialUseCases} isEditing={isEditing} />
-      </div>
-      
-      {showEditForm && (
-        <EntityForm
-          entity={entity}
-          open={showEditForm}
-          onOpenChange={setShowEditForm}
-          onSuccess={() => window.location.reload()}
-        />
-      )}
-    </>
-  );
+        </>
+    );
 }

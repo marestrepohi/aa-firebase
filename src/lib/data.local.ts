@@ -20,7 +20,12 @@ function ensureDirectoryExists(dirPath: string): void {
 function readJsonFile<T>(filePath: string, defaultValue: T): T {
     try {
         if (fs.existsSync(filePath)) {
+            // console.log(`Reading file: ${filePath}`);
             const content = fs.readFileSync(filePath, 'utf-8');
+            if (!content || content.trim() === '') {
+                console.error(`EMPTY FILE DETECTED: ${filePath}`);
+                return defaultValue;
+            }
             return JSON.parse(content) as T;
         }
     } catch (error) {
@@ -276,7 +281,7 @@ export async function getUseCases(entityId: string): Promise<UseCase[]> {
 
 export async function getUseCase(entityId: string, useCaseId: string): Promise<UseCase | undefined> {
     const useCases = await getUseCases(entityId);
-    return useCases.find(uc => uc.id === useCaseId);
+    return useCases.find(uc => uc.id.toLowerCase() === useCaseId.toLowerCase());
 }
 
 export async function getAllUseCases(): Promise<UseCase[]> {
@@ -629,4 +634,59 @@ export async function getSummaryMetrics(): Promise<SummaryMetrics> {
         dataScientists: totalScientists,
         totalImpact: '0',
     };
+}
+
+// ============================================================================
+// Team Operations (New)
+// ============================================================================
+
+function getTeamPath(): string {
+    return path.join(DATA_PATH, 'team.json');
+}
+
+export async function getTeam(): Promise<TeamMember[]> {
+    const teamPath = getTeamPath();
+    let team = readJsonFile<TeamMember[]>(teamPath, []);
+
+    // If no team file exists or it's empty, seed from existing use cases
+    if (!team || team.length === 0) {
+        console.log('Seeding team from existing use cases...');
+        const allUseCases = await getAllUseCases();
+        const memberMap = new Map<string, TeamMember>();
+
+        allUseCases.forEach(uc => {
+            if (uc.ds1 && uc.ds1 !== '0' && uc.ds1.trim()) {
+                const name = uc.ds1.trim();
+                if (!memberMap.has(name)) memberMap.set(name, { name, role: 'DS' });
+            }
+            if (uc.de && uc.de !== '0' && uc.de.trim()) {
+                const name = uc.de.trim();
+                if (!memberMap.has(name)) memberMap.set(name, { name, role: 'DE' });
+            }
+            if (uc.mds && uc.mds !== '0' && uc.mds.trim()) {
+                const name = uc.mds.trim();
+                if (!memberMap.has(name)) memberMap.set(name, { name, role: 'MDS' });
+            }
+        });
+
+        team = Array.from(memberMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+        // Save the seeded team so we don't re-seed next time
+        if (team.length > 0) {
+            writeJsonFile(teamPath, team);
+        }
+    }
+
+    return team;
+}
+
+export async function saveTeam(team: TeamMember[]): Promise<{ success: boolean }> {
+    try {
+        const teamPath = getTeamPath();
+        writeJsonFile(teamPath, team);
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving team:', error);
+        throw error;
+    }
 }

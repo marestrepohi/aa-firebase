@@ -55,6 +55,7 @@ export interface UseCase {
   id: string;
   entityId: string;
   name: string;
+  description?: string;
   etapa: string;
   status: UseCaseStatus;
   highLevelStatus: 'Activo' | 'Inactivo' | 'Estrategico' | string;
