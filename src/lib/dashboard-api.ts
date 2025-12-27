@@ -1,11 +1,10 @@
 // Client-side helpers for dashboard config management
+// Using local JSON storage via API routes
 
 import type { DashboardConfig } from './dashboard-config';
-import { db } from './firebase';
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 /**
- * Save dashboard configuration to Firestore
+ * Save dashboard configuration via API
  */
 export async function saveDashboardConfig(
     entityId: string,
@@ -14,12 +13,21 @@ export async function saveDashboardConfig(
     config: DashboardConfig
 ): Promise<{ success: boolean; message?: string }> {
     try {
-        const docRef = doc(db, 'entities', entityId, 'useCases', useCaseId, 'dashboardConfigs', category);
+        const response = await fetch('/api/dashboard-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'save',
+                entityId,
+                useCaseId,
+                category,
+                config,
+            }),
+        });
 
-        await setDoc(docRef, {
-            ...config,
-            updatedAt: serverTimestamp()
-        }, { merge: true });
+        if (!response.ok) {
+            throw new Error('Failed to save dashboard config');
+        }
 
         return { success: true, message: 'Dashboard config saved successfully' };
     } catch (error: any) {
@@ -29,7 +37,7 @@ export async function saveDashboardConfig(
 }
 
 /**
- * Get dashboard configuration from Firestore
+ * Get dashboard configuration via API
  */
 export async function getDashboardConfig(
     entityId: string,
@@ -37,13 +45,15 @@ export async function getDashboardConfig(
     category: string
 ): Promise<DashboardConfig | null> {
     try {
-        const docRef = doc(db, 'entities', entityId, 'useCases', useCaseId, 'dashboardConfigs', category);
-        const snapshot = await getDoc(docRef);
+        const params = new URLSearchParams({ entityId, useCaseId, category });
+        const response = await fetch(`/api/dashboard-config?${params.toString()}`);
 
-        if (snapshot.exists()) {
-            return snapshot.data() as DashboardConfig;
+        if (!response.ok) {
+            return null;
         }
-        return null;
+
+        const data = await response.json();
+        return data as DashboardConfig;
     } catch (error) {
         console.error('Error getting dashboard config:', error);
         return null;
@@ -51,27 +61,26 @@ export async function getDashboardConfig(
 }
 
 /**
- * Delete dashboard configuration from Firestore
+ * Delete dashboard configuration via API
  */
 export async function deleteDashboardConfig(
     entityId: string,
     useCaseId: string
 ): Promise<{ success: boolean }> {
     try {
-        // Note: This deletes the 'default' category config or needs a specific category.
-        // The original API might have deleted all configs or a specific one.
-        // Assuming 'default' or 'technical' for now based on usage, or we might need to list and delete.
-        // For safety/simplicity in this refactor, we'll delete the 'technical' one as it's the most common,
-        // or we should update the signature to accept category if needed.
-        // However, looking at the original code, it took entityId and useCaseId.
-        // Let's assume it deletes the main config.
+        const response = await fetch('/api/dashboard-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'delete',
+                entityId,
+                useCaseId,
+            }),
+        });
 
-        // Strategy: Delete the 'technical' config as a default fallback if no category provided in original API
-        // But better: let's try to delete the collection or specific known docs.
-        // For now, let's delete 'technical' as it's the primary one.
-
-        const docRef = doc(db, 'entities', entityId, 'useCases', useCaseId, 'dashboardConfigs', 'technical');
-        await deleteDoc(docRef);
+        if (!response.ok) {
+            throw new Error('Failed to delete dashboard config');
+        }
 
         return { success: true };
     } catch (error: any) {

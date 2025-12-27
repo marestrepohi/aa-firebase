@@ -44,10 +44,10 @@
   "jiraLink": "",
   "jiraActividades": "",
   "confluenceLink": "",
-  "objetivo": "prueba",
-  "solucion": "prueba",
-  "dolores": "prueba",
-  "riesgos": "prueba",
+  "objetivo": "",
+  "solucion": "",
+  "dolores": "",
+  "riesgos": "",
   "impactoEsperado": "",
   "impactoGenerado": "",
   "roadmap": [
@@ -71,5 +71,7 @@
   "kpis": [],
   "metrics": {},
   "createdAt": "2025-12-27T16:30:22.620Z",
-  "updatedAt": "2025-12-27T16:42:00.803Z"
+  "updatedAt": "2025-12-27T16:30:22.620Z",
+  "versionId": "v1766853720802",
+  "versionedAt": "2025-12-27T16:42:00.803Z"
 }
