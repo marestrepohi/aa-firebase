@@ -1,0 +1,10 @@
+{
+  "id": "multibank",
+  "name": "Multibank",
+  "description": "Entidad financiera",
+  "logo": "https://www.multibank.com.pa/sites/default/files/gallery/promocionnes/multibank_logo-promotion.png",
+  "color": "#7c2d12",
+  "team": [],
+  "createdAt": "2025-09-02 19:30:52.431514+00",
+  "updatedAt": "2025-09-08 23:55:03.82475+00"
+}

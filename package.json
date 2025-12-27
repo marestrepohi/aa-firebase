@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "create-structure": "node scripts/create-project-structure.js",
     "migrate": "npx tsx scripts/migrate-to-firestore.ts",
-    "functions:build": "cd functions && npm run build",
+    "migrate:local": "npx tsx scripts/migrate-to-local.ts",
     "functions:build": "cd functions && npm run build",
     "functions:deploy": "npx -y -p firebase-tools firebase deploy --only functions",
     "emulators": "npx -y -p firebase-tools firebase emulators:start"
