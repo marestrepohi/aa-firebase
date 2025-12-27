@@ -9,7 +9,12 @@ import {
     Users,
     AlertTriangle,
     Filter,
-    Search
+    Search,
+    ArrowUpDown,
+    ChevronLeft,
+    ChevronRight,
+    ArrowUp,
+    ArrowDown
 } from 'lucide-react';
 import {
     BarChart,
@@ -111,6 +116,12 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
     const [selectedDevType, setSelectedDevType] = useState<string>('all');
     const [selectedSuite, setSelectedSuite] = useState<string>('all');
 
+    // Table specific state
+    const [tableSearchQuery, setTableSearchQuery] = useState<string>('');
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [pageSize] = useState<number>(10);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
     // Extract unique values for filters
     const projectTypes = useMemo(() => Array.from(new Set(allUseCases.map(uc => uc.tipoProyecto).filter(Boolean))), [allUseCases]);
     const devTypes = useMemo(() => Array.from(new Set(allUseCases.map(uc => uc.tipoDesarrollo).filter(Boolean))), [allUseCases]);
@@ -133,6 +144,57 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
             return matchesEntity && matchesStatus && matchesProjectType && matchesDevType && matchesSuite && matchesSearch;
         });
     }, [allUseCases, selectedEntity, selectedStatus, selectedProjectType, selectedDevType, selectedSuite, searchQuery]);
+
+    // Table Logic: Search, Sort, Paginate
+    const tableData = useMemo(() => {
+        let result = [...filteredUseCases];
+
+        // 1. Table Specific Search
+        if (tableSearchQuery) {
+            const searchLower = tableSearchQuery.toLowerCase();
+            result = result.filter(uc =>
+                uc.name.toLowerCase().includes(searchLower) ||
+                (uc.objetivo && uc.objetivo.toLowerCase().includes(searchLower))
+            );
+        }
+
+        // 2. Sorting
+        if (sortConfig) {
+            result.sort((a, b) => {
+                let aVal: any = a[sortConfig.key as keyof UseCase];
+                let bVal: any = b[sortConfig.key as keyof UseCase];
+
+                if (sortConfig.key === 'entityName') {
+                    aVal = entities.find(e => e.id === a.entityId)?.name || '';
+                    bVal = entities.find(e => e.id === b.entityId)?.name || '';
+                }
+
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        return result;
+    }, [filteredUseCases, tableSearchQuery, sortConfig, entities]);
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: string) => {
+        if (!sortConfig || sortConfig.key !== key) return <ArrowUpDown className="h-3 w-3 ml-1 text-slate-400" />;
+        return sortConfig.direction === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+    };
+
+    const totalItems = tableData.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const paginatedData = tableData.slice(startIndex, startIndex + pageSize);
 
     // Calculate Aggregated Metrics (Based on Filtered Data)
     const totalUseCases = filteredUseCases.length;
@@ -357,9 +419,21 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
             </div >
 
             {/* Use Cases List Table */}
-            < Card >
-                <CardHeader>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                     <CardTitle>Listado de Casos de Uso</CardTitle>
+                    <div className="relative w-64">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-500" />
+                        <input
+                            placeholder="Filtrar esta tabla..."
+                            value={tableSearchQuery}
+                            onChange={(e) => {
+                                setTableSearchQuery(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="rounded-md border">
@@ -367,21 +441,42 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Caso de Uso</TableHead>
-                                    <TableHead>Entidad</TableHead>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead>Etapa</TableHead>
+                                    <TableHead
+                                        className="cursor-pointer hover:bg-slate-50 select-none"
+                                        onClick={() => handleSort('entityName')}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Entidad {getSortIcon('entityName')}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead
+                                        className="cursor-pointer hover:bg-slate-50 select-none"
+                                        onClick={() => handleSort('highLevelStatus')}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Estado {getSortIcon('highLevelStatus')}
+                                        </div>
+                                    </TableHead>
+                                    <TableHead
+                                        className="cursor-pointer hover:bg-slate-50 select-none"
+                                        onClick={() => handleSort('etapa')}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Etapa {getSortIcon('etapa')}
+                                        </div>
+                                    </TableHead>
                                     <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredUseCases.length === 0 ? (
+                                {paginatedData.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="h-24 text-center">
-                                            No se encontraron casos de uso con los filtros seleccionados.
+                                            No se encontraron casos de uso.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredUseCases.slice(0, 10).map((uc) => {
+                                    paginatedData.map((uc) => {
                                         const entityName = entities.find(e => e.id === uc.entityId)?.name || 'Desconocida';
                                         return (
                                             <TableRow key={uc.id}>
@@ -417,13 +512,42 @@ export function GlobalDashboard({ entities, allUseCases }: GlobalDashboardProps)
                             </TableBody>
                         </Table>
                     </div>
-                    {filteredUseCases.length > 10 && (
-                        <div className="mt-4 text-center text-sm text-slate-500">
-                            Mostrando 10 de {filteredUseCases.length} casos. Usa los filtros para refinar.
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between space-x-2 py-4">
+                            <div className="text-sm text-slate-500">
+                                Mostrando {startIndex + 1}-{Math.min(startIndex + pageSize, totalItems)} de {totalItems} casos
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="h-8 w-8 p-0"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    <span className="sr-only">Anterior</span>
+                                </Button>
+                                <div className="text-sm font-medium">
+                                    Página {currentPage} de {totalPages}
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="h-8 w-8 p-0"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                    <span className="sr-only">Siguiente</span>
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </CardContent>
-            </Card >
+            </Card>
         </div >
     );
 }
